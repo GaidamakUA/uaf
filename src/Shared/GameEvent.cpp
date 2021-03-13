@@ -16,32 +16,32 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ******************************************************************************/
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 //#include "..\Shared\Version.h"
 //#include "..\UAFwinEd\resource.h"
 #ifdef UAFEDITOR
 #include "..\UAFWinEd\resource.h"
 #else
-#include "..\UAFWin\Resource.h"
+#include "../UAFWin/resource.h"
 #endif
-#include "externs.h"
+#include "Externs.h"
 
 //#include "externs.h"
 #include "class.h"
 #include "GameEvent.h"
-#include "monster.h"
+#include "Monster.h"
 #include "Level.h"
-#include "party.h"
+#include "Party.h"
 #include "GlobalData.h"
 #include "SoundMgr.h"
-#include "..\Shared\GPDLopCodes.h"
+#include "../Shared/GPDLOpCodes.h"
 #include "GPDLexec.h"
-#include "GPDLComp.h"
+#include "GPDLcomp.h"
 
-#include "..\UAFwinEd\CrossReference.h"
+#include "../UAFWinEd/CrossReference.h"
 
 #ifdef UAFEngine
-#include "..\UAFWin\Combatants.h"
+#include "../UAFWin/Combatants.h"
 #endif
 
 #ifdef UAFEDITOR

@@ -137,6 +137,8 @@ bool Movie::Create(const char *szFilename, CDXSurface *pSurface)
 #ifdef avicrash
   WriteDebugString("Movie::Create - AVIFileOpen()\n");
 #endif
+// Regression
+/*
   if (AVIFileOpen(&aviFile, szFilename, OF_SHARE_DENY_NONE, NULL)==0)
   {
     AVIFILEINFO aviInfo;
@@ -153,6 +155,7 @@ bool Movie::Create(const char *szFilename, CDXSurface *pSurface)
                         m_srcRect.right,m_srcRect.bottom);
     }
   }
+*/
   return true;
 }
 

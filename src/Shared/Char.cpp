@@ -16,7 +16,7 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ******************************************************************************/
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 
 #ifdef UAFEDITOR
 //#include "..\UAFWinEd\UAFWinEd.h"
@@ -30,11 +30,11 @@
 #include "GlobalData.h"
 
 
-#include "..\UAFWin\Dungeon.h"
+#include "../UAFWin/Dungeon.h"
 #include "GameEvent.h"
-#include "..\UAFWin\disptext.h"
-#include "..\UAFWin\FormattedText.h"
-#include "..\UAFWin\Combatant.h"
+#include "../UAFWin/Disptext.h"
+#include "../UAFWin/FormattedText.h"
+#include "../UAFWin/Combatant.h"
 #endif
 
 #include "items.h"
