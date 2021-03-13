@@ -16,29 +16,25 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ******************************************************************************/
-#include "..\shared\stdafx.h"
+#include "../Shared/stdafx.h"
 //#include "externs.h"
-
-#pragma warning(disable:4091)
 
 #ifdef UAFEDITOR
 // editor specific includes
-#include "..\UAFWinEd\UAFWinEd.h"
-#include "..\UAFWinEd\GlobText.h"
-#include "..\UAFWinEd\PreviewFileDlg.h"
+#include "../UAFWinEd/UAFWinEd.h"
+#include "../UAFWinEd/Globtext.h"
+#include "../UAFWinEd/PreviewFileDlg.h"
 #include <shlobj.h>
 #include "io.h"
-#include "..\UAFWinEd\Resource.h"
 //#include "ASL.h"
 #else
 // engine specific includes
-#include "..\UAFWin\Dungeon.h"
-#include "..\UAFWin\FormattedText.h"
-#include "..\UAFWin\GameMenu.h"
-#include "..\UAFWin\Combatants.h"
-#include "..\UAFWin\GetInput.h"
-#include "..\UAFWin\CProcInp.h"
-#include "..\UAFWin\Resource.h"
+#include "../UAFWin/Dungeon.h"
+#include "../UAFWin/FormattedText.h"
+#include "../UAFWin/GameMenu.h"
+#include "../UAFWin/Combatants.h"
+#include "../UAFWin/Getinput.h"
+#include "../UAFWin/CProcinp.h"
 #endif
 
 // shared folder includes
@@ -55,15 +51,10 @@
 #include "FileParse.h"
 #include "Viewport.h"
 #include "SoundMgr.h"
-#include "party.h"
+#include "Party.h"
 #include "StackWalker.h"
-//#include "..\UAFWinEd\Resource.h"
-//#include "..\UAFWinEd\ImportWarning.h"
-#include "..\UAFWinEd\ImportWarning.h"
-
-
-extern int DEFAULT_COMBAT_STAT_X;
-extern int DEFAULT_COMBAT_STAT_Y;
+#include "../UAFWinEd/resource.h"
+#include "../UAFWinEd/ImportWarning.h"
 
 extern int setPartyXY_x;
 extern CString errorText;
@@ -121,9 +112,8 @@ extern const double VersionSpellIDs =  0.998100;
  */
 extern const double VersionSaveIDs = 0.998914;
 
-extern const double PRODUCT_VER = 5.28; //09OCt2020//2OCt2015//22July2015
-//extern const double ENGINE_VER = 1.0304;  //13October2014
-extern const double ENGINE_VER = 5.28;  //27Jan2016
+extern const double PRODUCT_VER = 1.0107; //13October2014
+extern const double ENGINE_VER = 1.0109;  //13October2014
 
 
 extern unsigned int gamedatSignature;
@@ -164,6 +154,11 @@ CString ArchiveBlank = "*";//Replacement for empty strings in CArchive file.
 //CString ArchiveBlank = "";
 
 //extern CString configMsg;
+#ifdef SIMPLE_STRUCTURE
+#else
+CString EditorArt = "";
+CString EditorArt2 = "";
+#endif
 CString CommonCharSave = "";
 CString UAInstallPath = "";
 CString cmdPlayfileName;
@@ -198,21 +193,14 @@ BOOL PlayEffectsDuringEvents = TRUE;
 BOOL	bActive = TRUE;   		// is application active?
 BOOL  bGameServer = TRUE;
 HANDLE hShutdown=NULL;
-#ifdef _DEBUG
-BOOL LogCombatActions = TRUE;
-#else
-BOOL LogCombatActions = FALSE;
-#endif
 BOOL UseErrorLog = TRUE;
 int LogDatabaseErrors=1;
 int LogCompileErrors=1;
-BOOL logDebuggingInfo = FALSE;
-int useWallIndex=0;  // Scripts and GPDL functions use wall index rather than ordinal.
-int useDoorAndOverlayIndex = 0;// Scripts and GPDL functions use index rather than ordinal.
 
 CCriticalSection ErrorLogCS;
 FILE* pErrorLogFile = NULL;
 
+#ifdef SIMPLE_STRUCTURE
 RUNTIME_ENVIRONMENT rte;
 CString RUNTIME_ENVIRONMENT::LogDir(void)
 {
@@ -224,6 +212,7 @@ CString RUNTIME_ENVIRONMENT::LogDir(void)
 #endif
   return m_designDir; 
 };
+#endif
 
 #ifdef UAFEDITOR
 EDITOR_ENVIRONMENT ede;
@@ -240,7 +229,12 @@ TRAIT_DATA_TYPE      traitData;
 
 SPELLGROUP_DATA_TYPE spellgroupData;
 
+#ifdef SIMPLE_STRUCTURE
 char global_designDir[_MAX_PATH+1];
+#else
+char m_installDir[_MAX_PATH+1];
+char m_designFolder[_MAX_PATH+1]; 
+#endif
 
 
 DWORD prevFileActionTime;
@@ -338,6 +332,7 @@ const char *WeaponClassText[] = {
 
 
 
+#ifdef SIMPLE_STRUCTURE
 //RUNTIME_ENVIRONMENT rte;
 
 RUNTIME_ENVIRONMENT::RUNTIME_ENVIRONMENT(void)
@@ -362,10 +357,7 @@ void RUNTIME_ENVIRONMENT::Clear(void)
 void RUNTIME_ENVIRONMENT::CheckProgramFiles(void)
 {
   if (m_programFilesChecked) return;
-  CString temp;
-  temp = m_rootDir;
-  temp.MakeUpper();
-  if (temp.Find("PROGRAM FILES",0) < 0) return;
+  if (m_rootDir.Find("Program Files",0) < 0) return;
   m_programFilesChecked = true;
   {
     CImportWarning dlg;
@@ -382,10 +374,7 @@ void RUNTIME_ENVIRONMENT::CheckProgramFiles(void)
     do
     {
       correctResponse = true;
-      if (dlg.DoModal() != IDOK)
-      {
-        exit(1);
-      };
+      dlg.DoModal();
       if ( (sscanf(dlg.m_numeric,"%d",&answer) != 1) || (answer!=dlg.m_i))
       {
           MsgBoxInfo("Wrong answer....sorry");
@@ -479,10 +468,11 @@ void EDITOR_ENVIRONMENT::DefaultFoldersFromExecutable(const CString &editorExecu
 char global_editorResourceDir[_MAX_PATH+1]; // Folder containing art, etc. available to the editor.
 */
 #endif
+#endif
 
 
+#ifdef SIMPLE_STRUCTURE
 void NotImplemented(int code, bool loopForever)
-
 {
   static CMap<int,int,int,int> list;
   int junk;
@@ -498,6 +488,7 @@ void NotImplemented(int code, bool loopForever)
   };
 }
 
+#endif
 
 extern const int MIN_INTELLIGENCE  =3;
 extern const int MAX_INTELLIGENCE  =25;
@@ -515,11 +506,6 @@ extern const int MIN_CHARISMA      =3;
 extern const int MAX_CHARISMA      =25;
 
 
-int CombatScreenX = 14;
-int CombatScreenY = 14;
-int TILES_HORZ = 8;
-int TILES_VERT = 9;
-
 
 
 int SCREEN_WIDTH = 640;  // these change to reflect the current
@@ -530,13 +516,6 @@ screenRes m_GameScreenRes = res640x480;
 COLORREF BACKGROUND_FILL        = RGB(0,0,0);
 COLORREF BACKWARD_BACKGROUND_FILL = RGB(0,0,0); // SOme functions want BGR values????
 COLORREF BACKGROUND_COMBAT_FILL = RGB(0,0,0);
-
-
-/*
- * Font colors are defined in globalData.availableFonts
- * Font 0 is the traditional font that used to be described by
- * the colors White, Black, Green, etc.
- * You will now find these COLORREF values in availableFonts[0].
 
 COLORREF White  = RGB(255,255,255);
 COLORREF Black  = RGB(0,0,0);
@@ -554,8 +533,6 @@ COLORREF CombatRed   =  RGB(254,0,0);
 COLORREF CombatYellow = RGB(254,255,0);
 COLORREF CombatBlue   = RGB(0,150,255);
 COLORREF CombatOrange = RGB(254,127,0);
-
-*/
 
 // custom colors from the config file
 COLORREF CustomColor =  RGB(255,255,255);
@@ -772,6 +749,7 @@ void StripFilenamePath(CString& filename)
   return;
 }
 
+#ifdef SIMPLE_STRUCTURE
 /*
 void AddArtFolderToPath(CString &filename)
 {
@@ -802,6 +780,17 @@ void AddFolderToPath(CString &filename, const CString& dir)
   filename = dir + filename;
 }
 
+#else
+void AddDesignFolderToPath(CString &filename)
+{
+  if (filename == "")
+    return;
+  StripFilenamePath(filename);
+  CString temp;
+  temp.Format("%s%s", GetDesignPath(), filename);
+  filename = temp;
+}
+#endif
 
 void CUAFCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast )
 {
@@ -839,11 +828,6 @@ void CUAFCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast )
       m_ConfigFilename = FlagValue;
     }
 
-    if (stricmp(FlagKey, "script") == 0)
-    {
-      m_ScriptFilename = FlagValue;
-    };
-
     if (stricmp(FlagKey, "pc") == 0)
     {
       // load a player character into the party
@@ -860,11 +844,6 @@ void CUAFCommandLineInfo::ParseParam(LPCTSTR lpszParam, BOOL bFlag, BOOL bLast )
       // format: -playfile filename
       cmdPlayfileName = FlagValue;
     }
-    
-    if (stricmp(FlagKey, "initial") == 0)
-    {
-      m_initializeGame = TRUE;
-    };
     
 #ifdef _DEBUG 
     // debug only flag
@@ -1097,6 +1076,7 @@ CString GetDesignName()
   return globalData.designName;
 }
 
+#ifdef SIMPLE_STRUCTURE
 /*
 CString GetDataPath(char *path)
 {
@@ -1120,17 +1100,31 @@ CString GetArtPath(char *path)
   return temp;
 }
 */
+#endif
 
 CString GetDesignPath(char *path)
 {
   CString temp;
 #ifdef UAFEngine
+#ifdef SIMPLE_STRUCTURE
   temp = global_designDir;  
 #else
+  temp = m_installDir;  
+#endif
+#else
+#ifdef SIMPLE_STRUCTURE
     if (rte.DesignDir() == "")
     temp.Format("%s%s.dsn\\", rte.RootDir(), GetDesignName());
+#else
+    if (strlen(m_designFolder) == 0)
+    temp.Format("%s%s.dsn\\", m_installDir, GetDesignName());
+#endif
   else
+#ifdef SIMPLE_STRUCTURE
     temp = rte.DesignDir();
+#else
+    temp = m_designFolder;
+#endif
 #endif
   if (temp.IsEmpty()) return temp;
   if (path != NULL) strcpy(path, temp);
@@ -1167,7 +1161,17 @@ CString GetDesignFolderRoot(char *path)
 
 CString GetSavePath(char *path)
 {
+#ifdef SIMPLE_STRUCTURE
   return rte.SaveDir();
+#else
+  CString temp;
+  temp = global_saveDir;
+  temp = GetDesignPath();
+  temp += "Save\\";
+  if (path != NULL)
+    strcpy(path, temp);
+  return temp;
+#endif
 }
 
 CString GetCommonCharPath(void)
@@ -1195,15 +1199,14 @@ void SetMiscError(int error)
 BOOL CreateDesignDirectory()
 {
   BOOL success = FALSE;
-  //struct _tstat st;
+  struct _tstat st;
   char path[_MAX_PATH+1];
 
   GetDesignPath(path);
   int len = strlen(path);
   if (path[len-1] == '\\')
     path[len-1] = '\0';
-  WriteDebugString("Entering CreateDesignDirectory(%s)\n", path);
-/*
+
   if (_tstat(path, &st) == 0)
   {
     if (st.st_mode & _S_IFDIR)
@@ -1221,31 +1224,6 @@ BOOL CreateDesignDirectory()
     if( _mkdir(path) == 0)
       success = TRUE;
   }
-*/
-  if (PathFileExists(path))
-  {
-    if (PathIsDirectory(path))
-    {
-      success = TRUE;
-    }
-    else
-    {
-      WriteDebugString("A non-directory file with that name exists\n");
-      MsgBoxError("Cannot create design directory\nFile with same name exists",
-        "Design Save Error");
-    };
-  }
-  else
-  {
-    if (_mkdir(path) == 0)
-    {
-      success = TRUE;
-    }
-    else
-    {
-      WriteDebugString("Cannot create that directory\n");
-    };
-  };
 
   return success;
 }
@@ -1253,18 +1231,22 @@ BOOL CreateDesignDirectory()
 BOOL CreateSaveDirectory()
 {
   BOOL success = FALSE;
-  //struct _tstat st;
+  struct _tstat st;
   char path[_MAX_PATH+1];
+
+#ifdef SIMPLE_STRUCTURE
   {
     CString temp;
     temp = rte.SaveDir();
     strcpy(path, temp);
   };
+#else
+  GetSavePath(path);
+#endif
   int len = strlen(path);
   if (path[len-1] == '\\')
     path[len-1] = '\0';
-  WriteDebugString("Entering CreateSaveDirectory(%s)\n", path);
-/*
+
   if (_tstat(path, &st) == 0)
   {
     if (st.st_mode & _S_IFDIR)
@@ -1279,26 +1261,6 @@ BOOL CreateSaveDirectory()
     else
       WriteDebugString("Cannot create save directory: %s\n", path);
   }
-*/
-  if (PathFileExists(path))
-  {
-    if (PathIsDirectory(path))
-    {
-      WriteDebugString("Directory already exists\n");
-      success = TRUE;
-    }
-    else
-    {
-      WriteDebugString("A non-directory file by that name already exists\n");
-    };
-  }
-  else
-  {
-    if (_mkdir(path) == 0)
-      success = TRUE;
-    else
-      WriteDebugString("Cannot create save directory: %s\n", path);
-  };
 
   return success;
 }
@@ -1306,7 +1268,7 @@ BOOL CreateSaveDirectory()
 BOOL CreateCommonCharDirectory()
 {
   BOOL success = FALSE;
-  //struct _tstat st;
+  struct _tstat st;
   char path[_MAX_PATH+1];
 
   strcpy(path, GetCommonCharPath());
@@ -1315,8 +1277,7 @@ BOOL CreateCommonCharDirectory()
 
   if (path[len-1] == '\\')
     path[len-1] = '\0';
-  WriteDebugString("Enter CreateCommonCharDirectory(%s)\n", path);
-/*
+
   if (_tstat(path, &st) == 0)
   {
     if (st.st_mode & _S_IFDIR)
@@ -1331,25 +1292,7 @@ BOOL CreateCommonCharDirectory()
     else
       WriteDebugString("Cannot create common char save directory: %s\n", path);
   }
-*/
-  if (PathFileExists(path))
-  {
-    if (PathIsDirectory(path))
-    {
-      success = TRUE;
-    }
-    else
-    {
-      WriteDebugString("A non-directory file with that name exists\n");
-    }
-  }
-  else
-  {
-    if (_mkdir(path) == 0)
-      success = TRUE;
-    else
-      WriteDebugString("Cannot create common char save directory: %s\n", path);
-  };
+
   return success;
 }
 
@@ -1409,17 +1352,13 @@ CString GetEventDescription(DWORD type)
 //
 // RETURNS: None
 //*****************************************************************************
-CString GetEventIdDescription(DWORD EventId, EventSourceType type, GameEventList *pEventList) 
+CString GetEventIdDescription(DWORD EventId, EventSourceType type) 
 { 
   if (type==GlobalEventSrc) return GetGlobalEventIdDescription(EventId);
   if (type==CopyEventSrc) return GetCopyEventIdDescription(EventId);
 
   CString temp;
-  if (pEventList == NULL)
-  {
-    pEventList = &levelData.eventData;
-  };
-  GameEvent *event = pEventList->GetEvent(EventId);
+  GameEvent *event = levelData.eventData.GetEvent(EventId);
   if (event != NULL)
     temp.Format("%s (%u)", 
                 GetEventDescription(event->GetEventType()), 
@@ -1501,7 +1440,7 @@ BOOL IsFileAlreadyOpen(const char *filename)
 A_CStringInteger_L *fileExistsList = NULL;
 BOOL FileExists(const char *file)
 {
-  //static struct _tstat st;
+  static struct _tstat st;
   int result;
 
   if (file == NULL)
@@ -1511,7 +1450,7 @@ BOOL FileExists(const char *file)
   }
 
   
-  if (fileExistsList != NULL)
+ if (fileExistsList != NULL)
   {
     int *pResult;
     pResult = fileExistsList->Find(file);
@@ -1520,8 +1459,11 @@ BOOL FileExists(const char *file)
       return *pResult != 0;;
     };
   };
-  if (!PathFileExists(file))
-  //if (_tstat(file, &st) != 0)
+#ifdef SIMPLE_STRUCTURE
+#else
+  SetCurrentDirectory(global_designDir);
+#endif
+  if (_tstat(file, &st) != 0)
   {
       result = 0;
   }
@@ -1578,8 +1520,10 @@ int FileSize(const char *file)
    // this function is used by WriteDebugString(),
    // so don't call WriteDebugString() while in here.
    struct _tstat st;
+
    if ((file == NULL) || (strlen(file) == 0))
      return 0;
+
    int size = 0;
    if (_tstat(file, &st) == 0)
      size = st.st_size;
@@ -1616,7 +1560,11 @@ BOOL GetFilename(CString& defaultFilename, CString Ext, BOOL LoadDlg)
   if (strlen(LastDir) > 2)
     dlg.m_ofn.lpstrInitialDir = LastDir;
   else
+#ifdef SIMPLE_STRUCTURE
     dlg.m_ofn.lpstrInitialDir = global_designDir;
+#else
+    dlg.m_ofn.lpstrInitialDir = m_installDir;
+#endif
 
   if (dlg.DoModal() == IDOK)
   {
@@ -1633,11 +1581,10 @@ BOOL GetFilename(CString& defaultFilename, CString Ext, BOOL LoadDlg)
   return fileChosen;
 }
 
-
 // always a loading dialog, never saves a sound file
 BOOL GetSoundFilename(CString& defaultFilename, CString Ext)
 {
-  static char LastDirectory[_MAX_PATH+1]= {'\0'};
+  static char LastDir[_MAX_PATH+1]= {'\0'};
   BOOL fileChosen = FALSE;  
     
   char ExtText[5];  
@@ -1652,10 +1599,14 @@ BOOL GetSoundFilename(CString& defaultFilename, CString Ext)
 
   CFileDialog dlg(TRUE, Ext, defaultFilename, flags, szFilter);
 
-  if (strlen(LastDirectory) > 2)
-    dlg.m_ofn.lpstrInitialDir = LastDirectory;
+  if (strlen(LastDir) > 2)
+    dlg.m_ofn.lpstrInitialDir = LastDir;
   else
+#ifdef SIMPLE_STRUCTURE
     dlg.m_ofn.lpstrInitialDir = global_designDir;
+#else
+    dlg.m_ofn.lpstrInitialDir = m_installDir;
+#endif
 
   if (dlg.DoModal() == IDOK)
   {
@@ -1663,25 +1614,19 @@ BOOL GetSoundFilename(CString& defaultFilename, CString Ext)
      defaultFilename = dlg.GetPathName();
      if (GetFilenamePath(defaultFilename, tmp)) 
      {
-       strncpy(LastDirectory,tmp,_MAX_PATH);
-       LastDirectory[_MAX_PATH]='\0';
+       strncpy(LastDir,tmp,_MAX_PATH);
+       LastDir[_MAX_PATH]='\0';
      }
      fileChosen = TRUE;
   }
   SetCurrentDirectory(global_designDir);
   return fileChosen;
 }
-
-
-#define ATTEMPT_PREVIEW
-#undef ATTEMPT_PREVIEW
-
-
 // display image preview next to list of files, and show each image as
 // files are highlighted.
 BOOL GetFilenameWithPreview(SurfaceType type, CString& defaultFilename)
 {
-  static char LastDirectory[_MAX_PATH+1]= {'\0'};
+  static char LastDir[_MAX_PATH+1]= {'\0'};
   BOOL fileChosen = FALSE;
   char defaultExt[] = "png";
   char szFilter[] = 
@@ -1696,19 +1641,20 @@ BOOL GetFilenameWithPreview(SurfaceType type, CString& defaultFilename)
 
   //GetFilenamePath(defaultFilename, defaultDir);
 
-#ifdef ATTEMPT_PREVIEW
   CPreviewFileDlg dlg(TRUE, 
                       defaultExt, 
                       defaultFilename, 
                       flags,
                       szFilter);
-#else
-  CFileDialog dlg(TRUE, defaultExt, defaultFilename, flags, szFilter);
-#endif
-  if (strlen(LastDirectory) > 2)
-    dlg.m_ofn.lpstrInitialDir = LastDirectory;
+
+  if (strlen(LastDir) > 2)
+    dlg.m_ofn.lpstrInitialDir = LastDir;
   else
+#ifdef SIMPLE_STRUCTURE
     dlg.m_ofn.lpstrInitialDir = global_designDir;
+#else
+    dlg.m_ofn.lpstrInitialDir = m_installDir;
+#endif
 
   if (dlg.DoModal() == IDOK)
   {
@@ -1716,11 +1662,15 @@ BOOL GetFilenameWithPreview(SurfaceType type, CString& defaultFilename)
      defaultFilename = dlg.GetPathName();
      if (GetFilenamePath(defaultFilename, tmp)) 
      {
-       strncpy(LastDirectory,tmp,_MAX_PATH);
-       LastDirectory[_MAX_PATH]='\0';
+       strncpy(LastDir,tmp,_MAX_PATH);
+       LastDir[_MAX_PATH]='\0';
      }
      fileChosen = TRUE;
   }
+#ifdef SIMPLE_STRUCTURE
+#else
+  SetCurrentDirectory(global_designDir);
+#endif
   return fileChosen;
 }
 /*
@@ -1952,6 +1902,7 @@ BOOL SearchForFileInPath(CString &file, const char *FileExt, const CString &path
 }
 
 
+#ifdef SIMPLE_STRUCTURE
 /*
 BOOL SearchForArtFile(CString &file, const CString& artDir)
 {
@@ -2040,6 +1991,74 @@ BOOL SearchForFile(CString& file, const CString& runtimeDir, const CString &edit
   return FALSE;
 }
 
+#else  // not SIMPLE_STRUCTURE
+BOOL SearchForFile(CString &file)
+{
+  SetCurrentDirectory(global_designDir);
+  if (FileExists(file)) return TRUE;
+
+  ASSERT( strlen(EditorArt) > 0 ); // can't use before config.txt is read
+
+  CString rootPath1("");
+  CString rootPath2("");
+  CString rootPath3("");
+  CString rootPath4("");
+  CString rootPath5("");
+
+  BOOL sub1 = FALSE;
+  BOOL sub2 = FALSE;
+  BOOL sub3 = FALSE;
+  BOOL sub4 = FALSE;
+  BOOL sub5 = FALSE;
+
+#ifdef UAFEngine
+  rootPath1 = global_designDir;  sub1=TRUE; // root folder and save game folder
+  rootPath2 = GetSavePath();   sub2=TRUE; // design save folder
+  rootPath3 = CommonCharSave;  sub3=FALSE; // common character folder
+  rootPath4 = EditorArt;       sub4=TRUE; // default art folders
+  rootPath5 = EditorArt2;      sub5=TRUE;
+#else  
+  rootPath1 = EditorArt;       sub1=TRUE;  // default art folders  
+  rootPath2 = EditorArt2;      sub2=TRUE;
+  rootPath3 = GetDesignPath(); sub3=FALSE; // design folder 
+#endif
+
+  CString tmp;
+  tmp = file;
+  StripFilenamePath(tmp); // search using root filename only
+  
+  CString ext;
+  GetFilenameExt(tmp, ext);
+
+  if (SearchForFileInPath(tmp, ext, rootPath1, sub1))
+  {
+    file = tmp;
+    return TRUE;
+  }
+  if (SearchForFileInPath(tmp, ext, rootPath2, sub2))
+  {
+    file = tmp;
+    return TRUE;
+  }
+  if (SearchForFileInPath(tmp, ext, rootPath3, sub3)) 
+  {
+    file = tmp;
+    return TRUE;
+  }
+  if (SearchForFileInPath(tmp, ext, rootPath4, sub4)) 
+  {
+    file = tmp;
+    return TRUE;
+  }
+  if (SearchForFileInPath(tmp, ext, rootPath5, sub5)) 
+  {
+    file = tmp;
+    return TRUE;
+  }
+  return FALSE;
+}
+
+#endif
 
 //CCriticalSection ErrorLogCS;
 //FILE* pErrorLogFile = NULL;
@@ -2050,10 +2069,7 @@ void CloseErrorLog()
   
   UseErrorLog=FALSE;
   if (pErrorLogFile != NULL)
-  {
-    WriteDebugString("Closing Log File\n");
     fclose(pErrorLogFile);
-  };
   pErrorLogFile = NULL;
   CleanupStackWalk();
 }
@@ -2081,7 +2097,7 @@ void WriteDebugString(const char *ptext, ... )
   debugSeverity = 0;
   if (severity > 9) severity = 9;
   WRITE_DEBUG_DIALOG wdd;
-  char errText[maxDebugLineLength+33+20];  // 20 just to be sure!
+  char errorText[maxDebugLineLength+33+20];  // 20 just to be sure!
   static CString ErrorLogName = "";
   static BYTE WriteCount = 0;
   const int MAX_ERROR_LOG_SIZE = 1024000;
@@ -2126,20 +2142,19 @@ void WriteDebugString(const char *ptext, ... )
     //_ftime(&timeBuf);
     DWORD curTime;
     curTime = timeGetTime();
-  //  errText[0] = '\0';
-    //if (curTime > prevTime) prevTime = curTime;
-    sprintf(errText,"%08x %6d %016I64x%c",curTime, curTime-prevTime, virtualGameTime, severityCodes[severity]);
+  //  errorText[0] = '\0';
+    if (curTime > prevTime) prevTime = curTime;
+    sprintf(errorText,"%08x %6d %016I64x%c",curTime, curTime-prevTime, virtualGameTime, severityCodes[severity]);
     prevTime = curTime;
 
     va_start(marker, ptext);  
-    int count = _vsnprintf(errText+33, maxDebugLineLength, ptext, marker);
+    int count = _vsnprintf(errorText+33, maxDebugLineLength, ptext, marker);
     va_end(marker);
 
     if (count < 0)
-      strcpy(errText, "Error msg exceeded buffer capacity\n");
+      strcpy(errorText, "Error msg exceeded buffer capacity\n");
     else
-      errText[509] = '\n';
-      errText[510] = '\0'; // guarantee null terminator
+      errorText[510] = '\0'; // guarantee null terminator
     if (   (pErrorLogFile == NULL)
 #ifdef UAFEngine
         && EngineRunning
@@ -2169,7 +2184,7 @@ void WriteDebugString(const char *ptext, ... )
           int i;
           for (i=0; i<logQueue.GetSize(); i++)
           {
-            fprintf(pErrorLogFile, "%s", (LPCTSTR)logQueue.GetAt(i));
+            fprintf(pErrorLogFile, "%s", logQueue.GetAt(i));
           };
           logQueue.RemoveAll();
         };
@@ -2196,11 +2211,11 @@ void WriteDebugString(const char *ptext, ... )
     }
     if (pErrorLogFile) 
     {
-      fprintf(pErrorLogFile, "%s", errText); 
+      fprintf(pErrorLogFile, "%s", errorText); 
       //WriteStackTrace();
       if (wdd != WRITE_DEBUG_DIALOG_NONE)
       {
-        MessageBox(NULL, errText, "ALERT", MB_TOPMOST|MB_OK|MB_ICONWARNING);
+        MessageBox(NULL, errorText, "ALERT", MB_TOPMOST|MB_OK|MB_ICONWARNING);
       };
       fflush(pErrorLogFile);
       WriteCount++;
@@ -2211,7 +2226,7 @@ void WriteDebugString(const char *ptext, ... )
       {
         if (logQueue.GetSize() < 10000)
         {
-          CString msg = errText;
+          CString msg = errorText;
           logQueue.Add(msg);
         }
         else
@@ -2220,11 +2235,11 @@ void WriteDebugString(const char *ptext, ... )
           messagesLost = true;
           CString msg = "Error Messages lost because no Log File Yet Exists\n"
                     "This is the first one.  Any more will be ignored\n\n";
-          msg += errText;
+          msg += errorText;
           MsgBoxInfo(msg, "Warning");
         };
       };
-      TRACE(errText);
+      TRACE(errorText);
     };
   }
   catch (...)
@@ -2242,105 +2257,6 @@ CString ResolveRelativePath(char *path)
     return CString(path);
   };
   return CString(global_designDir) + (path + 2);
-}
-
-
-void ReadPageFormat(const CString& prefix, SELECTION_PAGE_FORMAT& format)
-{
-  int x, y;
-  CString str;
-  if (ConfigFile.FindTokens(prefix + "_TITLE_XY", x, y))
-  {
-    format.Title_x = x;
-    format.Title_y = y;
-  };
-  if (ConfigFile.FindToken(prefix + "_TITLE_FORMAT", str))
-  {
-    format.Title_Format = str;
-  };
-  if (ConfigFile.FindToken(prefix + "_HEADER_FORMAT", str))
-  {
-    format.Header_Format = str;
-  };
-  if (ConfigFile.FindToken(prefix + "_HEADER2_FORMAT", str))
-  {
-    format.Header2_Format = str;
-  };
-  if (ConfigFile.FindToken(prefix + "_HEADER3_FORMAT", str))
-  {
-    format.Header3_Format = str;
-  };
-  if (ConfigFile.FindTokens(prefix + "_HEADER_XY", x, y))
-  {
-    format.Header_x = x;
-    format.Header_y = y;
-  };
-  if (ConfigFile.FindTokens(prefix + "_HEADER2_XY", x, y))
-  {
-    format.Header2_x = x;
-    format.Header2_y = y;
-  };
-  if (ConfigFile.FindTokens(prefix + "_HEADER3_XY", x, y))
-  {
-    format.Header3_x = x;
-    format.Header3_y = y;
-  };
-  if (ConfigFile.FindTokens(prefix + "_TABLE_XY", x, y))
-  {
-    format.Table_x = x;
-    format.Table_y = y;
-  };
-  if (ConfigFile.FindTokens(prefix + "_MENU_XY", x, y))
-  {
-    format.Menu_x = x;  
-    format.Menu_y = y;
-  };
-  if (ConfigFile.FindTokens(prefix + "_TABLE2_XY", x, y))
-  {
-    format.Table2_x = x;
-    format.Table2_y = y;
-  };
-  if (ConfigFile.FindTokens(prefix + "_TABLE3_XY", x, y))
-  {
-    format.Table3_x = x;
-    format.Table3_y = y;
-  };
-  if (ConfigFile.FindToken(prefix + "_TABLE_FORMAT", str))
-  {
-    format.Table_Format = str;
-  };
-  if (ConfigFile.FindToken(prefix + "_TABLE2_FORMAT", str))
-  {
-    format.Table2_Format = str;
-  };
-  if (ConfigFile.FindToken(prefix + "_TABLE3_FORMAT", str))
-  {
-    format.Table3_Format = str;
-  };
-  if (ConfigFile.FindToken(prefix + "_TABLE_SELECTED_FORMAT", str))
-  {
-    format.Table_Selected_Format = str;
-  };
-  if (ConfigFile.FindToken(prefix + "_TABLE2_SELECTED_FORMAT", str))
-  {
-    format.Table2_Selected_Format = str;
-  };
-  if (ConfigFile.FindToken(prefix + "_TABLE3_SELECTED_FORMAT", str))
-  {
-    format.Table3_Selected_Format = str;
-  };
-  if (ConfigFile.FindToken(prefix + "_LINES_PER_PAGE", x))
-  {
-    format.Lines_Per_Page = x;
-  };
-  if (ConfigFile.FindToken(prefix + "_LINES_SPACING", x))
-  {
-    format.Line_Spacing = x;
-  };
-  if (ConfigFile.FindToken(prefix + "_MENU_SPACING", x))
-  {
-    format.Menu_Spacing = x;
-  };
 }
 
 BOOL LoadConfigFile(const char *path)
@@ -2377,7 +2293,7 @@ BOOL LoadConfigFile(const char *path)
 
 #ifdef UAFEDITOR
   {
-    sprintf(temp, "Editor Art Dir = %s\n", (LPCSTR)ede.EditorWindowArtDir());
+    sprintf(temp, "Editor Art Dir = %s\n", ede.EditorWindowArtDir());
     WriteDebugString(temp);
   };
 #endif
@@ -2390,10 +2306,10 @@ BOOL LoadConfigFile(const char *path)
 
    
   {
-    sprintf(temp, "Editor Art Dir = %s\n", (LPCSTR)ede.EditorWindowArtDir());
+    sprintf(temp, "Editor Art Dir = %s\n", ede.EditorWindowArtDir());
     WriteDebugString(temp);
 
-    sprintf(temp, "%s%s", (LPCSTR)ede.EditorMapArtDir(), (LPCSTR)MAPART);
+    sprintf(temp, "%s%s", ede.EditorMapArtDir(), (LPCSTR)MAPART);
   };
   tmp = temp;
    //if (!SearchForFile(tmp))
@@ -2408,17 +2324,17 @@ BOOL LoadConfigFile(const char *path)
     return FALSE;
   }
   {
-    char tempPath[_MAX_PATH*2+1];
-    sprintf(tempPath, "%s%s", (LPCSTR)ede.TemplateOverlandArtDir(), (LPCSTR)OVERLANDART);
+    char temp[_MAX_PATH*2+1];
+    sprintf(temp, "%s%s", ede.TemplateOverlandArtDir(), (LPCSTR)OVERLANDART);
   
-    tmp = tempPath;
+    tmp = temp;
     //if (!SearchForFile(tmp))
     {
-      CString artDir = ede.TemplateOverlandArtDir();
-      if (!FindImageWithValidExtInFolder(tmp, artDir, FALSE))
+      CString art = ede.TemplateOverlandArtDir();
+      if (!FindImageWithValidExtInFolder(tmp, art, FALSE))
       {
         CString error;
-        error.Format("Failed to find required art file %s\nPlease re-install Dungeon Craft", tempPath);
+        error.Format("Failed to find required art file %s\nPlease re-install Dungeon Craft", temp);
         WriteDebugString("%s\n", error);
         MsgBoxError(error, "Installation Error");
         return FALSE;
@@ -2487,9 +2403,9 @@ BOOL LoadConfigFile(const char *path)
 
 
   {
-    CString t;
+    CString temp;
     g_cdxlog.LogType(0);
-    if (ConfigFile.FindToken("CDX_LOG", t))
+    if (ConfigFile.FindToken("CDX_LOG", temp))
     {
       g_cdxlog.LogType(1);
     };
@@ -2515,34 +2431,10 @@ BOOL LoadConfigFile(const char *path)
     dsgnVerY = y;
   }
 
-  if (ConfigFile.FindTokens("COMBAT_STAT_BOX", x, y))
-  {
-    DEFAULT_COMBAT_STAT_X = x;
-    DEFAULT_COMBAT_STAT_Y = y;
-  };
-
-  if (ConfigFile.FindTokens("COMBAT_SCREEN_SIZE", x, y))
-  {
-    TILES_HORZ = x;
-    TILES_VERT = y;
-  };
-
-  if (ConfigFile.FindTokens("COMBAT_SCREEN_XY", x, y))
-  {
-    CombatScreenX = x;
-    CombatScreenY = y;
-  };
-
   if (ConfigFile.FindTokens("DEFAULT_MENU_HORZ", x, y))
   {
     DEFAULT_MENU_HORZ_X = x;
     DEFAULT_MENU_HORZ_Y = y;
-  }
-  DEFAULT_MENU_COMBAT_HORZ_X = -1;
-  if (ConfigFile.FindTokens("DEFAULT_MENU_COMBAT_HORZ", x, y))
-  {
-    DEFAULT_MENU_COMBAT_HORZ_X = x;
-    DEFAULT_MENU_COMBAT_HORZ_Y = y;
   }
   if (ConfigFile.FindTokens("DEFAULT_MENU_VERT", x, y))
   {
@@ -2557,63 +2449,32 @@ BOOL LoadConfigFile(const char *path)
     DEFAULT_MENU_TEXTBOX_Y = y;
   }
    
-
-
-  /*  **********************************
-   *  The colors White, Green, etc no longer are used.
-   *  They are now contained in globalData.availableFonts[0].
-   *  We maintain these config parameters for backward compatability.
-   */
-  if (ConfigFile.FindTokens("COLOR_WHITE", x, y, z))
-// prs 20191221   White = RGB(x,y,z);
-// prs 20191227   globalData.availableFonts[0].color[whiteColor] = RGB(x, y, z);
-    globalData.fontLib.SetFontColor(0, whiteColor, RGB(x, y, z));
+  if (ConfigFile.FindTokens("COLOR_WHITE", x,y,z))
+    White = RGB(x,y,z);
   if (ConfigFile.FindTokens("COLOR_BLACK", x,y,z))
-// prs 20191221    Black = RGB(x,y,z);
-//    globalData.availableFonts[0].color[blackColor] = RGB(x, y, z);
-    globalData.fontLib.SetFontColor(0, blackColor, RGB(x, y, z));
+    Black = RGB(x,y,z);
   if (ConfigFile.FindTokens("COLOR_GREEN", x,y,z))
-// prs 20191221    Green = RGB(x,y,z);
-//    globalData.availableFonts[0].color[greenColor] = RGB(x, y, z);
-    globalData.fontLib.SetFontColor(0, greenColor, RGB(x, y, z));
+    Green = RGB(x,y,z);
   if (ConfigFile.FindTokens("COLOR_RED", x,y,z))
-// prs 20191221    Red = RGB(x,y,z);
-//    globalData.availableFonts[0].color[redColor] = RGB(x, y, z);
-    globalData.fontLib.SetFontColor(0, redColor, RGB(x, y, z));
+    Red = RGB(x,y,z);
   if (ConfigFile.FindTokens("COLOR_YELLOW", x,y,z))
-// prs 20191221    Yellow = RGB(x,y,z);
-//    globalData.availableFonts[0].color[yellowColor] = RGB(x, y, z);
-    globalData.fontLib.SetFontColor(0, yellowColor, RGB(x, y, z));
+    Yellow = RGB(x,y,z);
   if (ConfigFile.FindTokens("COLOR_ORANGE", x,y,z))
-// prs 20191221    Orange = RGB(x,y,z);
-//    globalData.availableFonts[0].color[orangeColor] = RGB(x, y, z);
-    globalData.fontLib.SetFontColor(0, orangeColor, RGB(x, y, z));
+    Orange = RGB(x,y,z);
   if (ConfigFile.FindTokens("COLOR_BLUE", x,y,z))
-// prs 20191221    Blue = RGB(x,y,z);
-//    globalData.availableFonts[0].color[blueColor] = RGB(x, y, z);
-    globalData.fontLib.SetFontColor(0, blueColor, RGB(x, y, z));
+    Blue = RGB(x,y,z);
   if (ConfigFile.FindTokens("COLOR_COMBAT_GREEN", x,y,z))
-// prs 20191221    CombatGreen = RGB(x,y,z);
-//    globalData.availableFonts[0].color[combatGreenColor] = RGB(x, y, z);
-    globalData.fontLib.SetFontColor(0, combatGreenColor, RGB(x, y, z));
+    CombatGreen = RGB(x,y,z);
   if (ConfigFile.FindTokens("COLOR_COMBAT_RED", x,y,z))
-// prs 20191221    CombatRed = RGB(x,y,z);
-//    globalData.availableFonts[0].color[combatRedColor] = RGB(x, y, z);
-    globalData.fontLib.SetFontColor(0, combatRedColor, RGB(x, y, z));
+    CombatRed = RGB(x,y,z);
   if (ConfigFile.FindTokens("COLOR_COMBAT_YELLOW", x,y,z))
-// prs 20191221    CombatYellow = RGB(x,y,z);
-//    globalData.availableFonts[0].color[combatYellowColor] = RGB(x, y, z);
-    globalData.fontLib.SetFontColor(0, combatYellowColor, RGB(x, y, z));
+    CombatYellow = RGB(x,y,z);
   if (ConfigFile.FindTokens("COLOR_COMBAT_ORANGE", x,y,z))
-// prs 20191221    CombatOrange = RGB(x,y,z);
-//    globalData.availableFonts[0].color[combatOrangeColor] = RGB(x, y, z);
-    globalData.fontLib.SetFontColor(0, combatOrangeColor, RGB(x, y, z));
+    CombatOrange = RGB(x,y,z);
   if (ConfigFile.FindTokens("COLOR_COMBAT_BLUE", x,y,z))
-// prs 20191221    CombatBlue = RGB(x,y,z);
-//    globalData.availableFonts[0].color[combatBlueColor] = RGB(x, y, z);
-    globalData.fontLib.SetFontColor(0, combatBlueColor, RGB(x, y, z));
-
-
+    CombatBlue = RGB(x,y,z);
+  if (ConfigFile.FindTokens("COLOR_CUSTOM_1", x,y,z))
+    CustomColor = RGB(x,y,z);
 
   if (ConfigFile.FindTokens("COLOR_KEYBOARD_SHORTCUT", x,y,z))
     KeyboardCharColor = RGB(x,y,z);
@@ -2625,61 +2486,6 @@ BOOL LoadConfigFile(const char *path)
     SCREEN_HEIGHT = 480;
   if (!ConfigFile.FindToken("Color_Bits", COLOR_BITS))
     COLOR_BITS = 16;
-
-  {
-    int fNum;
-    CString fName;
-    while (ConfigFile.FindTokens("FONT_NAME", fNum, fName, true))
-    {
-      if ((fNum >= 0) && (fNum < NUMTEXTFONT))
-      {
-        globalData.fontLib.SetFontName(fNum, fName);
-      };
-    };
-  };
-
-
-  {
-    int fNum, r, g, b;
-    //FONT_COLOR_NUM cNum;
-    //CString cName;
-    while (ConfigFile.FindTokens("FONT_COLOR", fNum, r, g, b, true))
-    {
-      //cNum = ASCII_TO_COLOR(cName, whiteColor);
-      //if (cNum == illegalColor) continue;
-      if ((fNum >= 0) && (fNum < NUMTEXTFONT))
-      {
-        // prs 20191227 globalData.availableFonts[fNum].color[cNum] = RGB(r, g, b);
-        globalData.fontLib.SetFontColor(fNum, zeroColor, RGB(r, g, b));
-      };
-    };
-  };
-
-
-
-
-  {
-    int fNum;
-    //FONT_COLOR_NUM cNum;
-    CString ftype;
-    while (ConfigFile.FindTokens("FONT_TYPE", fNum, ftype, true))
-    {
-      if ((fNum >= 0) && (fNum < NUMTEXTFONT))
-      {
-        globalData.fontLib.SetFontType(fNum, ftype);
-      };
-    };
-  };
-
-
-  if (ConfigFile.FindTokens("COLOR_CUSTOM_1", x, y, z))
-  {
-    CustomColor = RGB(x, y, z);
-    globalData.fontLib.SetCustomColor(CustomColor);
-  };
-
-
-
 
 #ifdef _DEBUG
   HDC CurrScreen = ::CreateIC("Display", NULL, NULL, NULL);
@@ -2708,10 +2514,6 @@ BOOL LoadConfigFile(const char *path)
   case 1024:
     m_GameScreenRes = res1024x768;
     SCREEN_HEIGHT=768;
-    break;
-  case 1280:
-    m_GameScreenRes = res1280x1024;
-    SCREEN_HEIGHT=1024;
     break;
   default:
     SCREEN_WIDTH=640;SCREEN_HEIGHT=480;
@@ -2805,34 +2607,6 @@ BOOL LoadConfigFile(const char *path)
     BigPic_h = y2;                                            //
   }                                                          //
 
-  Select_Race_Format.Title_Format = "Select a Race";
-  ReadPageFormat(CString("SELECT_RACE"), Select_Race_Format);
-
-  Select_Choosestats_Format.Title_x = 18;     // Name
-  Select_Choosestats_Format.Title_y = 35;
-  Select_Choosestats_Format.Header_x = 220;   // Status
-  Select_Choosestats_Format.Header_y = 35; 
-  Select_Choosestats_Format.Header2_x = 18;   // STR
-  Select_Choosestats_Format.Header2_y = 172;
-  Select_Choosestats_Format.Header3_x = 18;   // AC
-  Select_Choosestats_Format.Header3_y = 325;
-  Select_Choosestats_Format.Menu_x = 220;     // Encumbrance
-  Select_Choosestats_Format.Menu_y = 325;
-  ReadPageFormat(CString("SELECT_ROLL_CHARACTER_STATS"), Select_Choosestats_Format);
-
-  Select_Class_Format.Title_Format = "Select a Class";
-  ReadPageFormat(CString("SELECT_CLASS"), Select_Class_Format);
-
-  Select_Gender_Format.Title_Format = "Select a Gender";
-  ReadPageFormat(CString("SELECT_GENDER"), Select_Gender_Format);
-
-  Select_Alignment_Format.Title_Format = "Select an Alignment";
-  ReadPageFormat(CString("SELECT_ALIGNMENT"), Select_Alignment_Format);
-
-  ReadPageFormat(CString("SELECT_MAIN_FUNCTION"), Select_Main_Function_Format);
-
-  ReadPageFormat(CString("SELECT_ADD_CHARACTER"), Select_Add_Character_Format);
-
   if (!ConfigFile.FindToken("COMBAT_MAP_WIDTH", MAX_TERRAIN_WIDTH))
      MAX_TERRAIN_WIDTH = 50;
   if (!ConfigFile.FindToken("COMBAT_MAP_HEIGHT", MAX_TERRAIN_HEIGHT))
@@ -2882,33 +2656,15 @@ BOOL LoadConfigFile(const char *path)
 #endif // ifdef UAFEngine
 
   {
-    char tempPath[2*_MAX_PATH+1];
+    char temp[2*_MAX_PATH+1];
     ConfigFile.FindToken("Force_SysMem", ForceSysMemUsage);
-    sprintf(tempPath, "Force_SysMem = %u\n", ForceSysMemUsage);
-    WriteDebugString(tempPath);
+    sprintf(temp, "Force_SysMem = %u\n", ForceSysMemUsage);
+    WriteDebugString(temp);
   };
 
   ConfigFile.FindToken("LOG_ERRORS", UseErrorLog);
-  ConfigFile.FindToken("LOG_COMBAT_ACTIONS", LogCombatActions);
   ConfigFile.FindToken("LOG_DATABASE_ERRORS", LogDatabaseErrors);
-  ConfigFile.FindToken("LOG_COMPILE_ERRORS", LogCompileErrors);
-
-  {
-    CString debugDate;
-    logDebuggingInfo = FALSE;
-    if (ConfigFile.FindToken("DEBUG", debugDate))
-    {
-      CString today;
-      int year, month, day;
-      time_t t = time(0);   // get time now
-      struct tm *now = localtime(&t);
-      year = now->tm_year + 1900;
-      month = now->tm_mon + 1;
-      day = now->tm_mday;
-      today.Format("%04d%02d%02d", year, month, day);
-      if (today == debugDate) logDebuggingInfo = TRUE;
-    }
-  };
+  ConfigFile.FindToken("LOG_COMPILE_ERRORS",LogCompileErrors);
 
   WriteDebugString(UseErrorLog?"Error Log ON\n":"Error Log OFF\n");
 
@@ -3054,7 +2810,6 @@ DWORD GetDXVersion()
     ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
     hr = pDDraw->SetCooperativeLevel( NULL, DDSCL_NORMAL );
-    //hr = pDDraw->SetCooperativeLevel( theApp.m_pMainWnd->GetSafeHwnd(), DDSCL_EXCLUSIVE|DDSCL_FULLSCREEN );
     if( FAILED(hr) )
     {
         // Failure. This means DDraw isn't properly installed.
@@ -3681,10 +3436,11 @@ BOOL FindImageWithValidExtInFolder(CString &filename, CString &folder, BOOL recu
 }
 
 
+#ifdef SIMPLE_STRUCTURE
 
 BOOL FindImageWithValidExt(CString &filename, const CString& directory)
 {
-  static char root[_MAX_PATH+1];
+  static char rootName[_MAX_PATH+1];
   {
     CString fullName;
     fullName = directory + filename;
@@ -3693,10 +3449,8 @@ BOOL FindImageWithValidExt(CString &filename, const CString& directory)
     return FALSE;
 #endif
   };
-#ifndef UAFEngine
-#pragma warning (suppress:4996)
-  strcpy(root, filename);
-  char *index = strrchr(root, '.');
+  strcpy(rootName, filename);
+  char *index = strrchr(rootName, '.');
   if (index != NULL)
     *index = '\0'; // knock off ext
   
@@ -3723,9 +3477,54 @@ BOOL FindImageWithValidExt(CString &filename, const CString& directory)
     return TRUE;
 
   return FALSE;
-#endif // ~UAFEngine
 }
 
+#else // Old structure
+  
+  
+  
+BOOL FindImageWithValidExt(CString &filename, const CString& directory)
+{
+  static char rootName[_MAX_PATH+1];
+  SetCurrentDirectory(global_designDir);
+
+  // need to search?
+  if (FileExists(filename))
+    return TRUE;
+
+  strcpy(rootName, filename);
+  char *index = strrchr(rootName, '.');
+  if (index != NULL)
+    *index = '\0'; // knock off ext
+  
+  CString temp("");
+  CString path("");
+  CString path2("");
+  BOOL recurse;
+
+#ifdef UAFEDITOR
+  path = EditorArt;
+  path2 = EditorArt2;
+  recurse = TRUE;
+#else
+  path = global_designDir; // design folder
+  path2 = GetSavePath();
+  recurse = FALSE;
+#endif
+
+  if (FindImageWithValidExtInFolder(filename, path, recurse))
+    return TRUE;
+
+  if (path2.IsEmpty()) return FALSE;
+
+  if (FindImageWithValidExtInFolder(filename, path2, recurse))
+    return TRUE;
+
+  return FALSE;
+}
+
+  
+#endif  
   
   
   
@@ -3903,33 +3702,19 @@ BOOL EventChainError(const char *pMsg, bool offerToFix)
 //
 // CHARACTER &temp = GetPartyMember() <-- correct way
 //
-CHARACTER &GetPartyMember(int index, const char *msg)
+CHARACTER &GetPartyMember(int index)
 {
-  return party.GetCharacter(index, msg);
+  return party.GetCharacter(index);
 }
-
-extern CHARACTER FakeCharacter;
 
 extern "C" BOOL ActorType::IsValidSrc() const
 {
 #ifdef UAFEngine
-  if (IsCreatedCharacterSrc()) return pScriptContext->GetCreatedCharacterContext(NULL) != &FakeCharacter;
+  if (IsCreatedCharacterSrc()) return pScriptContext->GetCreatedCharacterContext() != NULL;
   if (IsFakeCombatantSrc()) return Instance >= 0xfffffffe;
   if (IsFakeCharacterSrc()) return TRUE;
   if (IsCombatSrc()) return ((Instance>=0)&&(Instance<(unsigned long)combatData.NumCombatants()));
-  if (IsPartySrc()) 
-  {
-    if (instanceType == InstanceType_UniquePartyID)
-    {
-      int i;
-      for(i=0;i<party.numCharacters; i++)
-      {
-        if (party.characters[i].uniquePartyID == Instance) return TRUE;
-      };
-      return FALSE;
-    };
-    return ((Instance>=0)&&(Instance<party.numCharacters));
-  };
+  if (IsPartySrc()) return ((Instance>=0)&&(Instance<party.numCharacters));
   //if (IsNPCSrc()) return (globalData.charData.HaveKey(Instance));
   if (IsNPCSrc()) return (globalData.charData.HaveNPC(m_characterID));
   //GLOBAL_ITEM_ID giID;
@@ -3944,7 +3729,7 @@ extern "C" BOOL ActorType::IsValidSrc() const
     //return (monsterData.HaveMonster(Instance));
     return (monsterData.HaveMonster(m_monsterID));
   };
-  die(0xab51d);
+  ASSERT(FALSE);
   return FALSE;
 #else
   return TRUE;
@@ -4194,7 +3979,7 @@ BOOL NeedSpellTargeting(SPELL_DATA *pData)
     case SelectByHitDice:   return TRUE;
     }
   }
-  die(0xab51e);
+  ASSERT(FALSE);
   return FALSE;
 }
 
@@ -4251,82 +4036,23 @@ void SpellActivate(const PENDING_SPELL &data,
       itemData.SpellActivate(data.caster.m_itemID, data);
       break;
     case FLAG_MONSTER:
-      die(0xab51f);
+      ASSERT(FALSE);
       //monsterData.SpellActivate(src, data);
       break;
     }
   }
 }
 
-// prs 20191220  COLORREF ASCII_TO_COLOR(const CString& asc, COLORREF default)
-FONT_COLOR_NUM ASCII_TO_COLOR(const CString& asc, FONT_COLOR_NUM default)
-{
-  if (asc.CompareNoCase("White") == 0) return whiteColor;
-  if (asc.CompareNoCase("Red") == 0) return redColor;
-  if (asc.CompareNoCase("Yellow") == 0) return yellowColor;
-  if (asc.CompareNoCase("Orange") == 0) return orangeColor;
-  if (asc.CompareNoCase("Green") == 0) return greenColor;
-  if (asc.CompareNoCase("Black") == 0) return blackColor;
-  if (asc.CompareNoCase("Cyan") == 0) return cyanColor;
-  if (asc.CompareNoCase("Magenta") == 0) return magentaColor;
-  if (asc.CompareNoCase("Silver") == 0) return silverColor;
-  if (asc.CompareNoCase("Blue") == 0) return blueColor;
-  return default;
-}
-
-void DisplayText(int x, int y,
-                 int fontNumber,
-                 LPCSTR ptext,
-                 FONT_COLOR_NUM colorNum,
-                 BOOL customColor,
-                 BOOL highlight, 
-                 BOOL slowText, 
-                 BOOL UseBackBuffer)
+void displayText(int x, int y, LPCSTR ptext, COLORREF color, BOOL highlight, BOOL slowText, BOOL UseBackBuffer)
 {   
-   ptext = getGameText(ptext);
    long int SrcFont;
+
    if (highlight)
    {
      SrcFont = globalData.HighlightFont;
    }
    else
    {
-     switch (colorNum)
-     {
-     case whiteColor:
-     case orangeColor:
-     case yellowColor:
-     case cyanColor:
-     case greenColor:
-     case redColor:
-     case blueColor:
-     case blackColor:
-     case magentaColor:
-     case silverColor:
-// prs 20191227       SrcFont = globalData.availableFonts[0].fontNum[colorNum];
-       SrcFont = globalData.fontLib.GetFont(0, colorNum, customColor);
-       break;
-     case combatBlueColor:
-// prs 20191227       SrcFont = globalData.availableFonts[0].fontNum[blueColor];
-       SrcFont = globalData.fontLib.GetFont(0, blueColor, customColor);
-       break;
-     case combatGreenColor:
-// prs 20191227       SrcFont = globalData.availableFonts[0].fontNum[greenColor];
-       SrcFont = globalData.fontLib.GetFont(0, greenColor, customColor);
-       break;
-     case combatRedColor:
-// prs 20191227       SrcFont = globalData.availableFonts[0].fontNum[redColor];
-       SrcFont = globalData.fontLib.GetFont(0, redColor, customColor);
-       break;
-     case combatOrangeColor:
-// prs 20191227       SrcFont = globalData.availableFonts[0].fontNum[orangeColor];
-       SrcFont = globalData.fontLib.GetFont(0, orangeColor, customColor);
-       break;
-     case combatYellowColor:
-// prs 20191227       SrcFont = globalData.availableFonts[0].fontNum[yellowColor];
-       SrcFont = globalData.fontLib.GetFont(0, yellowColor, customColor);
-       break;
-       /*
      if (color == White)
       SrcFont = globalData.WhiteFont;
      else if ((color == CombatYellow) || (color == Yellow))
@@ -4339,62 +4065,25 @@ void DisplayText(int x, int y,
        SrcFont = globalData.GreenFont;
      else if ((color == CombatBlue) || (color == Blue))
        SrcFont = globalData.BlueFont;
-       */
-     default:
-       if (colorNum == customColorNum)
-         SrcFont = globalData.Custom1Font;
-       else if (colorNum == RGB(255, 128, 0))
-         SrcFont = globalData.MagicAdjFont;
-       else
-         SrcFont = -1;
-       break;
-     };
+     else if (color == CustomColor)
+       SrcFont = globalData.Custom1Font;
+     else if (color == RGB(255,128,0))
+       SrcFont = globalData.MagicAdjFont;
+     else
+       SrcFont = -1;
    }
 
    if (SrcFont == -1)
    {
-     if (colorNum != BACKGROUND_FILL_COLOR_NUM)
-       WriteDebugString("Bogus handle to requested font in DisplayText()\n");
+     if (color != BACKGROUND_FILL)
+       WriteDebugString("Bogus handle to requested font in displayText()\n");
      return;
    }
    //slowText = 0;
    //UseBackBuffer = 1;
    DETAILTRACE(0x4c1124,0);
-   GraphicsMgr.DrawFont(x,y, 
-                        fontNumber, colorNum, 
-                        ptext, 
-                        SrcFont, 
-                        slowText,
-                        UseBackBuffer);
+   GraphicsMgr.DrawFont(x,y, ptext, SrcFont, slowText,UseBackBuffer);
    DETAILTRACE(0x4c1125,0);
-}
-
-// prs 20191220  void displayColoredText(int x, int y, LPCSTR ptext, COLORREF color, BOOL highlight, BOOL slowText, BOOL UseBackBuffer)
-void DisplayColoredText(int x, int y, 
-                        int fontNumber, 
-                        LPCSTR ptext, 
-                        FONT_COLOR_NUM colorNum, BOOL customColor,
-                        BOOL highlight, BOOL slowText, BOOL UseBackBuffer)
-{
-  ptext = getGameText(ptext);
-  BOOL saveFontColorTag;
-  saveFontColorTag = GraphicsMgr.GetEnableFontColorTags();
-  GraphicsMgr.EnableFontColorTags(TRUE);
-  /* 20200208  PRS
-  GraphicsMgr.StoreFontColorTags();
-  GraphicsMgr.ResetFontColorTags();
-  */
-// prs 20191220   displayText(x, y, ptext, color, highlight, slowText,UseBackBuffer);
-  DisplayText(x, y, 
-              fontNumber, 
-              ptext, 
-              colorNum, customColor,
-              highlight, slowText, UseBackBuffer);
-  /* 20200208  PRS
-  GraphicsMgr.EnableFontColorTags(saveFontColorTag);
-  GraphicsMgr.RestoreFontColorTags();
-  */
-  GraphicsMgr.EnableFontColorTags(saveFontColorTag);
 }
 
 void EnableUserInput(BOOL enable)
@@ -4447,7 +4136,7 @@ int ActorType::DetermineLevel(const SCHOOL_ID& schoolID, int spellLevel)
   // the highest level that can cast spells in this schoolID.
   CHARACTER *pChar;
   const SCHOOL_ABILITY *pSchoolAbility;
-  pChar = GetCurrentlyActiveContext(this, "ActorType::DetermineLevel");
+  pChar = GetCurrentlyActiveContext(this);
   pSchoolAbility = pChar->spellAbility.PeekSchoolAbility(schoolID);
   Level = 0;
   if (pSchoolAbility != NULL) 
@@ -4475,21 +4164,12 @@ BOOL ActorType::operator==(const ActorType &src) const
 
 void ActorType::FromString(const CString& str)
 {
-  Flags = 0;
-  if (str.GetLength() == 0)
-  {
-    *this = NULL_ACTOR;
-  }
-  else
-  {
-    if (str.GetLength() >= sizeof(ActorType))
-    {
-      *this = *((ActorType *)(LPCSTR)str);
-    };
-  };
-  if (!IsValidSrc())
-  {
-    die(0xab520); 
+  if (str.GetLength()==0) *this = NULL_ACTOR;
+  if (    (str.GetLength() < sizeof(ActorType))
+      ||  !(*this = *((ActorType *)(LPCSTR)str)).IsValidSrc()
+     )
+  { 
+    ASSERT(FALSE); 
     CString errmsg;
     errmsg.Format("Invalid source string \'%s\' in Actor::FromString()\n", str);
     errmsg += GetActorDebugText(*this);
@@ -4535,50 +4215,11 @@ unsigned long ActorType::GetSrc() const
   if (Flags&FLAG_MONSTER) return FLAG_MONSTER;
   if (Flags&FLAG_ITEM) return FLAG_ITEM;
   if (Flags&FLAG_BISHOP) return FLAG_BISHOP;
-  die(0xab521);
+  ASSERT(FALSE);
   return 0;
 }
 //} // extern C
 
-#ifdef SpellInitiationScript
-void ActorType::ExitCombat(void)
-{
-  if ((Flags & FLAG_COMBAT) == 0) return;
-  {
-    switch(instanceType)
-    {
-    case InstanceType_CombatantIndex:
-    {
-      COMBATANT *pCombatant;
-      CHARACTER *pCharacter;
-      pCombatant = combatData.GetCombatant(Instance);
-      pCharacter = pCombatant->m_pCharacter;
-      if (pCombatant == NULL)
-      {
-        die(0x9070);
-      };
-      if (!pCharacter->characterID.IsEmpty())
-      {
-        // We can replace a PC combatant with a PC non-combatant rather easily
-        Flags &= ~(FLAG_COMBAT | FLAG_FAKE_COMBATANT | FLAG_COMBATANT);
-        Flags |= FLAG_NONCOMBAT;
-        instanceType = InstanceType_UniquePartyID;
-        Instance = pCharacter->uniquePartyID;
-      }
-      else
-      {
-        // A monster will not survive when the combat is closed.
-        // We will replace him with a NULL character
-        Clear();
-        instanceType = InstanceType_NullActor;
-      };
-      break;
-    };
-    default: die(0xdd6a);
-    };
-  };
-}
-#endif
 
 unsigned long HashString(const char *s, const unsigned long hashsize)
 {
@@ -4586,7 +4227,7 @@ unsigned long HashString(const char *s, const unsigned long hashsize)
  unsigned long h=0, g;
  if (s==NULL)
  {
-   die(0xab522);
+   ASSERT(FALSE);
    return 0;
  }
  for (p=s; *p!=0; p++)
@@ -4953,7 +4594,7 @@ CString ClassFlagToText(WORD types)
 
   if (tmp.IsEmpty())
   {
-    ASS ERT(FALSE); // mistake of some sort?
+    ASSERT(FALSE); // mistake of some sort?
     tmp="ClassFlagError!!";
   }
 
@@ -4967,13 +4608,12 @@ CString ClassFlagToText(WORD types)
 BOOL CreateBackupDesignDirectory()
 {
   BOOL success = FALSE;
- // struct _tstat st;
+  struct _tstat st;
   char path[_MAX_PATH+1];
 
   GetDesignPath(path);
   strcat(path, "Backup");
 
-/*
   if (_tstat(path, &st) == 0)
   {
     if (st.st_mode & _S_IFDIR)
@@ -4991,30 +4631,6 @@ BOOL CreateBackupDesignDirectory()
     if( _mkdir(path) == 0)
       success = TRUE;
   }
-*/
-  WriteDebugString("Entering CreateBackupDesignDirectory(%s)\n", path);
-  if (PathFileExists(path))
-  {
-    if (PathIsDirectory(path))
-    {
-      success = TRUE;
-    }
-    else
-    {
-      WriteDebugString("A non-directory file of that name already exists\n");
-    };
-  }
-  else
-  {
-    if (_mkdir(path) == 0)
-    {
-      success = TRUE;
-    }
-    else
-    {
-      WriteDebugString("Attempt to create directory failed\n");
-    };
-  };
 
   DeleteAllFilesInFolder(path);
   return success;
@@ -5103,7 +4719,13 @@ void BackupFileType(CString FileExt)
   CString destPath;
   CString searchPath;
 
+#ifdef SIMPLE_STRUCTURE
   destPath = rte.BackupDir();
+#else
+  destPath = GetDesignPath();
+  searchPath = destPath;
+  destPath += "Backup";
+#endif
   
   CopyFileType(FileExt, searchPath, destPath);
 }
@@ -5111,10 +4733,8 @@ void BackupFileType(CString FileExt)
 
 BOOL CreateEmptyDirectory(const CString& dname)
 {
- // struct _tstat st;
+  struct _tstat st;
   // first create new folder
-  WriteDebugString("Entering CreateEmptyDirectory(%s)\n", dname);
-  /*
   if (_tstat(dname, &st) == 0)
   {
     DeleteAllFilesInFolder(dname);
@@ -5128,29 +4748,6 @@ BOOL CreateEmptyDirectory(const CString& dname)
       return FALSE;
     }
   };
-  */
-  if (PathFileExists(dname))
-  {
-    if (PathIsDirectory(dname))
-    {
-      DeleteAllFilesInFolder(dname);
-    }
-    else
-    {
-      WriteDebugString("Path is not a folder\n");
-      return FALSE;
-    }
-  }
-  else
-  {
-    if (_mkdir(dname) != 0)
-    {
-      WriteDebugString("Attempt to create folder failed\n");
-      MsgBoxError("Cannot create design directory\n",
-        "Design Copy Error");
-      return FALSE;
-    }
-  };
   return TRUE;
 }
 
@@ -5158,14 +4755,13 @@ BOOL CreateEmptyDirectory(const CString& dname)
 
 BOOL CopyDesignFiles(CString newFolder)
 {
- // struct _tstat st;
+  struct _tstat st;
   char path[_MAX_PATH+1];
   strcpy(path, newFolder);
-  WriteDebugString("Entering CopyDesignFiles(%s)\n", newFolder);
+
   EditorStatusMsg("Creating new design folder...");
 
   // first create new folder
-/*
   if (_tstat(path, &st) == 0)
   {
     if (!(st.st_mode & _S_IFDIR))
@@ -5184,25 +4780,7 @@ BOOL CopyDesignFiles(CString newFolder)
       return FALSE;
     }
   };
-*/
-  if (PathFileExists(newFolder))
-  {
-    if (!PathIsDirectory(newFolder))
-    {
-      WriteDebugString("Given path is not a folder name\n");
-      return FALSE;
-    }
-  }
-  else
-  {
-    if (_mkdir(path) != 0)
-    {
-      WriteDebugString("Attempt to create directory failed\n");
-      MsgBoxError("Cannot create design directory\n",
-        "Design Copy Error");
-      return FALSE;
-    }
-  };
+
   // make sure new folder is empty
   DeleteAllFilesInFolder(path);
 
@@ -5210,6 +4788,7 @@ BOOL CopyDesignFiles(CString newFolder)
 
   EditorStatusMsg("Copying all files to new design folder...");
 
+#ifdef SIMPLE_STRUCTURE
   {
     strcpy(path, rte.DesignDir());
     if (path[strlen(path)-1] == '\\')
@@ -5241,6 +4820,10 @@ BOOL CopyDesignFiles(CString newFolder)
     if (!CreateEmptyDirectory(destination)) return FALSE;;
     CopyFileType("*", source, destination);
   };
+#else
+  GetDesignPath(path);
+  CopyFileType("*", path, newFolder);
+#endif
   return TRUE;
 }
 
@@ -5416,8 +4999,7 @@ void JOURNAL_ENTRY::Export(JWriter& jw)
   jw.StartList();
   jw.NameAndValue(JKEY_KEY, entry);
   jw.NameAndValue(JKEY_ORIGKEY, origentry);
-  if (!text.IsEmpty())  jw.NameAndMultiLineString(JKEY_MTEXT, text);
-  //jw.NameAndValue(JKEY_TEXT, text);
+  jw.NameAndValue(JKEY_TEXT, text);
   jw.EndList();
 };
 
@@ -5426,9 +5008,7 @@ void JOURNAL_ENTRY::Import(JReader& jr)
   jr.StartList();
   jr.NameAndValue(JKEY_KEY, entry);
   jr.NameAndValue(JKEY_ORIGKEY, origentry);
-  //jr.NameAndValue(JKEY_TEXT, text);
-  jr.Optional(); jr.NameAndValue(JKEY_TEXT, text);
-  jr.Optional(); jr.NameAndMultiLineString(JKEY_MTEXT, text);
+  jr.NameAndValue(JKEY_TEXT, text);
   jr.EndList();
 };
 #endif

@@ -58,44 +58,32 @@
 //  GPDL_READ_ERROR    = Error reading GPDL binary file.
 
 
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 
-#include "externs.h"
+#include "Externs.h"
 #include <malloc.h>
 #include <math.h>
 #include "class.h"
 #include "GameEvent.h"
-#include "..\Shared\GPDLopCodes.h"
+#include "../Shared/GPDLOpCodes.h"
 #include "GPDLcomp.h"
 #include "GPDLexec.h"
 #include "Graphics.h"
 #include "GlobalData.h"
-#include "RuntimeIF.h"
-#include "party.h"
+#include "RunTimeIF.h"
+#include "Party.h"
 #include "Monster.h"
-#ifdef UAFEDITOR
-#include "..\UAFWinEd\Resource.h"
-#else
-#include "..\UAFWin\Resource.h"
-#endif
-#include "ramfile.h"
+#include "../UAFWin/resource.h"
 
 void *My_malloc(int size);
 void *My_realloc(void *buf, int size);
 void My_free(void *addr);
-
-
 #ifdef UAFEngine
-void UpdateAdventureScreen(void);
 void InitiateTaskMessage_SetPartyXY(int x, int y);
 int  ComputeAttackDamage(const COMBATANT *pAttacker, const COMBATANT *pTarget);
-CString FindEventAttribute(int depth, const CString& name);
-extern CHARACTER FakeCharacter;
 #else
 int  ComputeAttackDamage(const COMBATANT *pAttacker, const COMBATANT *pTarget){return 1;};
 #endif
-extern SCRIPT_CONTEXT NULL_SCRIPT_CONTEXT;
-extern BOOL logDebuggingInfo;
 extern CString emptyString;
 extern CHARACTER NULL_CHAR;
 #ifdef UAFEngine
@@ -106,9 +94,9 @@ extern CHARACTER FakeCharacter;
 
 #ifdef UAFEngine
 
-#include "..\UAFWin\combatants.h"
-#include "..\UAFWin\CharStatsForm.h"
-#include "..\UAFWin\FormattedText.h"
+#include "../UAFWin/Combatants.h"
+#include "../UAFWin/CharStatsForm.h"
+#include "../UAFWin/FormattedText.h"
 
 BOOL HaveLineOfSight(int x0, int y0, int x1, int y1, BOOL *reflects);
 BOOL IsLineOfSight(int x0, int y0, int x1, int y1);
@@ -116,7 +104,7 @@ CString GetSpellbook(CHARACTER *pChar, CString delimiters);
 //CString SelectSpell(CHARACTER *pChar, CString spellname);
 CString SelectSpell(CHARACTER *pChar, const SPELL_ID& spellID);
 void Memorize(CHARACTER *pChar);
-//int SetMemorizeCount(int charIndex, const CString& spellName, const CString& adj, const char *msg);
+int SetMemorizeCount(int charIndex, const CString& spellName, const CString& adj);
 CString GetHighestLevelBaseclass(int charIndex);
 int GetBaseclassLevel(int charIndex, const CString& baseclassName);
 CString MonsterPlacementCallback(const CString& turtleCode);
@@ -140,8 +128,8 @@ CString GrSet        (const CString& name, const CString& x, const CString& y);
 CString GrSetLinefeed(const CString& name);
 CString GrMoveTo     (const CString& name);
 CString GrFormat     (const CString& name);
-CString GrPrint      (const CString& name, int fontNumber, BOOL customColor);
-CString GrPrtLF      (const CString& name, int fontNumber, BOOL customColor);
+CString GrPrint      (const CString& name);
+CString GrPrtLF      (const CString& name);
 CString GrMark       (const CString& name);
 CString GrMove       (const CString& name);
 CString GrTab        (const CString& name);
@@ -169,30 +157,7 @@ static char THIS_FILE[] = __FILE__;
 
 GPDL_STACK  gpdlStack;
 
-extern struct DISCOURSELINE *pDiscourseLine;
-
-DISCOURSELINE rootDiscourseLine;
-DISCOURSELINE *pDiscourseLine = &rootDiscourseLine;
-// Replaced with a stack of DISCOURSELINE;  CArray<CString, CString> discourseLine;
-
-
-void DISCOURSELINE::Push(void)
-{
-  DISCOURSELINE *pEntry;
-  pEntry = new DISCOURSELINE;
-  pEntry->pPrevDiscourseLine = this;
-  pDiscourseLine = pEntry;
-};
-void DISCOURSELINE::Pop(void)
-{
-  DISCOURSELINE *pEntry;
-  pEntry = pPrevDiscourseLine;
-  delete pDiscourseLine;
-  pDiscourseLine = pEntry;
-};
-
-
-
+CArray<CString, CString> discourseLine;
 re_registers	  re_grepReg;
 CString         re_searchString;
 
@@ -240,15 +205,6 @@ void die(const char *msg)
   CString m(msg);
   die(m);
 }
-
-#ifdef UAFEDITOR
-void die(int err)
-{
-  CString msg;
-  msg.Format("die(0x%x)", err);
-  die(msg);
-}
-#endif
 
 /*
 CString dialogControls[MAX_DLG_CONTROLS];
@@ -567,19 +523,6 @@ GPDL_STATE GPDL::ReadProgram(CArchive& ar)
   return GPDL_OK;
 }
 
-GPDL_STATE GPDL::ReadProgram(RAM_FILE& ar)
-{
-  unsigned int i;
-  ar >> m_H;
-  m_programAllocated=m_H;
-  if (m_program != NULL) delete[] m_program;
-  m_program = new unsigned int[m_programAllocated];
-  for (i=0; i<m_H; i++) {
-    ar>>m_program[i];
-  };
-  return GPDL_OK;
-}
-
 //*****************************************
 //  Time to be sure the file has been loaded.
 //  Parameter:
@@ -589,23 +532,6 @@ GPDL_STATE GPDL::ReadProgram(RAM_FILE& ar)
 //    non-zero is an error code
 //*****************************************
 GPDL_STATE GPDL::Load(CArchive& ar) {
-  if (m_state!=GPDL_UNINITIALIZED) return GPDL_EVENT_ERROR;
-  if (ReadProgram(ar) != GPDL_OK)  return GPDL_READ_ERROR;
-  //if (m_code.read(ar))      return GPDL_READ_ERROR;
-  if (m_globals.read(ar)) return GPDL_READ_ERROR;
-  if (m_index.read(ar))     return GPDL_READ_ERROR;
-  m_state=GPDL_IDLE;
-  if (m_dataStack!=NULL) delete []m_dataStack;
-  m_dataStack=NULL;
-  if (m_returnStack!=NULL) delete []m_returnStack;
-  m_returnStack=NULL;
-  m_dataStack=new CString[m_SP0];
-  m_returnStack=new unsigned int[m_RP0];
-  return GPDL_IDLE;
-}
-
-
-GPDL_STATE GPDL::Load(RAM_FILE& ar) {
   if (m_state!=GPDL_UNINITIALIZED) return GPDL_EVENT_ERROR;
   if (ReadProgram(ar) != GPDL_OK)  return GPDL_READ_ERROR;
   //if (m_code.read(ar))      return GPDL_READ_ERROR;
@@ -721,45 +647,29 @@ void GPDL::m_pushEmptyString(void) {
   m_pushSP(emptyString);
 }
 
-void GPDL::m_pushUInteger(unsigned int u)
-{
-  char a[30];
-  _ultoa(u, a, 10);
-  m_string1 = a;
+void GPDL::m_pushUInteger1(void) {
+  m_string1.Format("%u",m_uInteger1);
   m_pushString1();
 }
 
-void GPDL::m_pushInteger(int i)
-{
-  char a[30];
-  _itoa(i, a, 10);
-  m_string1 = a;
+void GPDL::m_pushUInteger2(void) {
+  m_string1.Format("%u",m_uInteger2);
   m_pushString1();
 }
 
-inline void GPDL::m_pushUInteger1(void) 
-{
-  m_pushUInteger(m_uInteger1);
+void GPDL::m_pushInteger1(void) {
+  m_string1.Format("%d",m_Integer1);
+  m_pushString1();
 }
 
-inline void GPDL::m_pushUInteger2(void)
-{
-  m_pushUInteger(m_uInteger2);
+void GPDL::m_pushInteger2(void) {
+  m_string1.Format("%d",m_Integer2);
+  m_pushString1();
 }
 
-inline void GPDL::m_pushInteger1(void) 
-{
-  m_pushInteger(m_Integer1);
-}
-
-inline void GPDL::m_pushInteger2(void) 
-{
-  m_pushInteger(m_Integer2);
-}
-
-inline void GPDL::m_pushInteger3(void) 
-{
-  m_pushInteger(m_Integer3);
+void GPDL::m_pushInteger3(void) {
+  m_string1.Format("%d",m_Integer3);
+  m_pushString1();
 }
 
 GPDL_STATE GPDL::m_popInteger(bool& negative, 
@@ -805,7 +715,6 @@ GPDL_STATE GPDL::m_popInteger(bool& negative,
         };
         break;
       };
-	  /* Unreachable
       if (base!=16) {
         status=GPDL_BADINTEGER;
         break;
@@ -816,7 +725,6 @@ GPDL_STATE GPDL::m_popInteger(bool& negative,
         break;
       };
       c+='9'+1-'A';
-	  */
     };
     n=n*base+c-'0';
   };
@@ -908,7 +816,7 @@ CHARACTER *GPDL::m_popCharacterActor(void)
     MsgBoxError("Script referenced non-existent actor", "Error", 1);
     return &NULL_CHAR;
   };
-  pChar = GetCurrentlyActiveContext(&actor, "GPDL::m_popCharacterActor");
+  pChar = GetCurrentlyActiveContext(&actor);
   return pChar;
 }
 
@@ -1019,12 +927,6 @@ void GPDL::AURA_FUNCTION(AURA_FUNC func)
         {
           pAURA->attachment[1] = AURA_ATTACH_COMBATANT_FACING;
         }
-        else if (m_string1 == "XY")
-        {
-          pAURA->attachment[1] = AURA_ATTACH_XY;
-          pAURA->x[1] = -1;
-          pAURA->y[1] = -1;
-        }
         else 
         {
           WriteDebugString("Illegal AURA Attachment Parameter\n");
@@ -1117,38 +1019,8 @@ void GPDL::AURA_FUNCTION(AURA_FUNC func)
       {
       };
       break;
-    case $AURA_Location:
-#ifdef UAFEngine
-        m_popInteger1();  pAURA->y[1] = m_Integer1;
-        m_popInteger1();  pAURA->x[1] = m_Integer1;
-        m_string1 = "OK";
-        m_pushString1();
-#endif
-      break;
-    case $AURA_SetData:
-#ifdef UAFEngine
-      if (!error)
-      {
-        /* Really */ NotImplemented(0x49a73b, false);
-      }
-      else
-#endif
-      {
-      };
-      break;
-    case $AURA_GetData:
-#ifdef UAFEngine
-      if (!error)
-      {
-        m_pushSP(pAURA->userData[m_popInteger()]);
-      }
-      else
-#endif
-      {
-      };
-      break;
     default:
-        /* Really */ NotImplemented(0x49a7c5, false);
+        NotImplemented(0x49a7c5, false);
 
     };
   };
@@ -1165,12 +1037,12 @@ const ITEM_DATA *GPDL::m_GetItemData(void)
 
 
 static const char *callLine;
-static int length;
+static int len;
 
 static int GetToken(void)
 {
   char c;
-  callLine += length;
+  callLine += len;
   while (*callLine == ' ') callLine++;
   c = *callLine;
   if (    (c=='$')
@@ -1179,9 +1051,9 @@ static int GetToken(void)
        || ((c>='a') && (c<='z'))
      )
   {
-    for (length=1; ;length++)
+    for (len=1; ;len++)
     {
-      c = callLine[length];
+      c = callLine[len];
       if (    (c=='$')
            || (c=='_')
            || ((c>='A') && (c<='Z'))
@@ -1194,22 +1066,22 @@ static int GetToken(void)
   };
   if (c == '"')
   {
-    length = 1;
-    while (callLine[length] != '"')
+    len = 1;
+    while (callLine[len] != '"')
     {
-      if (callLine[length] == 0) return 0;
-      length++;
+      if (callLine[len] == 0) return 0;
+      len++;
     };
-    length++;
+    len++;
     return 5; // 5 is a quoted string
   };
   if ( (c>='0') && (c<='9') )
   {
-    length = 1;
-    while ((callLine[length]>='0') && (callLine[length]<='9')) length++;
+    len = 1;
+    while ((callLine[len]>='0') && (callLine[len]<='9')) len++;
     return 6; //6 is a number
   };
-  length = 1;
+  len = 1;
   if (c == '(') return 2; // 2 is open parethesis
   if (c == ')') return 3;
   if (c == ',') return 4;
@@ -1222,14 +1094,14 @@ GPDL_STATE GPDL::BeginExecute(CString& funcCall, GPDL_EVENT *event)
   char c;
   int neededParam, headerIdx, multiplier;
   callLine = LPCTSTR(funcCall);
-  length = 0;
+  len = 0;
   tokenType = GetToken();
   if (tokenType != 1)
   {
     WriteDebugString("GPDL call does not contain a function name\n");
     return GPDL_NOSUCHNAME;
   };
-  m_string1 = CString(callLine,length);
+  m_string1 = CString(callLine,len);
   m_PC=m_index.lookup(m_string1);
   if (m_PC==0) 
   {
@@ -1265,8 +1137,8 @@ GPDL_STATE GPDL::BeginExecute(CString& funcCall, GPDL_EVENT *event)
   { // Get another parameter
     tokenType = GetToken();
     if (tokenType == 3) break;
-    if (tokenType == 5) m_string1 = CString(callLine+1, length -2);
-    else if (tokenType == 6) m_string1 = CString(callLine, length);
+    if (tokenType == 5) m_string1 = CString(callLine+1, len-2);
+    else if (tokenType == 6) m_string1 = CString(callLine, len);
     else
     {
       WriteDebugString("GPDL parameter syntax error\n");
@@ -1291,7 +1163,6 @@ GPDL_STATE GPDL::BeginExecute(CString& funcCall, GPDL_EVENT *event)
     return GPDL_NOSUCHNAME;
   };
   m_FP=m_SP;
-  m_interpretCount = 0;
   return m_interpret();
 }
 
@@ -1339,7 +1210,6 @@ CString GPDL::ExecuteScript(const CString& code, int entryPointOrdinal)
   m_string1=m_false;
   m_pushSP(m_string1); // The empty string as default result.
   m_FP=m_SP;
-  m_interpretCount = 0;
   status = m_interpret();
   m_program = NULL;
   if (status != GPDL_IDLE) return m_false;
@@ -1387,18 +1257,14 @@ void InterpretFilter::Add(int numSteps)
 //                             (pScriptContext==NULL)?"Unknown":pScriptContext->scriptName);
 //    WriteDebugString(msg);
 //  };
-
-  if (numSteps > 50000)  // That's enough for any one script!
+  if (numSteps > 1000)  // That's enough for any one script!
   {
     CString msg;
-    if (!debugStrings.AlreadyNoted("ELScript"))
-    {
-      msg.Format("Excessively long script.\n %s (%s) [%s]",
-                  pScriptContext->sourceName,
-                  pScriptContext->specAb.Key(),
-                  (pScriptContext==NULL)?"Unknown":pScriptContext->scriptName);
-      MsgBoxError(msg,"Warning", 5);
-    };
+    msg.Format("Excessively long script.\n %s (%s) [%s]",
+                pScriptContext->sourceName,
+                pScriptContext->specAb.Key(),
+                (pScriptContext==NULL)?"Unknown":pScriptContext->scriptName);
+    MsgBoxError(msg,"Warning", 5);
   };
   // Eliminate any old counts
   while ( (num>0) && (time[start] < virtualGameTime - interpretPeriod))
@@ -1478,9 +1344,7 @@ CString GPDL::ExecuteScript(const CString& code,
   for (int i=0; i<numPar; i++) m_pushSP(par[i]); // A through F
   m_FP=m_SP;
   m_interpretCount = 0;
-  m_discourseText.Push();
   status = m_interpret();
-  m_discourseText.Pop();
   interpretFilter.Add(m_interpretCount);
 
   m_program = NULL;
@@ -1501,27 +1365,14 @@ void GPDL::m_interpretError(const char *msg)
   DoTaskStackTrace();
 #endif
   CString message;
-  if (!debugStrings.AlreadyNoted("GPDLIE"))
+  message.Format("GPDL interpret error.\n%s\nPC = 0x%06x",msg,m_executionAddress);
+  if (interpretError == "")
   {
-    CString temp;
-    message.Format("GPDL interpret error.\n%s\nPC = 0x%06x",msg,m_executionAddress);
-    if (pScriptContext != &NULL_SCRIPT_CONTEXT)
-    {
-      message += "\nSpecial Ability: ";
-      message += pScriptContext->specAb.Key();
-      message += "\nScript: ";
-      message += pScriptContext->scriptName;
-    };
-    temp.Format("\nParty location: %d(%d,%d)", party.level, party.Posx, party.Posy);
-    message += temp;
-    if (interpretError == "")
-    {
-      MsgBoxError(message);
-    }
-    else
-    {
-      interpretError = message;
-    };
+    MsgBoxError(message);
+  }
+  else
+  {
+    interpretError = message;
   };
 }
 
@@ -1593,7 +1444,7 @@ IF_KEYWORD_DATA *LocateKeywordData(const int keyindex);
 
 extern CArray<COMBATANT *,COMBATANT *> newMonsters;
 
-COMBATANT *GPDL::m_IndexToCombatant(int index, const char *msg)
+COMBATANT *GPDL::m_IndexToCombatant(int index)
 {
 #ifdef UAFEngine
   if (IsCombatActive())
@@ -1625,22 +1476,22 @@ COMBATANT *GPDL::m_IndexToCombatant(int index, const char *msg)
 #endif
 }
 
-CHARACTER *GPDL::m_IndexedCharacter(int index, const char *msg)
+CHARACTER *GPDL::m_IndexedCharacter(int index)
 {
 #ifdef UAFEngine
   if (IsCombatActive())
   {
-    return m_IndexToCombatant(index, msg)->m_pCharacter;
+    return m_IndexToCombatant(index)->m_pCharacter;
   }
   else
 #endif
   {
     //return globalData.charData.GetCharacterData(index);
-    /* Really */ NotImplemented(0x91bbd, false); return NULL;  //return globalData.charData.GetCharacterData(index);
+    NotImplemented(0x91bbd, false); return NULL;  //return globalData.charData.GetCharacterData(index);
   };
 }
 
-CHARACTER *GPDL::m_IndexToCharacter(int index, const char *msg)
+CHARACTER *GPDL::m_IndexToCharacter(int index)
 {
 #ifdef UAFEDITOR
   return &NULL_CHAR;
@@ -1648,11 +1499,11 @@ CHARACTER *GPDL::m_IndexToCharacter(int index, const char *msg)
   CHARACTER *result = NULL;
   if (IsCombatActive())
   {
-    result = m_IndexToCombatant(index, msg)->m_pCharacter;
+    result = m_IndexToCombatant(index)->m_pCharacter;
   }
   else if (index == -2)
   {
-    result = pScriptContext->GetCreatedCharacterContext(msg);
+    result = pScriptContext->GetCreatedCharacterContext();
   }
   else
   {
@@ -1674,7 +1525,7 @@ CHARACTER *GPDL::m_IndexToCharacter(int index, const char *msg)
     else
     {
       //result = globalData.charData.GetCharacterData(index);
-      /* Really */ NotImplemented(0x12cca, false); return NULL; //result = globalData.charData.GetCharacterData(index);
+      NotImplemented(0x12cca, false); return NULL; //result = globalData.charData.GetCharacterData(index);
     };
   };
   if (result == NULL)
@@ -1703,7 +1554,7 @@ void GPDL::m_getCharacterValueWithActor(int keyindex, ActorType actor)
 }
 */
 
-void GPDL::m_GetCharActor(ActorType *pActor, const char *msg)
+void GPDL::m_GetCharActor(ActorType *pActor)
 {
   if (IsCombatActive())
   {
@@ -1720,15 +1571,14 @@ void GPDL::m_GetCharActor(ActorType *pActor, const char *msg)
       else
       {
         CString errmsg;
-        errmsg.Format("Illegal combatant %i in m_getCharActor\n%s",
-          m_Integer1, msg);
+        errmsg.Format("Illegal combatant %i in m_getCharacterValue",
+          m_Integer1);
         errmsg += "\n";
         errmsg += GetActorDebugText(*pActor);
         m_interpretError(errmsg);
         //WriteStackTrace();
         m_string1 = m_false;
         m_pushString1(); // Have to supply a result.
-        *pActor = INVALID_ACTOR;
         return;
       };
     }
@@ -1750,107 +1600,10 @@ void GPDL::m_GetCharActor(ActorType *pActor, const char *msg)
 // what the help file says!
 // This would allow a script to go through the party members one at a time.
 //
-// In July 2018 I examined the functions that somehow used an integer to
-// select a character.  Here are the results of that analysis:
-//
-    /*
-      case SUBOP_SET_CHAR_SEX:             (party order or  combat order)
-      case SUBOP_GET_PARTY_ACTIVECHAR:     (party order)
-      case SUBOP_SetMemorizeCount:         (party order)
-      case SUBOP_GetHighestLevelBaseclass: (party order)
-      case SUBOP_IndexToActor:             (party order)
-      case SUBOP_GetBaseclassLevel:        (party order)
-      case SUBOP_IF_CHAR_ASL:              (party order)
-      case SUBOP_COINCOUNT:                (party order)
-      case SUBOP_GET_CHAR_SEX:             (uniqueID    or   combat order)
-      case SUBOP_GET_CHAR_PERM_STR:        (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_LIMITED_CHA:     (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_ALIGNMENT:       (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_CLASS:           (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_LIMITED_CON:     (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_DAMAGEBONUS:     (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_PERM_STRMOD:     (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_RACE:            (uniqueID   or   combat order)
-      case SUBOP_SET_CHAR_RACE:            (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_ASL:             (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_AC:              (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_ADJAC:           (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_NAME:            (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_HITPOINTS:       (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_ADJTHAC0:        (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_EFFAC:           (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_RDYTOTRAIN:      (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_Exp:             (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_THAC0:           (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_MAXAGE:          (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_MAXMOVE:         (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_AGE:             (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_LIMITED_STRMOD:  (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_LIMITED_INT:     (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_LIMITED_STR:     (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_LIMITED_DEX:     (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_NBRATTACKS:      (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_LIMITED_WIS:     (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_GENDER:          (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_HITBONUS:        (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_MORALE:          (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_PERM_WIS:        (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_PERM_DEX:        (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_ENC:             (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_MAGICRESIST:     (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_SIZE:            (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_UNDEAD:          (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_STATUS:          (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_PERM_INT:        (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_NBRHITDICE:      (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_Lvl:             (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_MAXENC:          (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_PERM_CHA:        (uniqueID   or   combat order)
-      case SUBOP_GET_CHAR_PERM_CON:        (uniqueID   or   combat order)
-      case SUBOP_SET_CHAR_SIZE:            (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_ALIGNMENT:       (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_UNDEAD:          (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_STATUS:          (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_PERM_CHA:        (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_GENDER:          (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_MAXENC:          (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_PERM_WIS:        (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_PERM_CON:        (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_PERM_DEX:        (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_PERM_STR:        (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_PERM_INT:        (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_PERM_STRMOD:     (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_AGE:             (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_MAXMOVE:         (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_MAXAGE:          (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_Exp:             (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_ICON_INDEX:      (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_MAXHITPOINTS:    (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_HITPOINTS:       (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_RDYTOTRAIN:      (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_THAC0:           (UniqueID   or  combat order)
-      case SUBOP_RUN_CHAR_SCRIPTS:         (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_AC:              (UniqueID   or  combat order)
-      case SUBOP_MODIFY_CHAR_ATTRIBUTE:    (UniqueID   or  combat order)
-      case SUBOP_REMOVE_CHAR_MODIFICATION: (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_HITBONUS:        (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_ASL:             (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_MAGICRESIST:     (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_MORALE:          (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_DAMAGEBONUS:     (UniqueID   or  combat order)
-      case SUBOP_GET_CHAR_MAXHITPOINTS:    (UniqueID   or  combat order)
-      case SUBOP_SET_CHAR_Lvl:             (UniqueID   or  combat order)
-      case SUBOP_IndexOf:                  (uniqueID)
-      */
-// As you can see, almost all functions use the uniqueID of the character
-// rather than the party index.  I decided that the few exceptions should be 
-// treated as 'bugs'.  I attempted to fix these bugs on 13 JUly 2018.   PRS
-
-//
     if (m_Integer1 == -2)
     {
       CHARACTER *pChar;
-      pChar = pScriptContext->GetCreatedCharacterContext(msg);
+      pChar = pScriptContext->GetCreatedCharacterContext();
       if (pChar == NULL)
       {
         *pActor = NULL_ACTOR;
@@ -1883,7 +1636,7 @@ void GPDL::m_GetCharActor(ActorType *pActor, const char *msg)
     {
       CHARACTER *pChar;
       //pChar = globalData.charData.GetCharacterData(m_Integer1);
-      /* Really */ NotImplemented(0xaff5, false); pChar=NULL; // pChar = globalData.charData.GetCharacterData(m_Integer1);
+      NotImplemented(0xaff5, false); pChar=NULL; // pChar = globalData.charData.GetCharacterData(m_Integer1);
       if (pChar == NULL)
       {
         *pActor = NULL_ACTOR;
@@ -1896,8 +1649,8 @@ void GPDL::m_GetCharActor(ActorType *pActor, const char *msg)
     if (*pActor == NULL_ACTOR)
     {
       CString errmsg;
-      errmsg.Format("Illegal party member %i in m_getCharacterActor\n%s",
-                    m_Integer1, msg);
+      errmsg.Format("Illegal party member %i in m_getCharacterValue",
+                    m_Integer1);
       errmsg += "\n";
       errmsg += GetActorDebugText(*pActor);
       
@@ -1919,6 +1672,239 @@ void GPDL::m_setCharacterValueWithActor(int keyindex, ActorType actor, const CSt
   IF_KEYWORD_DATA *pIfKeyData = LocateKeywordData(keyindex);
   SetDataFromCString(pIfKeyData, value, &actor);
   m_pushSP(value);
+}
+*/
+/*
+void GPDL::m_getCharacterValue(int keyindex)
+{
+  //IF_KEYWORD_DATA *pIfKeyData;
+  m_popInteger1();
+  ActorType actor;
+  if (IsCombatActive())
+  {
+#ifdef UAFEngine
+    COMBATANT *pCombatant;
+    if (   (m_Integer1<0) 
+        || (m_Integer1>=GetNumCombatants()))
+    {
+      if (     (m_Integer1 >= NewCombatantInstanceOffset)
+           &&  (m_Integer1 < (NewCombatantInstanceOffset + newMonsters.GetSize())))
+      {
+        pCombatant = newMonsters[m_Integer1-NewCombatantInstanceOffset];
+      }
+      else
+      {
+        CString errmsg;
+        errmsg.Format("Illegal combatant %i in m_getCharacterValue",
+          m_Integer1);
+        errmsg += "\n";
+        errmsg += GetActorDebugText(actor);
+        m_interpretError(errmsg);
+        //WriteStackTrace();
+        m_string1 = m_false;
+        m_pushString1(); // Have to supply a result.
+        return;
+      };
+    }
+    else
+    {    
+      pCombatant = combatData.GetCombatant(m_Integer1);
+    };
+    pCombatant->GetContext(&actor);
+#else
+    actor=NULL_ACTOR;
+#endif
+  }
+  else
+  {
+#ifdef UAFEngine
+    int partyIndex = -1;
+//
+// Why shouldn't m_integer1 be the partyIndex?  That is
+// what the help file says!
+// This would allow a script to go through the party members one at a time.
+//
+    if (m_Integer1 == -2)
+    {
+      CHARACTER *pChar;
+      pChar = pScriptContext->GetCreatedCharacterContext();
+      if (pChar == NULL)
+      {
+        actor = NULL_ACTOR;
+      }
+      else
+      {
+        pChar->GetContext(&actor);
+      };
+    }
+    else if (m_Integer1 < MAX_PARTY_MEMBERS)
+    {
+      for (int i=0;i<GetPartySize(party);i++)
+      {
+        if (party.characters[i].uniquePartyID == m_Integer1)
+        {
+          partyIndex=i;
+          break;
+        }
+      };
+      if (partyIndex < 0)
+      {
+        actor = NULL_ACTOR;
+      }
+      else
+      {
+        party.characters[partyIndex].GetContext(&actor);
+      }
+    }
+    else
+    {
+      CHARACTER *pChar;
+      //pChar = globalData.charData.GetCharacterData(m_Integer1);
+      NotImplemented(0xaff5, false); pChar=NULL; // pChar = globalData.charData.GetCharacterData(m_Integer1);
+      if (pChar == NULL)
+      {
+        actor = NULL_ACTOR;
+      }
+      else
+      {
+        pChar->GetContext(&actor);
+      };
+    };
+    if (actor == NULL_ACTOR)
+    {
+      CString errmsg;
+      errmsg.Format("Illegal party member %i in m_getCharacterValue",
+                    m_Integer1);
+      errmsg += "\n";
+      errmsg += GetActorDebugText(actor);
+      
+      m_interpretError(errmsg);
+      //WriteStackTrace();
+      m_string1 = m_false;
+      m_pushString1(); // Have to supply a result.
+    };
+#else
+    actor=NULL_ACTOR;
+#endif    
+  }
+  
+  //// We need to convert keyindex to a IF_KEYWORD_DATA pointer
+  //pIfKeyData = LocateKeywordData(keyindex);
+  //m_string1 = GetDataAsCString(pIfKeyData, &actor);
+  //m_pushString1();
+  
+  
+  m_getCharacterValueWithActor(keyindex, actor);
+}
+*/
+/*
+void GPDL::m_setCharacterValue(int keyindex)
+{
+  IF_KEYWORD_DATA *pIfKeyData;
+  m_popString1();  // value
+  m_popInteger1(); // character number
+  ActorType actor;
+  if (IsCombatActive())
+  {
+#ifdef UAFEngine
+    if (   (m_Integer1<0) 
+        || (m_Integer1>=GetNumCombatants()))
+    {
+      CString errmsg;
+      errmsg.Format("Illegal combatant %i in m_getCharacterValue",
+        m_Integer1);
+      errmsg += "\n";
+      errmsg += GetActorDebugText(actor);
+      m_interpretError(errmsg);
+      //WriteStackTrace();
+      
+      m_string1 = m_false;
+      m_pushString1(); // Have to supply a result.
+      return;
+    };    
+    combatData.GetCombatant(m_Integer1)->GetContext(&actor);    
+#else
+    actor=NULL_ACTOR;
+#endif
+  }
+  else
+  {
+#ifdef UAFEngine
+    if (m_Integer1 == -2)
+    {
+      CHARACTER *pChar;
+      pChar = pScriptContext->GetCreatedCharacterContext();
+      if (pChar == NULL)
+      {
+        actor = NULL_ACTOR;
+      }
+      else
+      {
+        pChar->GetContext(&actor);
+      };
+    }
+    else if (m_Integer1 < MAX_PARTY_MEMBERS)
+    {
+      int partyIndex = -1;
+      for (int i=0;i<GetPartySize(party);i++)
+      {
+        if (party.characters[i].uniquePartyID == m_Integer1)
+        {
+          partyIndex=i;
+          break;
+        }
+      };
+      if (partyIndex < 0)
+      {
+        actor = NULL_ACTOR;
+      }
+      else
+      {
+        party.characters[partyIndex].GetContext(&actor);
+      }
+    }
+    else
+    {
+      CHARACTER *pChar;
+      //pChar = globalData.charData.GetCharacterData(m_Integer1);
+      NotImplemented(0xadfbf,false); pChar = NULL; //pChar = globalData.charData.GetCharacterData(m_Integer1);
+      if (pChar == NULL)
+      {
+        actor = NULL_ACTOR;
+      }
+      else
+      {
+        pChar->GetContext(&actor);
+      };
+    };
+    if (actor == NULL_ACTOR)
+    {
+      CString errmsg;
+      errmsg.Format("Illegal party member %i in m_setCharacterValue",
+                    m_Integer1);
+      errmsg += "\n";
+      errmsg += GetActorDebugText(actor);
+      
+      m_interpretError(errmsg);
+      //WriteStackTrace();
+      m_string1 = m_false;
+      m_pushString1(); // Have to supply a result.
+    };
+#else
+    actor=NULL_ACTOR;
+#endif    
+  }
+  
+  //// We need to convert keyindex to a IF_KEYWORD_DATA pointer
+  //pIfKeyData = LocateKeywordData(keyindex);
+  //m_string1 = GetDataAsCString(pIfKeyData, &actor);
+  //m_pushString1();
+  
+  
+  pIfKeyData = LocateKeywordData(keyindex);
+  SetDataFromCString(pIfKeyData, m_string1, &actor);
+  m_string1 = m_false;
+  m_pushString1(); // Have to supply a result;
 }
 */
 /*
@@ -2049,17 +2035,17 @@ void GPDL::SA_Delete(SPECIAL_ABILITIES *pSA)
   m_pushString2();
 };
 
-CHARACTER *GPDL::Dude(const char *msg){
+CHARACTER *GPDL::Dude(void){
   m_popInteger1();
   ActorType actor;
-  m_GetCharActor(&actor, msg);
+  m_GetCharActor(&actor);
   /*
   // We need to convert keyindex to a IF_KEYWORD_DATA pointer
   pIfKeyData = LocateKeywordData(keyindex);
   m_string1 = GetDataAsCString(pIfKeyData, &actor);
   m_pushString1();
   */
-  return GetCurrentlyActiveContext(&actor, msg);
+  return GetCurrentlyActiveContext(&actor);
 };
 
 void GPDL::m_GetLiteralInt(int v)
@@ -2075,214 +2061,119 @@ void GPDL::m_SetLiteralInt(int *v)
   this->m_pushEmptyString();
 }
 
-void GPDL::m_GetCharInt(genderType (CHARACTER::*f)(DWORD) const, const char *msg)
+void GPDL::m_GetCharInt(genderType (CHARACTER::*f)(DWORD) const)
 {
-  /* Really */ NotImplemented(0x4c9, false);
+  NotImplemented(0x4c9, false);
 }
 
-void GPDL::m_GetCharInt(int (CHARACTER::*f)(DWORD) const, const char *msg)
+void GPDL::m_GetCharInt(int (CHARACTER::*f)(DWORD) const)
 {
-  m_Integer1 = (Dude(msg)->*f)(DEFAULT_SPELL_EFFECT_FLAGS);
+  m_Integer1 = (Dude()->*f)(DEFAULT_SPELL_EFFECT_FLAGS);
   m_pushInteger1();
 }
 
-void GPDL::m_GetCharInt(int (CHARACTER::*f)() const, const char *msg)
+void GPDL::m_GetCharInt(int (CHARACTER::*f)() const)
 {
   //IF_KEYWORD_DATA *pIfKeyData;
-  m_Integer1 = (Dude(msg)->*f)();
+  m_Integer1 = (Dude()->*f)();
   m_pushInteger1();
 }
 
-void GPDL::m_GetCharInt(int (CHARACTER::*f)(const ITEM_ID&, int, DWORD) const, const char *msg)
+void GPDL::m_GetCharInt(int (CHARACTER::*f)(const ITEM_ID&, int, DWORD) const)
 {
   //IF_KEYWORD_DATA *pIfKeyData;
   ITEM_ID itemid;
-  m_Integer1 = (Dude(msg)->*f)(itemid, 0, DEFAULT_SPELL_EFFECT_FLAGS);
+  m_Integer1 = (Dude()->*f)(itemid, 0, DEFAULT_SPELL_EFFECT_FLAGS);
   m_pushInteger1();
 }
 
-void GPDL::m_GetCharInt(BYTE (CHARACTER::*f)(DWORD) const, const char *msg)
+void GPDL::m_GetCharInt(BYTE (CHARACTER::*f)(DWORD) const)
 {
   //IF_KEYWORD_DATA *pIfKeyData;
-  m_Integer1 = (Dude(msg)->*f)(DEFAULT_SPELL_EFFECT_FLAGS);
+  m_Integer1 = (Dude()->*f)(DEFAULT_SPELL_EFFECT_FLAGS);
   m_pushInteger1();
 }
 
-void GPDL::m_GetCharInt(BYTE (CHARACTER::*f)() const, const char *msg)
+void GPDL::m_GetCharInt(BYTE (CHARACTER::*f)() const)
 {
   //IF_KEYWORD_DATA *pIfKeyData;
-  m_Integer1 = (Dude(msg)->*f)();
+  m_Integer1 = (Dude()->*f)();
   m_pushInteger1();
 }
 
-void GPDL::m_GetCharString(const CString& (CHARACTER::*f)() const, const char *msg)
+void GPDL::m_GetCharString(const CString& (CHARACTER::*f)() const)
 {
   //IF_KEYWORD_DATA *pIfKeyData;
-  m_string2 = (Dude(msg)->*f)();
+  m_string2 = (Dude()->*f)();
   m_pushString2();
 }
 
 
-void GPDL::m_GetActorBOOL(BOOL (CHARACTER::*f)() const, const char *msg)
+void GPDL::m_GetActorBOOL(BOOL (CHARACTER::*f)() const)
 {
   CHARACTER *pDude;
   m_popString1(); // ActorType
   ActorType actor = m_StringToActor((LPCSTR)m_string1);
-  pDude = GetCurrentlyActiveContext(&actor, msg);
+  pDude = GetCurrentlyActiveContext(&actor);
   m_Integer1 = (int)(pDude->*f)();
   m_pushInteger1();
 }
 
-void GPDL::m_SetActorBOOL(void (CHARACTER::*f)(BOOL v), const char *msg)
+void GPDL::m_SetActorBOOL(void (CHARACTER::*f)(BOOL v))
 {
   CHARACTER *pDude;
   m_popInteger1();  // Value
   m_popString1();   // ActorType
   ActorType actor = m_StringToActor((LPCSTR)m_string1);
-  pDude = GetCurrentlyActiveContext(&actor, msg);
+  pDude = GetCurrentlyActiveContext(&actor);
   (pDude->*f)(m_Integer1 != 0);
   m_pushInteger1();
 }
 
-void GPDL::m_SetCharInt(void (CHARACTER::*f)(int), const char *msg)
+void GPDL::m_SetCharInt(void (CHARACTER::*f)(int))
 {
   m_popInteger1();
-  (Dude(msg)->*f)(m_Integer1);
+  (Dude()->*f)(m_Integer1);
   m_pushEmptyString();
 }
 
-void GPDL::m_SetCharBOOL(void (CHARACTER::*f)(BOOL), const char *msg)
+void GPDL::m_SetCharBOOL(void (CHARACTER::*f)(BOOL))
 {
   m_popInteger1();
-  (Dude(msg)->*f)(m_Integer1 != 0);
+  (Dude()->*f)(m_Integer1 != 0);
   m_pushEmptyString();
 }
 
-void GPDL::m_SetCharString(void (CHARACTER::*f)(const CString&), const char *msg)
+void GPDL::m_SetCharString(void (CHARACTER::*f)(const CString&))
 {
   m_popString1();
-  (Dude(msg)->*f)(m_string1);
+  (Dude()->*f)(m_string1);
   m_pushEmptyString();
 }
 
-void GPDL::m_SetMemorizeCount(void)
-{
-#ifdef UAFEngine
-  m_popString1();  // adjustment
-  m_popString3();  // spellname
-  CHARACTER *pChar;
-  int i, n;
-  pChar = Dude("$SetMemorizeCount()");
-  n = pChar->GetSpellCount();
-  for (i=0; i<n; i++)
-  {
-    CHARACTER_SPELL *pCharSpell;
-    pCharSpell = pChar->GetCharacterSpell(i);
-    if (m_string3 == pCharSpell->spellID)
-    {
-      int v;
-      if (m_string1.IsEmpty())
-      {
-        m_Integer1 = pCharSpell->memorized;
-        m_pushInteger1();
-        return;
-      };
-      sscanf(m_string1,"%d", &v);
-      if ((m_string1[0] == '-') || (m_string1[0] == '+'))
-      {
-        pCharSpell->memorized += v;
-      }
-      else
-      {
-        pCharSpell->memorized = v;
-      };
-      if ( pCharSpell->memorized < 0)
-      {
-        pCharSpell->memorized = 0;
-      };
-      m_Integer1 = pCharSpell->memorized;
-      m_pushInteger1();
-      return;
-    };
-  }
-  m_Integer1 = -1;
-  m_pushInteger1();
-  return;
-#else
-          m_popString1();
-          m_popString2();
-          m_popString3();
-          m_string2 = "OK";
-          m_pushString2();
-#endif
-}
-
-void GPDL::m_GetHighestLevelBaseclass(void)
-{
-#ifdef UAFEngine
-   CHARACTER *pChar;
-   pChar = Dude("$GET_HIGHEST_LEVEL_BASECLASS()");
-   m_string2 = pChar->GetHighestLevelBaseclass();
-   m_pushString2();
-#else
-   m_string2 = "OK";
-   m_pushString2();
-#endif
-  return;
-}
-
-
-void GPDL::m_GetBaseclassLevel(void)
-{
-#ifdef UAFEngine
-  CHARACTER *pChar;
-  BASECLASS_ID baseclassID;
-  m_popString1();
-  pChar = Dude("$GetBaseclassLevel");
-  baseclassID = m_string1;
-  m_Integer2 = pChar->GetBaseclassLevel(baseclassID);
-  m_pushInteger2();
-#else
-  m_popString1();
-#endif
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void GPDL::m_SetCharInt(void (CHARACTER::*f)(int,int,bool), const char *msg)
+void GPDL::m_SetCharInt(void (CHARACTER::*f)(int,int,bool))
 {
    //pDude->SetHitPoints(data,0,pActor->m_canFinishCasting);
-  /* Really */ NotImplemented(0xab6, false);
+  NotImplemented(0xab6, false);
 }
 
-#define GET_CHAR_INT(f,m) m_GetCharInt(&CHARACTER::f,m);
-#define SET_CHAR_INT(f,m) m_SetCharInt(&CHARACTER::f,m);
-#define SET_CHAR_BOOL(f,m) m_SetCharBOOL(&CHARACTER::f,m);
+#define GET_CHAR_INT(f) m_GetCharInt(&CHARACTER::f);
+#define SET_CHAR_INT(f) m_SetCharInt(&CHARACTER::f);
+#define SET_CHAR_BOOL(f) m_SetCharBOOL(&CHARACTER::f);
 #define GET_LITERAL_INT(v) m_GetLiteralInt(v);
 #define SET_LITERAL_INT(v) m_SetLiteralInt(&v);
 
-#define GET_ACTOR_BOOL(f,m) m_GetActorBOOL(&CHARACTER::f,m);
-#define SET_ACTOR_BOOL(f,m) m_SetActorBOOL(&CHARACTER::f,m);
+#define GET_ACTOR_BOOL(f) m_GetActorBOOL(&CHARACTER::f);
+#define SET_ACTOR_BOOL(f) m_SetActorBOOL(&CHARACTER::f);
 
-#define GET_CHAR_STRING(f,m) {m_string1=Dude(m)->f();m_pushString1();};
+#define GET_CHAR_STRING(f) {m_string1=Dude()->f();m_pushString1();};
 #define GET_LITERAL_STRING(s) m_GetLiteralString(s);
-#define SET_CHAR_STRING(f,m) m_SetCharString(&CHARACTER::f,m);
+#define SET_CHAR_STRING(f) m_SetCharString(&CHARACTER::f);
 
-#define GET_CHAR_ENUM(f,m) {m_Integer1=Dude(m)->f();m_pushInteger1();};
-#define SET_CHAR_ENUM(f,t,m) {m_popInteger1(); Dude(m)->f((t)m_Integer1);};
+#define GET_CHAR_ENUM(f) {m_Integer1=Dude()->f();m_pushInteger1();};
+#define SET_CHAR_ENUM(f,t) {m_popInteger1(); Dude()->f((t)m_Integer1);};
 
-#define GET_CHAR_FLOAT(f,m) {m_string1.Format("%1.8f", Dude(m)->f()); m_pushString1();};
+#define GET_CHAR_FLOAT(f) {m_string1.Format("%1.8f", Dude()->f()); m_pushString1();};
 
 
 GPDL_STATE GPDL::m_interpret(void) {
@@ -2290,11 +2181,6 @@ GPDL_STATE GPDL::m_interpret(void) {
   m_interpStatus=GPDL_OK;
   while (m_interpStatus==GPDL_OK) {
     m_interpretCount++;
-    if(m_interpretCount > 1000000)
-    {
-      m_interpStatus = GPDL_EXCESSCPU;
-      return m_interpStatus;
-    };
     m_executionAddress = m_PC; // for error printout
     // 19 Apr PRS m_bincode=m_code.peek(m_PC++);
     m_bincode=Peek(m_PC++);
@@ -2346,12 +2232,11 @@ GPDL_STATE GPDL::m_interpret(void) {
         sscanf((LPCTSTR)m_string1+openParenLoc+1,"%d",&numPar);
         if (numPar>10) numPar=10;
         LSP=m_SP;
-        for (unsigned int j=0; j<numPar; LSP++,j++) 
-        {
+        for (unsigned int i=0; i<numPar; LSP++,i++) {
           m_string1=m_dataStack[LSP];
           if (m_string1.GetLength()>20) m_string1=m_string1.Left(20);
           m_string2+=CString("\"") + m_string1 + CString("\"");
-          if (j!=numPar-1) m_string2+=',';
+          if (i!=numPar-1) m_string2+=',';
         };
         m_string2+=CString(")");
         m_errorLog.log(m_string2);
@@ -2535,38 +2420,6 @@ GPDL_STATE GPDL::m_interpret(void) {
             m_string3 = pCombatant->combatantSA.DeleteAbility(m_string2);
           };
 #endif
-          m_pushString3();
-        };
-        break;
-      case SUBOP_DUMP_CHARACTER_SAS:
-        {
-#ifdef UAFEngine
-          CHARACTER *pCharacter = m_popCharacterActor(); 
-          if (pCharacter != NULL)
-          {
-            POSITION pos;
-            pos = pCharacter->specAbs.GetHeadPosition();
-
-
-
-
-            while (pos != NULL)
-            {
-              const CStringPAIR *pSpecAb;
-              CString line;
-              pSpecAb = pCharacter->specAbs.GetNextData(pos);
-              line.Format(" Character Special Ability = %s; value = %s",
-                                pSpecAb->Key(), pSpecAb->Value());
-              m_errorLog.log(line);
-            };
-          };
-
-
-
-
-
-#endif
-          m_string3="Dump of Character SAs";
           m_pushString3();
         };
         break;
@@ -3222,7 +3075,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         break;
       case SUBOP_SA_SOURCE_TYPE:
 #ifdef UAFEngine
-        m_string1 = pScriptContext->GetSourceTypeName();
+        m_string1 = pScriptContext->sourceType;
 #else
         m_string1.Empty();
 #endif
@@ -3230,7 +3083,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         break;
       case SUBOP_SA_SOURCE_NAME:
 #ifdef UAFEngine
-        m_string1 = pScriptContext->GetSourceName();
+        m_string1 = pScriptContext->sourceName;
 #else
         m_string1.Empty();
 #endif
@@ -3251,33 +3104,36 @@ GPDL_STATE GPDL::m_interpret(void) {
         m_pushString1();
         break;
       case SUBOP_SA_ITEM_GET:
-        SA_Param(pScriptContext->GetItemSAContext( "$SA_ITEM_GET()"));
+        SA_Param(pScriptContext->GetItemSAContext());
         break;
       case SUBOP_SA_CHARACTER_GET:
-        SA_Param(pScriptContext->GetCharacterSAContext("$SA_CHARACTER_GET()"));
+        SA_Param(pScriptContext->GetCharacterSAContext());
         break;
       case SUBOP_SA_COMBATANT_GET:
 #ifdef UAFEngine
-        SA_Param(pScriptContext->GetCombatantSAContext("$SA_COMBATANT_GET()"));
+        SA_Param(pScriptContext->GetCombatantSAContext());
 #endif
         break;
       case SUBOP_SA_CLASS_GET:
-        SA_Param(pScriptContext->GetClassSAContext("$SA_CLASS_GET()"));
+        SA_Param(pScriptContext->GetClassSAContext());
         break;
       case SUBOP_SA_BASECLASS_GET:
-        SA_Param(pScriptContext->GetBaseclassSAContext("$SA_BASECLASS_GET()"));
+        SA_Param(pScriptContext->GetBaseclassSAContext());
         break;
       case SUBOP_SA_SPELL_GET:
-        SA_Param(pScriptContext->GetSpellSAContext("$SA_SPELL_GET()"));
+        SA_Param(pScriptContext->GetSpellSAContext());
         break;
+      //case SUBOP_SA_SPELLGROUP_GET:
+      //  SA_Param(pScriptContext->GetSpellgroupSAContext());
+      //  break;
       case SUBOP_SA_MONSTERTYPE_GET:
-        SA_Param(pScriptContext->GetMonstertypeSAContext("$SA_MONSTERTYPE_GET()"));
+        SA_Param(pScriptContext->GetMonstertypeSAContext());
         break;
       case SUBOP_SA_RACE_GET:
-        SA_Param(pScriptContext->GetRaceSAContext("$SA_RACE_GET()"));
+        SA_Param(pScriptContext->GetRaceSAContext());
         break;
       case SUBOP_SA_ABILITY_GET:
-        SA_Param(pScriptContext->GetAbilitySAContext("$SA_ABILITY_GET()"));
+        SA_Param(pScriptContext->GetAbilitySAContext());
         break;
 
 #ifdef USE_TRAITS
@@ -3297,8 +3153,7 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_Integer3=0;
           m_pushInteger3();
           break;
-        };
-        /*  **** Replaced with code that uses character uniqueID instead of party index.
+        }        
         m_popInteger1();   // The coin ordinal
         if (m_Integer1 < 1) m_Integer1 = 1;
         if (m_Integer1 > MONEY_DATA_TYPE::MAX_COIN_TYPES) m_Integer1 = 1;
@@ -3312,15 +3167,6 @@ GPDL_STATE GPDL::m_interpret(void) {
         
         m_Integer3 = party.characters[m_Integer2-1].money.Coins[m_Integer1-1];
         m_pushInteger3();
-        */
-        {
-          CHARACTER *pChar;
-          m_popInteger1(); // Coin Ordinal
-          if (m_Integer1 > MONEY_DATA_TYPE::MAX_COIN_TYPES) m_Integer1 = 1;
-          pChar = Dude("$COINCOUNT()");
-          m_Integer3 = pChar->money.Coins[m_Integer1-1];
-          m_pushInteger3();
-        };
         break;
       case SUBOP_COINNAME:
         m_popInteger1(); // The coin ordinal;
@@ -3348,12 +3194,12 @@ GPDL_STATE GPDL::m_interpret(void) {
         break;
       case SUBOP_DEBUG:
         m_popString1();
-        m_string2.Format("$DEBUG(%s)",m_string1);
+        m_string2.Format("$DEBUG(%s)\n",m_string1);
         m_errorLog.log(m_string2);
         m_pushString1();  // Our 'result'
         break;
       case SUBOP_DebugWrite:
-        WriteDebugString(m_dataStack[m_SP] + '\n');
+        WriteDebugString(m_dataStack[m_SP]);
         break;
       case SUBOP_DEPRECATED_DELETE_LEVEL_STATS_ASL:
         m_popString1();  // key
@@ -3414,7 +3260,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         {
           CHARACTER *pChar;
           m_popString1();  // key
-          pChar = m_popCharacter("$GET_CHAR_ASL()"); // character number
+          pChar = m_popCharacter(); // character number
 #ifdef UAFEngine
           m_string2 = LookupCharacterASL(
             pChar,
@@ -3435,7 +3281,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         //  m_pushString2();
         //  break;
         //}
-		/* Unreachable
+        
         m_popString1();
         m_popInteger1();
         if ((m_Integer1<0) 
@@ -3446,11 +3292,11 @@ GPDL_STATE GPDL::m_interpret(void) {
         };
         m_pushString2();
         break;
-		*/
+
       case SUBOP_GET_CHAR_RACE:
         {
           CHARACTER *pChar;
-          pChar = m_popCharacter("$GET_CHAR_RACE()");
+          pChar = m_popCharacter();
           if (pChar != NULL)
           {
             m_string1 = raceData.GetRaceName(pChar->RaceID());
@@ -3466,7 +3312,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         {
           CHARACTER *pChar;
           m_popString1();
-          pChar = m_popCharacter("$SET_CHAR_RACE()");
+          pChar = m_popCharacter();
           if (pChar != NULL)
           {
             //raceType newRace;
@@ -3490,8 +3336,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         };
         break;
 
-      case SUBOP_GET_ISMAMMAL:     
-        m_GetActorBOOL(&CHARACTER::IsMammal, "$GET_ISMAMMAL()"); break;
+      case SUBOP_GET_ISMAMMAL:     m_GetActorBOOL(&CHARACTER::IsMammal); break;
         {
           /*
           m_popString1(); // ActorType
@@ -3500,8 +3345,7 @@ GPDL_STATE GPDL::m_interpret(void) {
           break;
           */
         }
-      case SUBOP_GET_ISANIMAL:     
-        GET_ACTOR_BOOL(IsAnimal,"$GET_ISANIMAL()"); break;
+      case SUBOP_GET_ISANIMAL:     GET_ACTOR_BOOL(IsAnimal); break;
         {
           /*
           m_popString1(); // ActorType
@@ -3510,8 +3354,7 @@ GPDL_STATE GPDL::m_interpret(void) {
           break;
           */
         }
-      case SUBOP_GET_ISSNAKE:      
-        GET_ACTOR_BOOL(IsSnake,"$GET_ISSNAKE()"); break;
+      case SUBOP_GET_ISSNAKE:      GET_ACTOR_BOOL(IsSnake); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3520,8 +3363,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;
         */
-      case SUBOP_GET_ISGIANT:      
-        GET_ACTOR_BOOL(IsGiant, "$GET_ISGIANT()"); break;
+      case SUBOP_GET_ISGIANT:      GET_ACTOR_BOOL(IsGiant); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3530,8 +3372,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;        
         */
-      case SUBOP_GET_ISALWAYSLARGE:      
-        GET_ACTOR_BOOL(IsAlwaysLarge,"$GET_ISALWAYSLARGE()"); break;
+      case SUBOP_GET_ISALWAYSLARGE:      GET_ACTOR_BOOL(IsAlwaysLarge); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3540,8 +3381,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;
         */
-      case SUBOP_GET_HASDWARFACPENALTY:      
-        GET_ACTOR_BOOL(HasDwarfACPenalty,"$GET_HASDWARFACPENALTY()"); break;
+      case SUBOP_GET_HASDWARFACPENALTY:      GET_ACTOR_BOOL(HasDwarfACPenalty); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3550,8 +3390,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;
         */
-      case SUBOP_GET_HASGNOMEACPENALTY:      
-        GET_ACTOR_BOOL(HasGnomeACPenalty, "$GET_HASGNOMEACPENALTY()"); break;
+      case SUBOP_GET_HASGNOMEACPENALTY:      GET_ACTOR_BOOL(HasGnomeACPenalty); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3560,8 +3399,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;
         */
-      case SUBOP_GET_HASDWARFTHAC0PENALTY:     
-        GET_ACTOR_BOOL(HasDwarfTHAC0Penalty, "$GET_HASDWARFTHAC0PENALTY()"); break;
+      case SUBOP_GET_HASDWARFTHAC0PENALTY:      GET_ACTOR_BOOL(HasDwarfTHAC0Penalty); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3570,8 +3408,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;
         */
-      case SUBOP_GET_HASGNOMETHAC0PENALTY:      
-        GET_ACTOR_BOOL(HasGnomeTHAC0Penalty, "$GET_HASGNOMETHAC0PENALTY()"); break;
+      case SUBOP_GET_HASGNOMETHAC0PENALTY:      GET_ACTOR_BOOL(HasGnomeTHAC0Penalty); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3580,8 +3417,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;
         */
-      case SUBOP_GET_HASRANGERDMGPENALTY:      
-        GET_ACTOR_BOOL(HasRangerDmgPenalty, "$GET_HASRANGERDMGPENALTY()"); break;
+      case SUBOP_GET_HASRANGERDMGPENALTY:      GET_ACTOR_BOOL(HasRangerDmgPenalty); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3590,8 +3426,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;
         */
-      case SUBOP_GET_HASPOISONIMMUNITY:      
-        GET_ACTOR_BOOL(HasPoisonImmunity, "$GET_HASPOISONACIMMUNITY()"); break;
+      case SUBOP_GET_HASPOISONIMMUNITY:      GET_ACTOR_BOOL(HasPoisonImmunity); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3600,8 +3435,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;
         */
-      case SUBOP_GET_HASDEATHIMMUNITY:      
-        GET_ACTOR_BOOL(HasDeathImmunity, "$GET_HASDEATHIMMUNITY()"); break;
+      case SUBOP_GET_HASDEATHIMMUNITY:      GET_ACTOR_BOOL(HasDeathImmunity); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3610,8 +3444,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;
         */
-      case SUBOP_GET_HASCONFUSIONIMMUNITY:      
-        GET_ACTOR_BOOL(HasConfusionImmunity, "$GET_HASCONFUSIONIMMUNITY()"); break;
+      case SUBOP_GET_HASCONFUSIONIMMUNITY:      GET_ACTOR_BOOL(HasConfusionImmunity); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3620,8 +3453,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;
         */
-      case SUBOP_GET_HASVORPALIMMUNITY:      
-        GET_ACTOR_BOOL(HasVorpalImmunity, "$GET_HASVORPALIMMUNITY()"); break;
+      case SUBOP_GET_HASVORPALIMMUNITY:      GET_ACTOR_BOOL(HasVorpalImmunity); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3630,8 +3462,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;
         */
-      case SUBOP_GET_CANBEHELDORCHARMED:      
-        GET_ACTOR_BOOL(CanBeHeldOrCharmed, "$GET_CANBEHELDORCHARMED()"); break;
+      case SUBOP_GET_CANBEHELDORCHARMED:      GET_ACTOR_BOOL(CanBeHeldOrCharmed); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3640,8 +3471,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;
         */
-      case SUBOP_GET_AFFECTEDBYDISPELEVIL:      
-        GET_ACTOR_BOOL(AffectedByDispelEvil, "$GET_AFFECTEDBYDISPELLEVIL()"); break;
+      case SUBOP_GET_AFFECTEDBYDISPELEVIL:      GET_ACTOR_BOOL(AffectedByDispelEvil); break;
         /*
         {
           m_popString1(); // ActorType
@@ -3660,14 +3490,22 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         break;
         */
-      case SUBOP_GET_CHAR_NAME:            GET_CHAR_STRING(GetName,"$GET_CHAR_NAME()");               break;
-      case SUBOP_GET_CHAR_AC:              GET_CHAR_INT(GetBaseAC,"$GET_CHAR_AC()");                  break;
-      case SUBOP_GET_CHAR_ADJAC:           GET_CHAR_INT(GetAdjAC,"$GET_CHAR_ADJAC()");                break;
-      case SUBOP_GET_CHAR_EFFAC:           GET_CHAR_INT(GetEffectiveAC,"$GET_CHAR_EFFAC()");          break;
-      case SUBOP_GET_CHAR_HITPOINTS:       GET_CHAR_INT(GetAdjHitPoints,"$GET_CHAR_HITPOINTS()");     break;
-      case SUBOP_GET_CHAR_ADJTHAC0:        GET_CHAR_INT(GetAdjTHAC0,"$GET_CHAR_ADJTHAC0()");          break;
-      case SUBOP_GET_CHAR_THAC0:           GET_CHAR_INT(GetTHAC0,"$GET_CHAR_THAC0()");                break;
-      case SUBOP_GET_CHAR_RDYTOTRAIN:      GET_CHAR_INT(GetAdjReadyToTrain,"$GET_CHAR_RDYTOTRAIN()"); break;
+      //case SUBOP_GET_CHAR_NAME:            m_getCharacterValue(CHAR_NAME);          break;
+      case SUBOP_GET_CHAR_NAME:            GET_CHAR_STRING(GetName);          break;
+      //case SUBOP_GET_CHAR_AC:              m_getCharacterValue(CHAR_AC);            break;
+      case SUBOP_GET_CHAR_AC:              GET_CHAR_INT(GetBaseAC);            break;
+      //case SUBOP_GET_CHAR_ADJAC:           m_getCharacterValue(CHAR_ADJAC);         break;
+      case SUBOP_GET_CHAR_ADJAC:           GET_CHAR_INT(GetAdjAC);         break;
+      //case SUBOP_GET_CHAR_EFFAC:           m_getCharacterValue(CHAR_EFFAC);         break;
+      case SUBOP_GET_CHAR_EFFAC:           GET_CHAR_INT(GetEffectiveAC);         break;
+      //case SUBOP_GET_CHAR_HITPOINTS:       m_getCharacterValue(CHAR_HITPOINTS);     break;
+      case SUBOP_GET_CHAR_HITPOINTS:       GET_CHAR_INT(GetAdjHitPoints);     break;
+      //case SUBOP_GET_CHAR_ADJTHAC0:        m_getCharacterValue(CHAR_ADJTHAC0);      break;
+      case SUBOP_GET_CHAR_ADJTHAC0:        GET_CHAR_INT(GetAdjTHAC0);      break;
+      //case SUBOP_GET_CHAR_THAC0:           m_getCharacterValue(CHAR_THAC0);         break;
+      case SUBOP_GET_CHAR_THAC0:           GET_CHAR_INT(GetTHAC0);         break;
+      //case SUBOP_GET_CHAR_RDYTOTRAIN:      m_getCharacterValue(CHAR_RDYTOTRAIN);    break;
+      case SUBOP_GET_CHAR_RDYTOTRAIN:      GET_CHAR_INT(GetAdjReadyToTrain);    break;
       case SUBOP_GET_CHAR_Exp:             
         {
           m_popString1(); // class
@@ -3676,7 +3514,7 @@ GPDL_STATE GPDL::m_interpret(void) {
             CHARACTER *pChar;
             BASECLASS_ID baseclassID;
             baseclassID = m_string1;
-            pChar = m_popCharacter("$GET_CHAR_Exp()");
+            pChar = m_popCharacter();
             //m_Integer1 = pChar->GetCurrExp(m_string1);
             m_Integer1 = pChar->GetCurrExp(baseclassID);
           };
@@ -3689,40 +3527,57 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_pushInteger1();
         };
         break;
-      case SUBOP_GET_CHAR_ICON_INDEX:      GET_CHAR_INT(GetIconIndex,"$GET_CHAR_ICON_INDEX()");          break;
-      case SUBOP_GET_CHAR_AGE:             GET_CHAR_INT(GetAdjAge,"$GET_CHAR_AGE()");                    break;
-      case SUBOP_GET_CHAR_MAXAGE:          GET_CHAR_INT(GetAdjMaxAge,"$GET_CHAR_MAXAGE()");              break;
-      case SUBOP_GET_CHAR_MAXMOVE:         GET_CHAR_INT(GetAdjMaxMovement_GPDL,"$GET_CHAR_MAXMOVE()");   break;
-      case SUBOP_GET_CHAR_LIMITED_STR:     GET_CHAR_INT(GetLimitedStr,"$GET_CHAR_LIMITED_STR()");        break;
-      case SUBOP_GET_CHAR_LIMITED_STRMOD:  GET_CHAR_INT(GetLimitedStrMod,"$GET_CHAR_LIMITED_STRMOD()");  break;
-      case SUBOP_GET_CHAR_LIMITED_INT:     GET_CHAR_INT(GetLimitedInt,"$GET_CHAR_LIMITED_INT()");        break;
-      case SUBOP_GET_CHAR_LIMITED_WIS:     GET_CHAR_INT(GetLimitedWis,"$GET_CHAR_LIMITED_WIS()");        break;
-      case SUBOP_GET_CHAR_LIMITED_DEX:     GET_CHAR_INT(GetLimitedDex,"$GET_CHAR_LIMITED_DEX()");        break;
-      case SUBOP_GET_CHAR_LIMITED_CON:     GET_CHAR_INT(GetLimitedCon,"$GET_CHAR_LIMITED_CON()");        break;
-      case SUBOP_GET_CHAR_LIMITED_CHA:     GET_CHAR_INT(GetLimitedCha,"$GET_CHAR_LIMITED_CHA()");        break;
-      case SUBOP_GET_CHAR_ADJ_STR:         GET_CHAR_INT(GetAdjStr, "$GET_CHAR_ADJ_STR()");        break;
-      case SUBOP_GET_CHAR_ADJ_STRMOD:      GET_CHAR_INT(GetAdjStrMod, "$GET_CHAR_ADJ_STRMOD()");  break;
-      case SUBOP_GET_CHAR_ADJ_INT:         GET_CHAR_INT(GetAdjInt, "$GET_CHAR_ADJ_INT()");        break;
-      case SUBOP_GET_CHAR_ADJ_WIS:         GET_CHAR_INT(GetAdjWis, "$GET_CHAR_ADJ_WIS()");        break;
-      case SUBOP_GET_CHAR_ADJ_DEX:         GET_CHAR_INT(GetAdjDex, "$GET_CHAR_ADJ_DEX()");        break;
-      case SUBOP_GET_CHAR_ADJ_CON:         GET_CHAR_INT(GetAdjCon, "$GET_CHAR_ADJ_CON()");        break;
-      case SUBOP_GET_CHAR_ADJ_CHA:         GET_CHAR_INT(GetAdjCha, "$GET_CHAR_ADJ_CHA()");        break;
-      case SUBOP_GET_CHAR_PERM_STR:        GET_CHAR_INT(GetPermStr,"$GET_CHAR_PERM_STR()");              break;
-      case SUBOP_GET_CHAR_PERM_STRMOD:     GET_CHAR_INT(GetPermStrMod,"$GET_CHAR_PERM_STRMOD()");        break;
-      case SUBOP_GET_CHAR_PERM_INT:        GET_CHAR_INT(GetPermInt,"$GET_CHAR_PERM_INT()");              break;
-      case SUBOP_GET_CHAR_PERM_WIS:        GET_CHAR_INT(GetPermWis,"$GET_CHAR_PERM_WIS()");              break;
-      case SUBOP_GET_CHAR_PERM_DEX:        GET_CHAR_INT(GetPermDex,"$GET_CHAR_PERM_DEX()");              break;
-      case SUBOP_GET_CHAR_PERM_CON:        GET_CHAR_INT(GetPermCon,"$GET_CHAR_PERM_CON()");              break;
-      case SUBOP_GET_CHAR_PERM_CHA:        GET_CHAR_INT(GetPermCha,"$GET_CHAR_PERM_CHA()");              break;
-      case SUBOP_GET_CHAR_MAXENC:          GET_CHAR_INT(GetAdjMaxEncumbrance,"$GET_CHAR_MAXENC()");      break;
-      case SUBOP_GET_CHAR_ENC:             GET_CHAR_INT(GetEncumbrance,"$GET_CHAR_ENC()");               break;
-      case SUBOP_GET_CHAR_GENDER:          GET_CHAR_ENUM(GetAdjGender,"$GET_CHAR_GENDER()");             break;
-      case SUBOP_GET_CHAR_CLASS:           GET_CHAR_STRING(GetClass,"$GET_CHAR_CLASS()");                break;
-      case SUBOP_GET_CHAR_ALIGNMENT:       GET_CHAR_ENUM(GetAdjAlignment,"$GET_CHAR_ALIGNMENT()");       break;
-      case SUBOP_GET_CHAR_STATUS:          GET_CHAR_ENUM(GetAdjStatus,"$GET_CHAR_STATUS()");             break;
-      case SUBOP_GET_CHAR_UNDEAD:          GET_CHAR_STRING(GetUndeadType,"$GET_CHAR_UNDEAD()");          break;
-      case SUBOP_GET_CHAR_SIZE:            GET_CHAR_ENUM(GetAdjSize,"$GET_CHAR_SIZE()");                 break;
-      case SUBOP_GET_CHAR_MAGICRESIST:     GET_CHAR_INT(GetAdjMagicResistance,"$GET_CHAR_MAGICRESIST()");break;
+      //case SUBOP_GET_CHAR_CLERICEXP:       m_getCharacterValue(CHAR_CLERICEXP);     break;
+      //case SUBOP_GET_CHAR_MAGICUSEREXP:    m_getCharacterValue(CHAR_MAGICUSEREXP);  break;
+      //case SUBOP_GET_CHAR_FIGHTEREXP:      m_getCharacterValue(CHAR_FIGHTEREXP);    break;
+      //case SUBOP_GET_CHAR_RANGEREXP:       m_getCharacterValue(CHAR_RANGEREXP);     break;
+      //case SUBOP_GET_CHAR_THIEFEXP:        m_getCharacterValue(CHAR_THIEFEXP);      break;
+      //case SUBOP_GET_CHAR_DRUIDEXP:        m_getCharacterValue(CHAR_DRUIDEXP);      break;
+      //case SUBOP_GET_CHAR_PALADINEXP:      m_getCharacterValue(CHAR_PALADINEXP);    break;
+      //case SUBOP_GET_CHAR_AGE:             m_getCharacterValue(CHAR_AGE);           break;
+      case SUBOP_GET_CHAR_AGE:             GET_CHAR_INT(GetAdjAge);           break;
+      //case SUBOP_GET_CHAR_MAXAGE:          m_getCharacterValue(CHAR_MAXAGE);        break;
+      case SUBOP_GET_CHAR_MAXAGE:          GET_CHAR_INT(GetAdjMaxAge);        break;
+      //case SUBOP_GET_CHAR_MAXMOVE:         m_getCharacterValue(CHAR_MAXMOVE);       break;
+      case SUBOP_GET_CHAR_MAXMOVE:         GET_CHAR_INT(GetAdjMaxMovement);         break;
+      case SUBOP_GET_CHAR_LIMITED_STR:     GET_CHAR_INT(GetLimitedStr);             break;
+      case SUBOP_GET_CHAR_LIMITED_STRMOD:  GET_CHAR_INT(GetLimitedStrMod);          break;
+      case SUBOP_GET_CHAR_LIMITED_INT:     GET_CHAR_INT(GetLimitedInt);             break;
+      case SUBOP_GET_CHAR_LIMITED_WIS:     GET_CHAR_INT(GetLimitedWis);             break;
+      case SUBOP_GET_CHAR_LIMITED_DEX:     GET_CHAR_INT(GetLimitedDex);             break;
+      case SUBOP_GET_CHAR_LIMITED_CON:     GET_CHAR_INT(GetLimitedCon);             break;
+      case SUBOP_GET_CHAR_LIMITED_CHA:     GET_CHAR_INT(GetLimitedCha);             break;
+      case SUBOP_GET_CHAR_PERM_STR:        GET_CHAR_INT(GetPermStr);                break;
+      case SUBOP_GET_CHAR_PERM_STRMOD:     GET_CHAR_INT(GetPermStrMod);             break;
+      case SUBOP_GET_CHAR_PERM_INT:        GET_CHAR_INT(GetPermInt);                break;
+      case SUBOP_GET_CHAR_PERM_WIS:        GET_CHAR_INT(GetPermWis);                break;
+      case SUBOP_GET_CHAR_PERM_DEX:        GET_CHAR_INT(GetPermDex);                break;
+      case SUBOP_GET_CHAR_PERM_CON:        GET_CHAR_INT(GetPermCon);                break;
+      case SUBOP_GET_CHAR_PERM_CHA:        GET_CHAR_INT(GetPermCha);                break;
+      //case SUBOP_GET_CHAR_MAXENC:          m_getCharacterValue(CHAR_MAXENC);        break;
+      case SUBOP_GET_CHAR_MAXENC:          GET_CHAR_INT(GetAdjMaxEncumbrance);        break;
+      //case SUBOP_GET_CHAR_ENC:             m_getCharacterValue(CHAR_ENC);           break;
+      case SUBOP_GET_CHAR_ENC:             GET_CHAR_INT(GetEncumbrance);           break;
+      //case SUBOP_GET_CHAR_GENDER:          m_getCharacterValue(CHAR_GENDER);        break;
+      case SUBOP_GET_CHAR_GENDER:          GET_CHAR_ENUM(GetAdjGender);        break;
+      //case SUBOP_GET_CHAR_CLASS:           m_getCharacterValue(CHAR_CLASS);         break;
+      case SUBOP_GET_CHAR_CLASS:           GET_CHAR_STRING(GetClass);         break;
+      //case SUBOP_GET_CHAR_ALIGNMENT:       m_getCharacterValue(CHAR_ALIGNMENT);     break;
+      case SUBOP_GET_CHAR_ALIGNMENT:       GET_CHAR_ENUM(GetAdjAlignment);     break;
+      //case SUBOP_GET_CHAR_STATUS:          m_getCharacterValue(CHAR_STATUS);        break;
+      case SUBOP_GET_CHAR_STATUS:          GET_CHAR_ENUM(GetAdjStatus);        break;
+      //case SUBOP_GET_CHAR_UNDEAD:          m_getCharacterValue(CHAR_UNDEAD);        break;
+      case SUBOP_GET_CHAR_UNDEAD:          GET_CHAR_STRING(GetUndeadType);        break;
+      //case SUBOP_GET_CHAR_SIZE:            m_getCharacterValue(CHAR_SIZE);          break;
+      case SUBOP_GET_CHAR_SIZE:            GET_CHAR_ENUM(GetAdjSize);          break;
+      //case SUBOP_GET_CHAR_MAGICRESIST:     m_getCharacterValue(CHAR_MAGICRESIST);   break;
+      case SUBOP_GET_CHAR_MAGICRESIST:     GET_CHAR_INT(GetAdjMagicResistance);   break;
+      //case SUBOP_GET_CHAR_SAVEVSPPDM:      m_getCharacterValue(CHAR_SAVEVSPPDM);    break;
+      //case SUBOP_GET_CHAR_SAVEVSPP:        m_getCharacterValue(CHAR_SAVEVSPP);      break;
+      //case SUBOP_GET_CHAR_SAVEVSRSW:       m_getCharacterValue(CHAR_SAVEVSRSW);     break;
+      //case SUBOP_GET_CHAR_SAVEVSBR:        m_getCharacterValue(CHAR_SAVEVSBR);      break;
+      //case SUBOP_GET_CHAR_SAVEVSSP:        m_getCharacterValue(CHAR_SAVEVSSP);      break;
+
       case SUBOP_GET_CHAR_Lvl: 
         {
           m_popString1(); // class
@@ -3731,7 +3586,7 @@ GPDL_STATE GPDL::m_interpret(void) {
             CHARACTER *pChar;
             BASECLASS_ID baseclassID;
             baseclassID = m_string1;
-            pChar = m_popCharacter("$GET_CHAR_Lvl()");
+            pChar = m_popCharacter();
             //m_Integer1 = pChar->GetLevel(m_string1);
             m_Integer1 = pChar->GetCurrLevel(baseclassID);
           }
@@ -3746,31 +3601,100 @@ GPDL_STATE GPDL::m_interpret(void) {
         break;
       
       
-      case SUBOP_GET_CHAR_NBRHITDICE:      GET_CHAR_FLOAT(GetNbrHD,"$GET_CHAR_NBRHITDICE()");    break;
-      case SUBOP_GET_CHAR_NBRATTACKS:      GET_CHAR_FLOAT(GetNbrAttacks,"$GET_CHAR_NBRATTACKS()");    break;
-      case SUBOP_GET_CHAR_MORALE:          GET_CHAR_INT(GetAdjMorale,"$GET_CHAR_MORALE()");        break;
-      case SUBOP_GET_CHAR_DAMAGEBONUS:     GET_CHAR_INT(GetAdjDmgBonus,"$GET_CHAR_DAMAGEBONUS()");   break;
-      case SUBOP_GET_CHAR_HITBONUS:        GET_CHAR_INT(GetAdjHitBonus,"$GET_CHAR_HITBONUS()");      break;
+      
+      //case SUBOP_GET_CHAR_CLERICLVL:       m_getCharacterValue(CHAR_CLERICLVL);     break;
+      //case SUBOP_GET_CHAR_FIGHTERLVL:      m_getCharacterValue(CHAR_FIGHTERLVL);    break;
+      //case SUBOP_GET_CHAR_RANGERLVL:       m_getCharacterValue(CHAR_RANGERLVL);     break;
+      //case SUBOP_GET_CHAR_DRUIDLVL:        m_getCharacterValue(CHAR_DRUIDLVL);      break;
+      //case SUBOP_GET_CHAR_PALADINLVL:      m_getCharacterValue(CHAR_PALADINLVL);    break;
+      //case SUBOP_GET_CHAR_THIEFLVL:        m_getCharacterValue(CHAR_THIEFLVL);      break;
+      //case SUBOP_GET_CHAR_MAGICUSERLVL:    m_getCharacterValue(CHAR_MAGICUSERLVL);  break;
+      //case SUBOP_GET_CHAR_CLERICPREVLVL:   m_getCharacterValue(CHAR_CLERICPREVLVL); break;
+      //case SUBOP_GET_CHAR_FIGHTERPREVLVL:  m_getCharacterValue(CHAR_FIGHTERPREVLVL);break;
+      //case SUBOP_GET_CHAR_RANGERPREVLVL:   m_getCharacterValue(CHAR_RANGERPREVLVL); break;
+      //case SUBOP_GET_CHAR_DRUIDPREVLVL:    m_getCharacterValue(CHAR_DRUIDPREVLVL);  break;
+      //case SUBOP_GET_CHAR_PALADINPREVLVL:  m_getCharacterValue(CHAR_PALADINPREVLVL);break;
+      //case SUBOP_GET_CHAR_THIEFPREVLVL:    m_getCharacterValue(CHAR_THIEFPREVLVL);  break;
+      //case SUBOP_GET_CHAR_MAGUSERPREVLVL:  m_getCharacterValue(CHAR_MAGUSERPREVLVL);break;
+//      case SUBOP_GET_CHAR_CLERICPDLVL:     m_getCharacterValue(CHAR_CLERICPDLVL);   break;
+//      case SUBOP_GET_CHAR_FIGHTERPDLVL:    m_getCharacterValue(CHAR_FIGHTERPDLVL);  break;
+//      case SUBOP_GET_CHAR_RANGERPDLVL:     m_getCharacterValue(CHAR_RANGERPDLVL);   break;
+//      case SUBOP_GET_CHAR_DRUIDPDLVL:      m_getCharacterValue(CHAR_DRUIDPDLVL);    break;
+//      case SUBOP_GET_CHAR_PALADINPDLVL:    m_getCharacterValue(CHAR_PALADINPDLVL);  break;
+//      case SUBOP_GET_CHAR_THIEFPDLVL:      m_getCharacterValue(CHAR_THIEFPDLVL);    break;
+//      case SUBOP_GET_CHAR_MAGUSERPDLVL:    m_getCharacterValue(CHAR_MAGUSERPDLVL);  break;
+      //case SUBOP_GET_CHAR_NBRHITDICE:      m_getCharacterValue(CHAR_NBRHITDICE);    break;
+      case SUBOP_GET_CHAR_NBRHITDICE:      GET_CHAR_FLOAT(GetNbrHD);    break;
+      //case SUBOP_GET_CHAR_NBRATTACKS:      m_getCharacterValue(CHAR_NBRATTACKS);    break;
+      case SUBOP_GET_CHAR_NBRATTACKS:      GET_CHAR_FLOAT(GetNbrAttacks);    break;
+      //case SUBOP_GET_CHAR_MORALE:          m_getCharacterValue(CHAR_MORALE);        break;
+      case SUBOP_GET_CHAR_MORALE:          GET_CHAR_INT(GetAdjMorale);        break;
+      //case SUBOP_GET_CHAR_OPENDOORS:       m_getCharacterValue(CHAR_OPENDOORS);     break;
+      //case SUBOP_GET_CHAR_OPENMAGICDOORS:  m_getCharacterValue(CHAR_OPENMAGICDOORS);break;
+      //case SUBOP_GET_CHAR_BENDLIFT:        m_getCharacterValue(CHAR_BENDLIFT);      break;
+      //case SUBOP_GET_CHAR_PICKPOCKETS:     m_getCharacterValue(CHAR_PICKPOCKETS);   break;
+      //case SUBOP_GET_CHAR_OPENLOCKS:       m_getCharacterValue(CHAR_OPENLOCKS);     break;
+      //case SUBOP_GET_CHAR_FINDTRAPS:       m_getCharacterValue(CHAR_FINDTRAPS);     break;
+      //case SUBOP_GET_CHAR_MOVESILENT:      m_getCharacterValue(CHAR_MOVESILENT);    break;
+      //case SUBOP_GET_CHAR_HIDESHADOWS:     m_getCharacterValue(CHAR_HIDESHADOWS);   break;
+      //case SUBOP_GET_CHAR_HEARNOISE:       m_getCharacterValue(CHAR_HEARNOISE);     break;
+      //case SUBOP_GET_CHAR_CLIMBWALLS:      m_getCharacterValue(CHAR_CLIMBWALLS);    break;
+      //case SUBOP_GET_CHAR_READLANG:        m_getCharacterValue(CHAR_READLANG);      break;
+      //case SUBOP_GET_CHAR_BLESS:           m_getCharacterValue(CHAR_BLESS);         break;
+      //case SUBOP_GET_CHAR_CURSE:           m_getCharacterValue(CHAR_CURSE);         break;
+      //case SUBOP_GET_CHAR_UNDEADFEAR:      m_getCharacterValue(CHAR_UNDEADFEAR);    break;
+      //case SUBOP_GET_CHAR_ENLARGE:         m_getCharacterValue(CHAR_ENLARGE);       break;
+      //case SUBOP_GET_CHAR_REDUCE:          m_getCharacterValue(CHAR_REDUCE);        break;
+      //case SUBOP_GET_CHAR_CHARMPERSON:     m_getCharacterValue(CHAR_CHARMPERSON);   break;
+      //case SUBOP_GET_CHAR_REFLECTGAZEATTACK: m_getCharacterValue(CHAR_REFLECTGAZEATTACK); break;
+      //case SUBOP_GET_CHAR_PROTFROMEVIL:    m_getCharacterValue(CHAR_PROTFROMEVIL);  break;
+      //case SUBOP_GET_CHAR_PROTFROMGOOD:    m_getCharacterValue(CHAR_PROTFROMGOOD);  break;
+      //case SUBOP_GET_CHAR_SHIELD:          m_getCharacterValue(CHAR_SHIELD);        break;
+      //case SUBOP_GET_CHAR_SLEEP:           m_getCharacterValue(CHAR_SLEEP);         break;
+      //case SUBOP_GET_CHAR_FOG:             m_getCharacterValue(CHAR_FOG);           break;
+      //case SUBOP_GET_CHAR_ENTANGLE:        m_getCharacterValue(CHAR_ENTANGLE);      break;
+      //case SUBOP_GET_CHAR_INVISIBLETOANIMALS: m_getCharacterValue(CHAR_INVISIBLETOANIMALS); break;
+      //case SUBOP_GET_CHAR_INVISIBLETOUNDEAD: m_getCharacterValue(CHAR_INVISIBLETOUNDEAD); break;
+      //case SUBOP_GET_CHAR_NONUNDEADFEAR:   m_getCharacterValue(CHAR_NONUNDEADFEAR); break;
+      //case SUBOP_GET_CHAR_SANCTUARY:       m_getCharacterValue(CHAR_SANCTUARY);     break;
+      //case SUBOP_GET_CHAR_SHILLELAGH:      m_getCharacterValue(CHAR_SHILLELAGH);    break;
+      //case SUBOP_GET_CHAR_DISPLACEMENT:    m_getCharacterValue(CHAR_DISPLACEMENT);  break;
+      //case SUBOP_GET_CHAR_WIZARDRY:        m_getCharacterValue(CHAR_WIZARDRY);      break;
+      //case SUBOP_GET_CHAR_DETECTMAGIC:     m_getCharacterValue(CHAR_DETECTMAGIC);   break;
+      //case SUBOP_GET_CHAR_VORPALATTACK:    m_getCharacterValue(CHAR_VORPALATTACK);  break;
+      //case SUBOP_GET_CHAR_HOLDPERSON:      m_getCharacterValue(CHAR_HOLDPERSON);    break;
+      //case SUBOP_GET_CHAR_SILENCE:         m_getCharacterValue(CHAR_SILENCE);       break;
+      //case SUBOP_GET_CHAR_POISONED:        m_getCharacterValue(CHAR_POISONED);      break;
+      //case SUBOP_GET_CHAR_SLOWPOISON:      m_getCharacterValue(CHAR_SLOWPOISON);    break;
+      //case SUBOP_GET_CHAR_MIRRORIMAGE:     m_getCharacterValue(CHAR_MIRRORIMAGE);   break;
+      //case SUBOP_GET_CHAR_INVISIBLE:       m_getCharacterValue(CHAR_INVISIBLE);     break;
+      //case SUBOP_GET_CHAR_ENFEEBLED:       m_getCharacterValue(CHAR_ENFEEBLED);     break;
+      //case SUBOP_GET_CHAR_DAMAGEBONUS:     m_getCharacterValue(CHAR_DAMAGEBONUS);   break;
+      case SUBOP_GET_CHAR_DAMAGEBONUS:     GET_CHAR_INT(GetAdjDmgBonus);   break;
+      //case SUBOP_GET_CHAR_HITBONUS:        m_getCharacterValue(CHAR_HITBONUS);      break;
+      case SUBOP_GET_CHAR_HITBONUS:        GET_CHAR_INT(GetAdjHitBonus);      break;
+      //case SUBOP_GET_CHAR_BLINDNESS:       m_getCharacterValue(CHAR_BLINDNESS);     break;
+      //case SUBOP_GET_CHAR_DISEASED:        m_getCharacterValue(CHAR_DISEASED);      break;
 
       case SUBOP_GET_CHAR_Ready:           
         {
-          DWORD rdyLoc;
+          itemReadiedType type;
           m_popInteger2();  //The position in list
           m_popString1();   //The location on body
           m_popString2();   //The actor string
           ActorType actor = m_StringToActor((LPCSTR)m_string2);
-          if (m_string1.IsEmpty()) rdyLoc=Cannot;
-          else rdyLoc = CString2Base38(m_string1);
-          CHARACTER *tdude = /* (CHARACTER*) */GetCurrentlyActiveContext(&actor, "$GET_CHAR_Ready");          
+          if (m_string1.IsEmpty()) type = Cannot;
+          else type = CString2Base38(m_string1);
+          CHARACTER *tdude = /* (CHARACTER*) */GetCurrentlyActiveContext(&actor);          
           if (tdude==NULL)
           {
-            m_interpretError("Invalid target actor data in $GET_CHAR_Ready");
+            m_interpretError("Invalid target actor data in $SUBOP_GET_CHAR_Ready");
             m_pushSP(m_false);
             break;
           };
 
           //int index = tdude->myItems.GetReady((itemLocationType)m_Integer1);
-          int index = tdude->myItems.GetReadiedItem(rdyLoc, m_Integer2);
+          int index = tdude->myItems.GetReadiedItem(type, m_Integer2);
           if (index >= 0)
           {
             //ITEM *pItem;
@@ -3790,13 +3714,11 @@ GPDL_STATE GPDL::m_interpret(void) {
       case SUBOP_SET_CHAR_Ready:
         {
           m_popString1();  // item name
-          //m_popInteger1(); // body location index
-          m_popString3(); // body location index
-          m_Integer1 = CString2Base38(m_string3);
+          m_popInteger1(); // body index index
           m_popString2();  // actor
 
           ActorType actor = m_StringToActor((LPCSTR)m_string2);
-          CHARACTER *tdude = /* (CHARACTER*) */GetCurrentlyActiveContext(&actor,"$SET_CHAR_Ready");          
+          CHARACTER *tdude = /* (CHARACTER*) */GetCurrentlyActiveContext(&actor);          
           if (tdude==NULL)
           {
             m_interpretError("Invalid target actor data in $SUBOP_SET_CHAR_Ready");
@@ -3805,7 +3727,14 @@ GPDL_STATE GPDL::m_interpret(void) {
           };
           ITEM_ID itemID;
           itemID = m_string1;
-          tdude->myItems.Ready(itemID, m_Integer1,/* tdude->GetItemMask(), */ tdude);  
+
+
+/*
+          tdude->myItems.Ready(itemID, (itemReadiedType)m_Integer1, tdude->GetItemMask(), tdude);  
+*/ NotImplemented(0x4f76a, false);
+
+
+
         };
         m_pushSP(m_false);
         break;
@@ -3818,20 +3747,20 @@ GPDL_STATE GPDL::m_interpret(void) {
 
           ActorType actor = m_StringToActor((LPCSTR)m_string3);
           
-          CHARACTER *tdude = /* (CHARACTER*) */GetCurrentlyActiveContext(&actor,"$CastSpellOnTargetAs()");          
+          CHARACTER *tdude = /* (CHARACTER*) */GetCurrentlyActiveContext(&actor);          
           if (tdude==NULL)
           {
-            m_interpretError("Invalid target actor data in $CastSpellOnTargetAs()");
+            m_interpretError("Invalid target actor data in $SUBOP_INVOKESPELLONTARGET");
             m_pushSP(m_false);
             break;
           }
 
           actor = m_StringToActor((LPCSTR)m_string1);
 
-          CHARACTER *cdude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor,"$CastSpellOnTargetAs");          
+          CHARACTER *cdude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor);          
           if (cdude==NULL)
           {
-            m_interpretError("Invalid caster actor data in $CastSpellOnTargetAs()");
+            m_interpretError("Invalid caster actor data in $SUBOP_INVOKESPELLONTARGET");
             m_pushSP(m_false);
             break;
           }
@@ -3843,7 +3772,7 @@ GPDL_STATE GPDL::m_interpret(void) {
           if (!spellID.IsValidSpell())
           {
             CString err;
-            err.Format("Invalid spell name \'%s\' in $CastSpellOnTargetAs", m_string2);
+            err.Format("Invalid spell name \'%s\' in $SUBOP_INVOKESPELLONTARGET", m_string2);
             m_interpretError(err);
             m_pushSP(m_false);
             break;
@@ -3854,13 +3783,13 @@ GPDL_STATE GPDL::m_interpret(void) {
           if (pSpell == NULL)
           {
             CString err;
-            err.Format("Failed spell db lookup for spell \'%s\' in $CastSpellOnTargetAs", m_string2);
+            err.Format("Failed spell db lookup for spell \'%s\' in $SUBOP_INVOKESPELLONTARGET", m_string2);
             m_interpretError(err);
             m_pushSP(m_false);
             break;
           }
 
-#ifdef UAFEngine  
+#ifdef UAFEngine    
           //cdude->InvokeSpellOnTarget(*tdude, -1, spelldbkey, NULL, NULL, NULL, false);
           cdude->InvokeSpellOnTarget(*tdude, -1, spellID, NULL, NULL, NULL, false, NULL);
 #endif
@@ -3876,16 +3805,13 @@ GPDL_STATE GPDL::m_interpret(void) {
 
           ActorType actor = m_StringToActor((LPCSTR)m_string2);
           
-
-#ifdef UAFEngine
-          CHARACTER *tdude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor,"$CastSpellOnTarget()");          
-          if ((tdude==NULL) || (tdude == &FakeCharacter))
+          CHARACTER *tdude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor);          
+          if (tdude==NULL)
           {
-            m_interpretError("Invalid target actor data in $CastSpellOnTarget()");
+            m_interpretError("Invalid target actor data in $SUBOP_INVOKESPELLONTARGET");
             m_pushSP(m_false);
             break;
           }
-#endif
 
           //GLOBAL_SPELL_ID spelldbkey = spellData.FindName(m_string1);
           SPELL_ID spellID;
@@ -3894,7 +3820,7 @@ GPDL_STATE GPDL::m_interpret(void) {
           if (!spellID.IsValidSpell())
           {
             CString err;
-            err.Format("Invalid spell name \'%s\' in $CastSpellOnTarget()", m_string1);
+            err.Format("Invalid spell name \'%s\' in $SUBOP_CASTSPELLONTARGET", m_string1);
             m_interpretError(err);
             m_pushSP(m_false);
             break;
@@ -3905,7 +3831,7 @@ GPDL_STATE GPDL::m_interpret(void) {
           if (pSpell == NULL)
           {
             CString err;
-            err.Format("Failed spell db lookup for spell \'%s\' in $CastSpellOnTarget()", m_string1);
+            err.Format("Failed spell db lookup for spell \'%s\' in $SUBOP_INVOKESPELLONTARGET", m_string1);
             m_interpretError(err);
             m_pushSP(m_false);
             break;
@@ -3928,7 +3854,7 @@ GPDL_STATE GPDL::m_interpret(void) {
           StartExp = 2 + 
                      GetMinClericExpForLevel(29) +
                      GetMinMagicUserExpForLevel(29);
-*/ StartExp = 0; // Not Implemented(0x9e5a235, false);
+*/ StartExp = 0; // NotImplemented(0x9e5a235, false);
 
           FakeCharacter.SetAlignment(ChaoticNeutral);
           //FakeCharacter.race(Human);
@@ -3963,10 +3889,10 @@ GPDL_STATE GPDL::m_interpret(void) {
 
           ActorType actor = m_StringToActor((LPCSTR)m_string2);
           
-          CHARACTER *dude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor,"$CHAR_REMOVEALLSPELLS()");          
+          CHARACTER *dude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor);          
           if (dude==NULL)
           {
-            m_interpretError("Invalid actor data in $CHAR_REMOVEALLSPELLS()");
+            m_interpretError("Invalid actor data in $CHAR_REMOVEALLSPELLS");
             m_pushSP(m_false);
             break;
           }
@@ -3975,10 +3901,8 @@ GPDL_STATE GPDL::m_interpret(void) {
 #ifdef UAFEngine          
           int spelllvl = atoi(m_string1);
 
-          for (int j = spelllvl; j > 0; j--)
-          {
-            count += dude->RemoveAllSpellEffectsByLevel(j);
-          };
+          for (int i=spelllvl;i>0;i--)          
+            count += dude->RemoveAllSpellEffectsByLevel(i);
 #endif
           m_string3.Format("%i", count);
           m_pushSP(m_string3);
@@ -4016,10 +3940,10 @@ GPDL_STATE GPDL::m_interpret(void) {
 
           ActorType actor = m_StringToActor((LPCSTR)m_string2);
           
-          CHARACTER *dude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor,"$CHAR_DISPELMAGIC()");          
+          CHARACTER *dude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor);          
           if (dude==NULL)
           {
-            m_interpretError("Invalid actor data in $CHAR_DISPELMAGIC()");
+            m_interpretError("Invalid actor data in $SUBOP_CHAR_DISPELMAGIC");
             m_pushSP(m_false);
             break;
           }
@@ -4041,10 +3965,10 @@ GPDL_STATE GPDL::m_interpret(void) {
 
           ActorType actor = m_StringToActor((LPCSTR)m_string1);
           
-          CHARACTER *dude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor, "$CHAR_REMOVEALLITEMCURSE()");          
+          CHARACTER *dude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor);          
           if (dude==NULL)
           {
-            m_interpretError("Invalid actor data in $CHAR_REMOVEALLITEMCURSE()");
+            m_interpretError("Invalid actor data in $SUBOP_CHAR_REMOVEALLITEMCURSE");
             m_pushSP(m_false);
             break;
           }
@@ -4065,12 +3989,12 @@ GPDL_STATE GPDL::m_interpret(void) {
           pClass = classData.PeekClass(classID);
           if (pClass != NULL)
           {
-            int j, n;
+            int i, n;
             n = pClass->GetCount();
-            for (j=0; j<n; j++)
+            for (i=0; i<n; i++)
             {
               const BASECLASS_ID *pBaseclassID;
-              pBaseclassID = pClass->PeekBaseclassID(j);
+              pBaseclassID = pClass->PeekBaseclassID(i);
               m_string2 += '$';
               m_string2 += *pBaseclassID;
             };
@@ -4101,14 +4025,48 @@ GPDL_STATE GPDL::m_interpret(void) {
         };
         break;
       case SUBOP_GET_CHAR_SEX:
+        m_popInteger1();
+        
+#ifdef UAFEngine
+        if (m_Integer1 == -2)
         {
           CHARACTER *pChar;
-          pChar = Dude("$GET_CHAR_SEX");
-          m_string1 = GenderNames[pChar->GetAdjGender()];
-          m_pushString1();
-        };
+          pChar = pScriptContext->GetCreatedCharacterContext();
+          if (pChar == NULL)
+          {
+            m_interpretError("Illegal characer Index in $GET_CHAR_SEX");
+          }
+          else
+          {
+            m_string1 = GenderNames[pChar->GetAdjGender()];
+          };
+          break;
+        }
+        else if (IsCombatActive())
+        {
+          if (   (m_Integer1<0) 
+              || (m_Integer1>=GetNumCombatants())) 
+          {
+            m_interpretError("Illegal party member # in $GET_CHAR_SEX");
+            break;
+          }          
+          m_string1=GenderNames[GetCombatantGender(m_Integer1)];
+        }
+        else
+        {          
+          if (   (m_Integer1<0) 
+              || (m_Integer1>=GetPartySize(party))) 
+          {
+            m_interpretError("Illegal party member # in $GET_CHAR_SEX");
+            break;
+          };
+          m_string1=GenderNames[GetCharacterGender(party,m_Integer1)];
+        }
+#else
+        m_string1 = "Male";
+#endif
+        m_pushString1();
         break;
-/*   ******* Replaced with definition that uses uniqueID of character rather than party index
       case SUBOP_SET_CHAR_SEX:
         m_popString1();  // new sex
         m_popInteger1(); // id
@@ -4117,7 +4075,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         if (m_Integer1 == -2)
         {
           CHARACTER *pChar;
-          pChar = pScriptContext->GetCreatedCharacterContext("$GET_CHAR_SEX()");
+          pChar = pScriptContext->GetCreatedCharacterContext();
           if (pChar == NULL)
           {
             m_interpretError("Illegal characer Index in $GET_CHAR_SEX");
@@ -4151,11 +4109,10 @@ GPDL_STATE GPDL::m_interpret(void) {
 #endif
         m_pushString1();
         break;
-*/
       case SUBOP_GET_CHAR_TYPE:    
         {
           int type;
-          CHARACTER *pDude = Dude("$GET_CHAR_TYPE()") ;
+          CHARACTER *pDude = Dude() ;
           type = pDude->GetType();      
           switch(type)
           {
@@ -4217,8 +4174,8 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_popInteger1();
 
           double total = 0;
-          for (int j=0;j<party.numCharacters;j++)
-            total += party.characters[j].money.Total();
+          for (int i=0;i<party.numCharacters;i++)
+            total += party.characters[i].money.Total();
 
           if (m_Integer1==0) // no conversion
           {
@@ -4245,8 +4202,8 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_popString1(); // item name
           m_popString2(); // actor string
           ActorType actor = m_StringToActor((LPCSTR)m_string2);
-          CHARACTER *tdude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor,"$GIVE_CHAR_ITEM()");          
-          if (tdude==NULL)
+          CHARACTER *dude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor);          
+          if (dude==NULL)
           {
             m_string2 = m_ActorToString(&NULL_ACTOR);
             m_pushString2();
@@ -4259,7 +4216,7 @@ GPDL_STATE GPDL::m_interpret(void) {
             //itemData.FindItemID(itemID);
             itemData.LocateItem(itemID);
             //BOOL success = dude->addCharacterItem(giID, 
-            BOOL success = tdude->addCharacterItem(itemID, 
+            BOOL success = dude->addCharacterItem(itemID, 
                                                   //itemData.GetItemBundleQty(giID), 
                                                   itemData.GetItemBundleQty(itemID), 
                                                   -1, // default charges
@@ -4276,8 +4233,8 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_popString1(); // item name
           m_popString2(); // actor string
           ActorType actor = m_StringToActor((LPCSTR)m_string2);
-          CHARACTER *tdude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor,"$TAKE_CHAR_ITEM()");          
-          if (tdude==NULL)
+          CHARACTER *dude = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor);          
+          if (dude==NULL)
           {
             m_string2 = m_ActorToString(&NULL_ACTOR);
             m_pushString2();
@@ -4291,13 +4248,13 @@ GPDL_STATE GPDL::m_interpret(void) {
           itemData.LocateItem(itemID);
           BOOL success = FALSE;
 
-          POSITION pos = tdude->myItems.GetHeadPosition();
+          POSITION pos = dude->myItems.GetHeadPosition();
           POSITION itemPos = NULL;
           while (pos != NULL)  // First we go through the items.  The item with the given
                                // name that is also the ItemContext() will take precedence.
           {
             const ITEM *pItem;
-            pItem = &tdude->myItems.PeekAtPos(pos);
+            pItem = &dude->myItems.PeekAtPos(pos);
             //if (pItem->m_giID == giID)
             if (pItem->itemID == itemID)
             {
@@ -4311,13 +4268,14 @@ GPDL_STATE GPDL::m_interpret(void) {
                 break;  // No sense searching further
               };
             };
-            tdude->myItems.GetNext(pos);
+            dude->myItems.GetNext(pos);
           };
           if  (itemPos != NULL)
           {
-            success = tdude->delCharacterItem(tdude->myItems.GetKeyAt(itemPos), 
+            success = dude->delCharacterItem(dude->myItems.GetKeyAt(itemPos), 
                                              //itemData.GetItemBundleQty(giID));
                                              itemData.GetItemBundleQty(itemID));
+            break;
           }
           m_pushSP(success?m_true:m_false);
         }
@@ -4369,7 +4327,7 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_popString1();
           pChar = m_popCharacterActor();
 #ifdef UAFEngine
-          m_string1 = m_SkillAdjustment(
+          m_string1 = SkillAdjustment(
                         pChar,
                         m_string1,
                         m_string2,
@@ -4432,26 +4390,19 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_pushSP(m_false);
         break;
       case SUBOP_IF_CHAR_ASL:
+        m_popString1();
+        m_popInteger1();
+        if ((m_Integer1<0) 
+            || (m_Integer1>=GetPartySize(party))) 
         {
-          CHARACTER *pChar;
-          m_popString1();   //  ASL Key
-          // Replaced with code that uses UniqueID rather than party index
-          //m_popInteger1();
-          //if (   (m_Integer1<0) 
-          //    || (m_Integer1>=GetPartySize(party))) 
-          //{
-            //m_interpretError("Illegal party member # in $GET_CHAR_ASL");
-            //break;
-          //};
-          //m_string2 = LookupCharacterASL(
-            //party,
-            //m_Integer1,
-            //m_string1);
-          //m_pushString2();
-          pChar = Dude("$IF_CHAR_ASL()");
-          m_string2 = LookupCharacterASL(pChar, m_string1);
-          m_pushString2();
+          m_interpretError("Illegal party member # in $GET_CHAR_ASL");
+          break;
         };
+        m_string2 = LookupCharacterASL(
+          party,
+          m_Integer1,
+          m_string1);
+        m_pushString2();
         break;
       case SUBOP_IS_AFFECTED_BY_SPELL:
         {
@@ -4476,10 +4427,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         m_string2 = m_IndexOf(m_string1);
         m_pushString2();
         break;
-      case SUBOP_IndexToActor:
-        m_string2 = m_IndexToActor();
-        m_pushString2();
-        break;
+
       case SUBOP_InParty:
         m_popString1();
         m_string2 = m_InParty(m_string1);
@@ -4505,7 +4453,7 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_popString1();
           ActorType actor = m_StringToActor((LPCSTR)m_string1);
 #ifdef newCombatant
-          COMBATANT *dude = GetCurrentlyActiveContext(&actor,"$LAST_ATTACKER_OF()")->m_pCombatant;
+          COMBATANT *dude = GetCurrentlyActiveContext(&actor)->m_pCombatant;
 #else
           COMBATANT *dude = (COMBATANT*)GetCurrentlyActiveContext(&actor);
 #endif
@@ -4692,7 +4640,7 @@ GPDL_STATE GPDL::m_interpret(void) {
             };
             if (m_Integer1 & 8)
             {
-              if (!pCOMBATANT->charOnCombatMap(false, true)) continue;
+              if (!pCOMBATANT->charOnCombatMap(false)) continue;
             };
             break;
           };
@@ -4708,7 +4656,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         }
         else
         {
-          /* Really */ NotImplemented(0xc43109,FALSE);
+          NotImplemented(0xc43109,FALSE);
         };
 #else
         m_string1 = "";
@@ -4716,37 +4664,33 @@ GPDL_STATE GPDL::m_interpret(void) {
 #endif      
         break;
       case SUBOP_CharacterContext:
-        m_string1 = pScriptContext->GetCharacterContext("$CharacterContext() called when no character context exists");
+        m_string1 = pScriptContext->GetCharacterContext();
+#ifdef UAFEngine
+        if (m_string1.IsEmpty())
+        {
+          MsgBoxError("$CharacterContext() called when no character context exists","Error",2);
+        };
+#endif
         m_pushString1();
         break;
       case SUBOP_ItemContext:
-        m_string1 = pScriptContext->GetItemContext("$ItemContext() called when no item context exists")->UniqueName();
+        m_string1 = pScriptContext->GetItemContext()->UniqueName();
         m_pushString1();
         break;
       case SUBOP_ClassContext:
-        m_string2 = pScriptContext->GetClassContext("$ClassContext() called when no class context exists")->m_name;
+        m_string2 = pScriptContext->GetClassContext()->m_name;
         m_pushString2();
         break;
       case SUBOP_RaceContext:
-        m_string2 = pScriptContext->GetRaceContext("$RaceContext() called when no race context exists")->m_name;
+        m_string2 = pScriptContext->GetRaceContext()->m_name;
         m_pushString2();
         break;
       case SUBOP_SpellContext:
         {
 #ifdef UAFEngine
-          m_string1 = pScriptContext->GetSpellContext("$SpellContext() called when no spell context exists")->uniqueName;
+          m_string1 = pScriptContext->GetSpellContext()->uniqueName;
 #else
-          m_string1 = pScriptContext->GetSpellContext(NULL)->Name;
-#endif
-          m_pushString1();
-        };
-          break;
-      case SUBOP_MonsterTypeContext:
-        {
-#ifdef UAFEngine
-          m_string1 = pScriptContext->GetMonsterTypeContext("$MonsterTypeContext() called when no monster type context exists")->monsterID;
-#else
-          m_string1 = pScriptContext->GetMonsterTypeContext(NULL)->MonsterID();
+          m_string1 = pScriptContext->GetSpellContext()->Name;
 #endif
           m_pushString1();
         };
@@ -4914,7 +4858,7 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_popString1();
           ActorType actor = m_StringToActor((LPCSTR)m_string1);
 #ifdef newCombatant
-          COMBATANT *dude = GetCurrentlyActiveContext(&actor,"$NEAREST_TO()")->m_pCombatant;
+          COMBATANT *dude = GetCurrentlyActiveContext(&actor)->m_pCombatant;
 #else
           COMBATANT *dude = (COMBATANT*)GetCurrentlyActiveContext(&actor);
 #endif
@@ -4954,7 +4898,7 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_popString1();
           ActorType actor = m_StringToActor((LPCSTR)m_string1);
 #ifdef newCombatant
-          COMBATANT *dude = GetCurrentlyActiveContext(&actor, "$NEAREST_ENEMY_TO()")->m_pCombatant;
+          COMBATANT *dude = GetCurrentlyActiveContext(&actor)->m_pCombatant;
 #else
           COMBATANT *dude = (COMBATANT*)GetCurrentlyActiveContext(&actor);
 #endif
@@ -5094,7 +5038,6 @@ GPDL_STATE GPDL::m_interpret(void) {
         m_uInteger1=RollDice(m_Integer1, 1, 0.0)-1;
         m_pushUInteger1();
         break;
-
       case SUBOP_RUN_CHAR_SCRIPTS:
         {
           CString result;
@@ -5110,8 +5053,7 @@ GPDL_STATE GPDL::m_interpret(void) {
               result = pCOMBATANT->RunCombatantScripts(
                               m_string1,
                               ScriptCallback_LookForChar,
-                              "N",
-                              "Script function $RUN_CHAR_SCRIPTS()");
+                              "N");
               if (result.IsEmpty() || (result[0] != 'N'))
 #ifdef newCombatant
               result = pCOMBATANT->m_pCharacter->RunCharacterScripts(
@@ -5120,21 +5062,19 @@ GPDL_STATE GPDL::m_interpret(void) {
 #endif
                               m_string1,
                               ScriptCallback_LookForChar,
-                              "N",
-                              "Script function $RUN_CHAR_SCRIPTS()");
+                              "N");
             };
           }
           else
           {
             CHARACTER *pCharacter;
-            pCharacter = m_popCharacter("$RUN_CHAR_SCRIPTS()");
+            pCharacter = m_popCharacter();
             if (pCharacter != NULL)
             {
               result = pCharacter->RunCharacterScripts(
                               m_string1,
                               ScriptCallback_LookForChar,
-                              "N",
-                              "Script function $RUN_CHAR_SCRIPTS()");
+                              "N");
             };
           };
 #endif
@@ -5151,16 +5091,14 @@ GPDL_STATE GPDL::m_interpret(void) {
             CHARACTER *pCharacter;
             ActorType actor = m_StringToActor((LPCSTR)m_string2);
           
-            pCharacter = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor, "$RUN_CHAR_SE_SCRIPTS()");          
+            pCharacter = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor);          
             if (pCharacter==NULL)
             {
               m_interpretError("Invalid target actor data in $RUN_CHAR_SE_SCRIPTS");
               m_pushSP(m_false);
               break;
             };
-            m_string1 = pCharacter->RunSEScripts(
-                                        m_string1,
-                                        "Script function $RUN_CHAR_SE_SCRIPTS()");
+            m_string1 = pCharacter->RunSEScripts(m_string1);
           };
 #endif
           m_pushString1();
@@ -5177,7 +5115,7 @@ GPDL_STATE GPDL::m_interpret(void) {
             COMBATANT *pCombatant;
             ActorType actor = m_StringToActor((LPCSTR)m_string2);
           
-            pCharacter = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor, "$RUN_CHAR_PS_SCRIPTS()");          
+            pCharacter = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor);          
 #ifdef newCombatant
             if ((pCharacter==NULL) || ((pCombatant = pCharacter->m_pCombatant) == NULL))
 #else
@@ -5188,7 +5126,7 @@ GPDL_STATE GPDL::m_interpret(void) {
               m_pushSP(m_false);
               break;
             };
-            m_string1 = pCombatant->RunPSScripts(m_string1, "Script function $RUN_CHAR_PS_SCRIPTS()");
+            m_string1 = pCombatant->RunPSScripts(m_string1);
           };
 #endif
           m_pushString1();
@@ -5206,15 +5144,11 @@ GPDL_STATE GPDL::m_interpret(void) {
             pCombatant = combatData.GetCombatant(m_Integer1);          
             if (pCombatant==NULL)
             {
-              m_interpretError("Invalid target actor data in $RUN_AREA_SE_SCRIPTS");
+              m_interpretError("Invalid target actor data in $RUN_CHAR_SE_SCRIPTS");
               m_pushSP(m_false);
               break;
             };
-            m_string1 = activeSpellList.RunSEScripts(
-                               pCombatant->x, 
-                               pCombatant->y, 
-                               m_string2,
-                               "Script function $RUN_AREA_SE_SCRIPTS()");
+            m_string1 = activeSpellList.RunSEScripts(pCombatant->x, pCombatant->y, m_string2);
           };
 #endif
           m_pushString1();
@@ -5238,10 +5172,10 @@ GPDL_STATE GPDL::m_interpret(void) {
           CHARACTER *pCharacter;
           ActorType actor;
           actor = m_StringToActor((LPCSTR)m_string2);
-          pCharacter = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor,"$ForEachPossession()");          
+          pCharacter = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor);          
           if (pCharacter==NULL)
           {
-            m_interpretError("Invalid target actor data in $ForEachPossession()");
+            m_interpretError("Invalid target actor data in $RUN_CHAR_SE_SCRIPTS");
             m_pushSP(m_false);
             break;
           };
@@ -5260,7 +5194,7 @@ GPDL_STATE GPDL::m_interpret(void) {
           CHARACTER *pCharacter;
           ActorType actor;
           actor = m_StringToActor((LPCSTR)m_string1);
-          pCharacter = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor, "$IsIdentified()");          
+          pCharacter = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor);          
           if (pCharacter==NULL)
           {
             m_interpretError("Invalid target actor data in $IsIdentifed");
@@ -5301,10 +5235,10 @@ GPDL_STATE GPDL::m_interpret(void) {
           CHARACTER *pCharacter;
           ActorType actor = m_StringToActor((LPCSTR)m_string2);
         
-          pCharacter = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor, "$Remove_SPELL_EFFECT()");          
+          pCharacter = /*(CHARACTER*)*/GetCurrentlyActiveContext(&actor);          
           if (pCharacter==NULL)
           {
-            m_interpretError("Invalid target actor data in $REMOVE_SPELL_EFFECT()");
+            m_interpretError("Invalid target actor data in $REMOVE_SPELL_EFFECT");
             m_pushSP(m_false);
             break;
           };
@@ -5324,6 +5258,31 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_pushString1();
         };
         break;
+      //case SUBOP_SaveVsSpell:
+      //  m_popString1();
+      //  m_string2 = m_SaveVsSpell(m_string1);
+      //  m_pushString2();
+      //  break;
+      //case SUBOP_SaveVsBreathWeapon:
+      //  m_popString1();
+      //  m_string2 = m_SaveVsBreathWeapon(m_string1);
+      //  m_pushString2();
+      //  break;
+      //case SUBOP_SaveVsRodStaffWand:
+      //  m_popString1();
+      //  m_string2 = m_SaveVsRodStaffWand(m_string1);
+      //  m_pushString2();
+      //  break;
+      //case SUBOP_SaveVsPetPoly:
+      //  m_popString1();
+      //  m_string2 = m_SaveVsPetPoly(m_string1);
+      //  m_pushString2();
+      //  break;
+      //case SUBOP_SaveVsParPoiDM:
+      //  m_popString1();
+      //  m_string2 = m_SaveVsParPoiDM(m_string1);
+      //  m_pushString2();
+      //  break;
       case SUBOP_SAY:
         if (m_pGPDLevent == NULL)
         {
@@ -5338,10 +5297,14 @@ GPDL_STATE GPDL::m_interpret(void) {
 #endif        
         m_pushSP(m_false); // All functions must return a value!
         INTERP_RETURN(GPDL_WAIT_ACK);
-      case SUBOP_SET_CHAR_AC:          SET_CHAR_INT(SetAC,"$SET_CHAR_AC()");            break;
-      case SUBOP_SET_CHAR_HITPOINTS:   SET_CHAR_INT(SetHitPoints,"$SET_CHAR_HITPOINTS()");      break;
-      case SUBOP_SET_CHAR_THAC0:       SET_CHAR_INT(SetTHAC0,"$SET_CHAR_THAC0()");          break;
-      case SUBOP_SET_CHAR_RDYTOTRAIN:  SET_CHAR_BOOL(SetReadyToTrain,"$SET_CHAR_RDYTOTRAIN()");     break;
+      //case SUBOP_SET_CHAR_AC:            m_setCharacterValue(CHAR_AC);             break;
+      case SUBOP_SET_CHAR_AC:              SET_CHAR_INT(SetAC);            break;
+      //case SUBOP_SET_CHAR_HITPOINTS:     m_setCharacterValue(CHAR_HITPOINTS);      break;
+      case SUBOP_SET_CHAR_HITPOINTS:     SET_CHAR_INT(SetHitPoints);      break;
+      //case SUBOP_SET_CHAR_THAC0:         m_setCharacterValue(CHAR_THAC0);          break;
+      case SUBOP_SET_CHAR_THAC0:         SET_CHAR_INT(SetTHAC0);          break;
+      //case SUBOP_SET_CHAR_RDYTOTRAIN:    m_setCharacterValue(CHAR_RDYTOTRAIN);     break;
+      case SUBOP_SET_CHAR_RDYTOTRAIN:    SET_CHAR_BOOL(SetReadyToTrain);     break;
       case SUBOP_SET_CHAR_Exp:             
         {
           m_popInteger1();  // New Experience
@@ -5349,19 +5312,26 @@ GPDL_STATE GPDL::m_interpret(void) {
 #ifdef UAFEngine
           {
             CHARACTER *pChar;
-            pChar = m_popCharacter("$SET_CHAR_Exp()");
+            pChar = m_popCharacter();
             BASECLASS_ID baseclassID;
             baseclassID = m_string1;
             //pChar->SetCurrExp(m_string1, m_Integer1); break;
-            pChar->SetCurrExp(baseclassID, m_Integer1); 
-			break;
+            pChar->SetCurrExp(baseclassID, m_Integer1); break;
           };
 #else
           m_popInteger1();
 #endif
-          // Unreachable m_pushInteger1();  // Have to provide an answer!
+          m_pushInteger1();  // Have to provide an answer!
         };
         break;
+
+      //case SUBOP_SET_CHAR_CLERICEXP:     m_setCharacterValue(CHAR_CLERICEXP);      break;
+      //case SUBOP_SET_CHAR_MAGICUSEREXP:  m_setCharacterValue(CHAR_MAGICUSEREXP);   break;
+      //case SUBOP_SET_CHAR_FIGHTEREXP:    m_setCharacterValue(CHAR_FIGHTEREXP);     break;
+      //case SUBOP_SET_CHAR_RANGEREXP:     m_setCharacterValue(CHAR_RANGEREXP);      break;
+      //case SUBOP_SET_CHAR_THIEFEXP:      m_setCharacterValue(CHAR_THIEFEXP);       break;
+      //case SUBOP_SET_CHAR_DRUIDEXP:      m_setCharacterValue(CHAR_DRUIDEXP);       break;
+      //case SUBOP_SET_CHAR_PALADINEXP:    m_setCharacterValue(CHAR_PALADINEXP);     break;
 
 
       case SUBOP_SET_CHAR_Lvl:             
@@ -5371,7 +5341,7 @@ GPDL_STATE GPDL::m_interpret(void) {
 #ifdef UAFEngine
           {
             CHARACTER *pChar;
-            pChar = m_popCharacter("$SET_CHAR_:v;()");
+            pChar = m_popCharacter();
             BASECLASS_ID baseclassID;
             baseclassID = m_string1;
             //pChar->SetLevel(m_string1, m_Integer1);
@@ -5388,7 +5358,7 @@ GPDL_STATE GPDL::m_interpret(void) {
 #ifdef UAFEngine
           {
             CHARACTER *pChar;
-            pChar = m_popCharacter("$GET_CHAR_MAXHITPOINTS()");
+            pChar = m_popCharacter();
             m_Integer1 = pChar->GetMaxHitPoints();
           };
 #else
@@ -5404,7 +5374,7 @@ GPDL_STATE GPDL::m_interpret(void) {
 #ifdef UAFEngine
           {
             CHARACTER *pChar;
-            pChar = m_popCharacter("$SET_CHAR_MAXHITPOINTS()");
+            pChar = m_popCharacter();
             pChar->SetMaxHitPoints(m_Integer1);
           };
 #else
@@ -5414,39 +5384,109 @@ GPDL_STATE GPDL::m_interpret(void) {
         };
         break;
 
-      case SUBOP_SET_CHAR_ICON_INDEX:    SET_CHAR_INT(SetIconIndex,"$SET_CHAR_ICON_INDEX()");               break;
-      case SUBOP_SET_CHAR_AGE:           SET_CHAR_INT(SetAge,"$SET_CHAR_AGE()");                            break;
-      case SUBOP_SET_CHAR_MAXAGE:        SET_CHAR_INT(SetMaxAge,"$SET_CHAR_MAXAGE()");                      break;
-      case SUBOP_SET_CHAR_MAXMOVE:       SET_CHAR_INT(SetMaxMovement,"$SET_CHAR_MAXMOVE()");                break;
-      case SUBOP_SET_CHAR_PERM_STR:      SET_CHAR_INT(SetPermStr,"$SET_CHAR_PERM_STR()");                   break;
-      case SUBOP_SET_CHAR_PERM_STRMOD:   SET_CHAR_INT(SetPermStrMod,"$SET_CHAR_PERM_STRMOD()");             break;
-      case SUBOP_SET_CHAR_PERM_INT:      SET_CHAR_INT(SetPermInt,"$SET_CHAR_PERM_INT()");                   break;
-      case SUBOP_SET_CHAR_PERM_WIS:      SET_CHAR_INT(SetPermWis,"$SET_CHAR_PERM_WIS()");                   break;
-      case SUBOP_SET_CHAR_PERM_DEX:      SET_CHAR_INT(SetPermDex,"$SET_CHAR_PERM_DEX()");                   break;
-      case SUBOP_SET_CHAR_PERM_CON:      SET_CHAR_INT(SetPermCon,"$SET_CHAR_PERM_CON()");                   break;
-      case SUBOP_SET_CHAR_PERM_CHA:      SET_CHAR_INT(SetPermCha,"$SET_CHAR_PERM_CHA()");                   break;
-      case SUBOP_SET_CHAR_MAXENC:        SET_CHAR_INT(SetMaxEncumbrance,"$SET_CHAR_MAXENC()");              break;
-      case SUBOP_SET_CHAR_SEX:           SET_CHAR_STRING(SetGender,"$SET_CHAR_SEX()");                      break;
-      case SUBOP_SET_CHAR_GENDER:        SET_CHAR_STRING(SetGender,"$SET_CHAR_GENDER()");                   break;
-      case SUBOP_SET_CHAR_ALIGNMENT:     SET_CHAR_ENUM(SetAlignment, alignmentType,"$SET_CHAR_ALIGNMENT()");break;
-      case SUBOP_SET_CHAR_STATUS:        SET_CHAR_ENUM(SetStatus,charStatusType,"$SET_CHAR_STATUS()");      break;
-      case SUBOP_SET_CHAR_UNDEAD:        SET_CHAR_STRING(SetUndead,"$SET_CHAR_UNDEAD()");                   break;
-      case SUBOP_SET_CHAR_SIZE:          SET_CHAR_ENUM(SetSize, creatureSizeType,"$SET_CHAR_SIZE()");       break;
-      case SUBOP_SET_CHAR_MAGICRESIST:   SET_CHAR_INT(SetMagicResistance,"$SET_CHAR_<AGICRESIST()");        break;
-      case SUBOP_SET_CHAR_MORALE:        SET_CHAR_INT(SetMorale,"$SET_CHAR_MORALE()");                      break;
-      case SUBOP_SET_CHAR_DAMAGEBONUS:   SET_CHAR_INT(SetDmgBonus,"$SET_CHAR_DAMAGEBONUS()");               break;
-      case SUBOP_SET_CHAR_HITBONUS:      SET_CHAR_INT(SetHitBonus,"$SET_CHAR_HITBONUS()");                  break;
-      case SUBOP_SetMemorizeCount:       m_SetMemorizeCount();                                              break;   
-      case SUBOP_GetHighestLevelBaseclass:
-                                         m_GetHighestLevelBaseclass();                                      break;
-      case SUBOP_GetBaseclassLevel:      m_GetBaseclassLevel();                                             break;
 
+      //case SUBOP_SET_CHAR_CLERICLVL:     m_setCharacterValue(CHAR_CLERICLVL);      break;
+      //case SUBOP_SET_CHAR_MAGICUSERLVL:  m_setCharacterValue(CHAR_MAGICUSERLVL);   break;
+      //case SUBOP_SET_CHAR_FIGHTERLVL:    m_setCharacterValue(CHAR_FIGHTERLVL);     break;
+      //case SUBOP_SET_CHAR_RANGERLVL:     m_setCharacterValue(CHAR_RANGERLVL);      break;
+      //case SUBOP_SET_CHAR_THIEFLVL:      m_setCharacterValue(CHAR_THIEFLVL);       break;
+      //case SUBOP_SET_CHAR_DRUIDLVL:      m_setCharacterValue(CHAR_DRUIDLVL);       break;
+      //case SUBOP_SET_CHAR_PALADINLVL:    m_setCharacterValue(CHAR_PALADINLVL);     break;
+      //case SUBOP_SET_CHAR_AGE:           m_setCharacterValue(CHAR_AGE);            break;
+      case SUBOP_SET_CHAR_AGE:           SET_CHAR_INT(SetAge);            break;
+      //case SUBOP_SET_CHAR_MAXAGE:        m_setCharacterValue(CHAR_MAXAGE);         break;
+      case SUBOP_SET_CHAR_MAXAGE:        SET_CHAR_INT(SetMaxAge);         break;
+      //case SUBOP_SET_CHAR_MAXMOVE:       m_setCharacterValue(CHAR_MAXMOVE);        break;
+      case SUBOP_SET_CHAR_MAXMOVE:       SET_CHAR_INT(SetMaxMovement);        break;
+      //case SUBOP_SET_CHAR_PERM_STR:      m_setCharacterValue(CHAR_PERM_STR);       break;
+      case SUBOP_SET_CHAR_PERM_STR:      SET_CHAR_INT(SetPermStr);                 break;
+      //case SUBOP_SET_CHAR_PERM_STRMOD:   m_setCharacterValue(CHAR_PERM_STRMOD);    break;
+      case SUBOP_SET_CHAR_PERM_STRMOD:   SET_CHAR_INT(SetPermStrMod);               break;
+      //case SUBOP_SET_CHAR_PERM_INT:      m_setCharacterValue(CHAR_PERM_INT);       break;
+      case SUBOP_SET_CHAR_PERM_INT:      SET_CHAR_INT(SetPermInt);                 break;
+      //case SUBOP_SET_CHAR_PERM_WIS:      m_setCharacterValue(CHAR_PERM_WIS);       break;
+      case SUBOP_SET_CHAR_PERM_WIS:      SET_CHAR_INT(SetPermWis);                 break;
+      //case SUBOP_SET_CHAR_PERM_DEX:      m_setCharacterValue(CHAR_PERM_DEX);       break;
+      case SUBOP_SET_CHAR_PERM_DEX:      SET_CHAR_INT(SetPermDex);                 break;
+      //case SUBOP_SET_CHAR_PERM_CON:      m_setCharacterValue(CHAR_PERM_CON);       break;
+      case SUBOP_SET_CHAR_PERM_CON:      SET_CHAR_INT(SetPermCon);                 break;
+      //case SUBOP_SET_CHAR_PERM_CHA:      m_setCharacterValue(CHAR_PERM_CHA);       break;
+      case SUBOP_SET_CHAR_PERM_CHA:      SET_CHAR_INT(SetPermCha);                 break;
+      //case SUBOP_SET_CHAR_MAXENC:        m_setCharacterValue(CHAR_MAXENC);         break;
+      case SUBOP_SET_CHAR_MAXENC:        SET_CHAR_INT(SetMaxEncumbrance);         break;
+      //case SUBOP_SET_CHAR_GENDER:        m_setCharacterValue(CHAR_GENDER);         break;
+      case SUBOP_SET_CHAR_GENDER:        SET_CHAR_STRING(SetGender);         break;
+      //case SUBOP_SET_CHAR_CLASS:         m_setCharacterValue(CHAR_CLASS);          break;
+      //case SUBOP_SET_CHAR_ALIGNMENT:     m_setCharacterValue(CHAR_ALIGNMENT);      break;
+      case SUBOP_SET_CHAR_ALIGNMENT:     SET_CHAR_ENUM(SetAlignment, alignmentType); break;
+      //case SUBOP_SET_CHAR_STATUS:        m_setCharacterValue(CHAR_STATUS);         break;
+      case SUBOP_SET_CHAR_STATUS:        SET_CHAR_ENUM(SetStatus,charStatusType);         break;
+      //case SUBOP_SET_CHAR_UNDEAD:        m_setCharacterValue(CHAR_UNDEAD);         break;
+      case SUBOP_SET_CHAR_UNDEAD:        SET_CHAR_STRING(SetUndead);         break;
+      //case SUBOP_SET_CHAR_SIZE:          m_setCharacterValue(CHAR_SIZE);           break;
+      case SUBOP_SET_CHAR_SIZE:          SET_CHAR_ENUM(SetSize, creatureSizeType);           break;
+      //case SUBOP_SET_CHAR_MAGICRESIST:   m_setCharacterValue(CHAR_MAGICRESIST);    break;
+      case SUBOP_SET_CHAR_MAGICRESIST:   SET_CHAR_INT(SetMagicResistance);    break;
+//      case SUBOP_SET_CHAR_SAVEVSPPDM:    m_setCharacterValue(CHAR_SAVEVSPPDM);     break;
+//      case SUBOP_SET_CHAR_SAVEVSPP:      m_setCharacterValue(CHAR_SAVEVSPP);       break;
+//      case SUBOP_SET_CHAR_SAVEVSRSW:     m_setCharacterValue(CHAR_SAVEVSRSW);      break;
+//      case SUBOP_SET_CHAR_SAVEVSBR:      m_setCharacterValue(CHAR_SAVEVSBR);       break;
+//      case SUBOP_SET_CHAR_SAVEVSSP:      m_setCharacterValue(CHAR_SAVEVSSP);       break;
+      //case SUBOP_SET_CHAR_MORALE:        m_setCharacterValue(CHAR_MORALE);         break;
+      case SUBOP_SET_CHAR_MORALE:        SET_CHAR_INT(SetMorale);         break;
+      //case SUBOP_SET_CHAR_OPENDOORS:     m_setCharacterValue(CHAR_OPENDOORS);      break;
+      //case SUBOP_SET_CHAR_OPENMAGICDOORS:m_setCharacterValue(CHAR_OPENMAGICDOORS); break;
+      //case SUBOP_SET_CHAR_BENDLIFT:      m_setCharacterValue(CHAR_BENDLIFT);       break;
+//      case SUBOP_SET_CHAR_PICKPOCKETS:   m_setCharacterValue(CHAR_PICKPOCKETS);    break;
+//      case SUBOP_SET_CHAR_OPENLOCKS:     m_setCharacterValue(CHAR_OPENLOCKS);      break;
+//      case SUBOP_SET_CHAR_FINDTRAPS:     m_setCharacterValue(CHAR_FINDTRAPS);      break;
+//      case SUBOP_SET_CHAR_MOVESILENT:    m_setCharacterValue(CHAR_MOVESILENT);     break;
+//      case SUBOP_SET_CHAR_HIDESHADOWS:   m_setCharacterValue(CHAR_HIDESHADOWS);    break;
+//      case SUBOP_SET_CHAR_HEARNOISE:     m_setCharacterValue(CHAR_HEARNOISE);      break;
+//      case SUBOP_SET_CHAR_CLIMBWALLS:    m_setCharacterValue(CHAR_CLIMBWALLS);     break;
+//      case SUBOP_SET_CHAR_READLANG:      m_setCharacterValue(CHAR_READLANG);       break;           
+      //case SUBOP_SET_CHAR_BLESS:         m_setCharacterValue(CHAR_BLESS);          break;
+      //case SUBOP_SET_CHAR_CURSE:         m_setCharacterValue(CHAR_CURSE);          break;
+      //case SUBOP_SET_CHAR_UNDEADFEAR:    m_setCharacterValue(CHAR_UNDEADFEAR);     break;
+      //case SUBOP_SET_CHAR_ENLARGE:       m_setCharacterValue(CHAR_ENLARGE);        break;
+      //case SUBOP_SET_CHAR_REDUCE:        m_setCharacterValue(CHAR_REDUCE);         break;
+      //case SUBOP_SET_CHAR_CHARMPERSON:   m_setCharacterValue(CHAR_CHARMPERSON);    break;
+      //case SUBOP_SET_CHAR_REFLECTGAZEATTACK: m_setCharacterValue(CHAR_REFLECTGAZEATTACK); break;
+      //case SUBOP_SET_CHAR_PROTFROMEVIL:  m_setCharacterValue(CHAR_PROTFROMEVIL);   break;
+      //case SUBOP_SET_CHAR_PROTFROMGOOD:  m_setCharacterValue(CHAR_PROTFROMGOOD);   break;
+      //case SUBOP_SET_CHAR_SHIELD:        m_setCharacterValue(CHAR_SHIELD);         break;
+      //case SUBOP_SET_CHAR_SLEEP:         m_setCharacterValue(CHAR_SLEEP);          break;
+      //case SUBOP_SET_CHAR_FOG:           m_setCharacterValue(CHAR_FOG);            break;
+      //case SUBOP_SET_CHAR_ENTANGLE:      m_setCharacterValue(CHAR_ENTANGLE);       break;
+      //case SUBOP_SET_CHAR_INVISIBLETOANIMALS: m_setCharacterValue(CHAR_INVISIBLETOANIMALS); break;
+      //case SUBOP_SET_CHAR_INVISIBLETOUNDEAD: m_setCharacterValue(CHAR_INVISIBLETOUNDEAD); break;
+      //case SUBOP_SET_CHAR_NONUNDEADFEAR: m_setCharacterValue(CHAR_NONUNDEADFEAR);  break;
+      //case SUBOP_SET_CHAR_SANCTUARY:     m_setCharacterValue(CHAR_SANCTUARY);      break;
+      //case SUBOP_SET_CHAR_SHILLELAGH:    m_setCharacterValue(CHAR_SHILLELAGH);     break;
+      //case SUBOP_SET_CHAR_DISPLACEMENT:  m_setCharacterValue(CHAR_DISPLACEMENT);   break;
+      //case SUBOP_SET_CHAR_WIZARDRY:      m_setCharacterValue(CHAR_WIZARDRY);       break;
+      //case SUBOP_SET_CHAR_DETECTMAGIC:   m_setCharacterValue(CHAR_DETECTMAGIC);    break;
+      //case SUBOP_SET_CHAR_VORPALATTACK:  m_setCharacterValue(CHAR_VORPALATTACK);   break;
+      //case SUBOP_SET_CHAR_HOLDPERSON:    m_setCharacterValue(CHAR_HOLDPERSON);     break;
+      //case SUBOP_SET_CHAR_SILENCE:       m_setCharacterValue(CHAR_SILENCE);        break;
+      //case SUBOP_SET_CHAR_POISONED:      m_setCharacterValue(CHAR_POISONED);       break;
+      //case SUBOP_SET_CHAR_SLOWPOISON:    m_setCharacterValue(CHAR_SLOWPOISON);     break;
+      //case SUBOP_SET_CHAR_MIRRORIMAGE:   m_setCharacterValue(CHAR_MIRRORIMAGE);    break;
+      //case SUBOP_SET_CHAR_INVISIBLE:     m_setCharacterValue(CHAR_INVISIBLE);      break;
+      //case SUBOP_SET_CHAR_ENFEEBLED:     m_setCharacterValue(CHAR_ENFEEBLED);      break;
+      //case SUBOP_SET_CHAR_DAMAGEBONUS:   m_setCharacterValue(CHAR_DAMAGEBONUS);    break;
+      case SUBOP_SET_CHAR_DAMAGEBONUS:   SET_CHAR_INT(SetDmgBonus);    break;
+      //case SUBOP_SET_CHAR_HITBONUS:      m_setCharacterValue(CHAR_HITBONUS);       break;
+      case SUBOP_SET_CHAR_HITBONUS:      SET_CHAR_INT(SetHitBonus);       break;
+      //case SUBOP_SET_CHAR_BLINDNESS:     m_setCharacterValue(CHAR_BLINDNESS);      break;
+      //case SUBOP_SET_CHAR_DISEASED:      m_setCharacterValue(CHAR_DISEASED);       break;
+         
       case SUBOP_SET_CHAR_ASL:
         {
           CHARACTER *pChar;
           m_popString2();  // value
           m_popString1();  // key
-          pChar = m_popCharacter("$GET_CHAR_ASL()"); // character number
+          pChar = m_popCharacter(); // character number
 #ifdef UAFEngine
           InsertCharacterASL(
             pChar,
@@ -5465,14 +5505,12 @@ GPDL_STATE GPDL::m_interpret(void) {
         m_popString1();   // The attribute to be modified
         // Dude() gets this m_popString1();   // Ye Olde character
 #ifdef UAFEngine
-        Dude("$MODIFY_CHAR_ATTRIBUTE()")->AddTemporaryEffect(
-                                   m_string1, 
+        Dude()->AddTemporaryEffect(m_string1, 
                                    m_string2,
                                    m_Integer3,
                                    m_Integer2,
                                    m_string3,
-                                   m_string4,
-                                   "Script function $MODIFY_CHAR_ATTRIBUTE()");
+                                   m_string4);
 #else
         m_popString1(); // The dude
 #endif
@@ -5481,7 +5519,7 @@ GPDL_STATE GPDL::m_interpret(void) {
       case SUBOP_REMOVE_CHAR_MODIFICATION:
 #ifdef UAFEngine
         m_popString1(); // The search pattern
-        m_string2 = (Dude("$REMOVE_CHAR_MODIFICTION()")->RemoveTemporaryEffect(m_string1))?"1":"";
+        m_string2 = (Dude()->RemoveTemporaryEffect(m_string1))?"1":"";
         m_pushString2();
 #else
         m_popString1();  // the pattern
@@ -5489,7 +5527,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         m_pushEmptyString();
 #endif
         break;  
-      case SUBOP_GET_GAME_CURRLEVEL:   GET_LITERAL_INT(globalData.currLevel+1); break;
+      case SUBOP_GET_GAME_CURRLEVEL:   GET_LITERAL_INT(globalData.currLevel); break;
       //case SUBOP_GET_GAME_VERSION:     m_getGameValue(GAME_VERSION);   break;
       case SUBOP_GET_GAME_VERSION:
                   m_string1.Format("%1.8f", globalData.version);
@@ -5536,16 +5574,6 @@ GPDL_STATE GPDL::m_interpret(void) {
 //          m_string2);
         m_pushSP(m_false);  // Must supply a result
         break;
-      case SUBOP_GET_EVENT_Attribute:
-        m_popString1();     // The Attribute name
-        m_popInteger1();
-#ifdef UAFEngine
-        m_string2 = FindEventAttribute(m_Integer1, m_string1);
-#else
-        m_string2 = "!Found!";
-#endif
-        m_pushString2();
-        break;
       //case SUBOP_GET_PARTY_FACING:     m_getPartyValue(PARTY_FACING);     break;
       case SUBOP_GET_PARTY_FACING:     GET_LITERAL_INT(party.facing);     break;
       case SUBOP_GET_PARTY_LOCATION:  
@@ -5582,8 +5610,7 @@ GPDL_STATE GPDL::m_interpret(void) {
                 m_pushEmptyString();
                 break;
       //case SUBOP_GET_PARTY_ACTIVECHAR: m_getPartyValue(PARTY_ACTIVECHAR); break;
-      case SUBOP_GET_PARTY_ACTIVECHAR:
-            GET_LITERAL_INT(party.characters[party.activeCharacter].uniquePartyID); break;
+      case SUBOP_GET_PARTY_ACTIVECHAR: GET_LITERAL_INT(party.activeCharacter); break;
       //case SUBOP_SET_PARTY_ACTIVECHAR: m_setPartyValue(PARTY_ACTIVECHAR); break;
       case SUBOP_SET_PARTY_ACTIVECHAR: 
                 m_popInteger1();
@@ -5612,16 +5639,16 @@ GPDL_STATE GPDL::m_interpret(void) {
         break;
       case SUBOP_SET_QUEST:
         {
-          int j;
+          int i;
           char sign=' ', c;
           int value=0, oldValue;
           int valLen;
           m_string1 = m_popSP(); // Get value or increment
           m_string2 = m_popSP(); // Get quest name
           valLen = m_string1.GetLength();
-          for (j=0; j<valLen; j++)
+          for (i=0; i<valLen; i++)
           {
-            c=m_string1[j];
+            c=m_string1[i];
             if (c=='-') sign = '-';
             if (c=='+') sign = '+';
             if ( (c>='0') && (c<='9') ) value=value*10+c-'0';
@@ -5681,15 +5708,31 @@ GPDL_STATE GPDL::m_interpret(void) {
         break;
 
       case SUBOP_TargetContext:
-        m_string1 = pScriptContext->GetTargetContext("$TargetContext() called when no target context exists");
+        m_string1 = pScriptContext->GetTargetContext();
+#ifdef UAFEngine
+        if (m_string1.IsEmpty())
+        {
+          MsgBoxError("$TargetContext() called when no target context exists","Error",2);
+        }
+#endif
         m_pushString1();
         break;
       case SUBOP_AttackerContext:
-        m_string1 = pScriptContext->GetAttackerContext("$AttackerContext() called when no attacker context exists");
+        m_string1 = pScriptContext->GetAttackerContext(); //m_Attacker();
+#ifdef UAFEngine
+        if (m_string1.IsEmpty())
+        {
+          MsgBoxError("$AttackerContext() called when no attacker context exists","Error",2);
+        }
+#endif
         m_pushString1();
         break;
       case SUBOP_CombatantContext:
-        m_string1 = pScriptContext->GetCombatantContext("$CombatantContext() called when no combatant context exists");
+        m_string1 = pScriptContext->GetCombatantContext(); //m_Combatant();
+        if (m_string1.IsEmpty())
+        {
+          pScriptContext->MsgBoxError("$Combatant");
+        }
         m_pushString1();
         break;
       case SUBOP_iEQUAL:
@@ -6031,8 +6074,8 @@ GPDL_STATE GPDL::m_interpret(void) {
           const COMBATANT *pAttacker;
           const COMBATANT *pTarget;
           int damage = 0;
-          pTarget   = m_popCombatant("$ComputeAttackDamage()");
-          pAttacker = m_popCombatant("$ComputeAttackDamage()");
+          pTarget   = m_popCombatant();
+          pAttacker = m_popCombatant();
           if ((pTarget!=NULL) && (pAttacker!=NULL))
           {
             damage = ComputeAttackDamage(pAttacker, pTarget);
@@ -6063,19 +6106,19 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_string2 = m_string1;
           m_string2.MakeUpper();
           m_string1.MakeLower();
-          for (int j=0; j<len; j++)
+          for (int i=0; i<len; i++)
           {
             if (ws)
             {
-              m_string1.SetAt(j, m_string2.GetAt(j)) ;
+              m_string1.SetAt(i, m_string2.GetAt(i)) ;
               ws = false;
             }
-            if ( m_string1.GetAt(j) == ' ') ws = true;
+            if ( m_string1.GetAt(i) == ' ') ws = true;
           };
         };
         m_pushString1();
         break;
-//   Readded 20160907 PRS /* Deprecated
+/* Deprecated
       case SUBOP_GetSpellbook:
         {
 #ifdef UAFEngine
@@ -6089,7 +6132,7 @@ GPDL_STATE GPDL::m_interpret(void) {
 #endif
         };
         break;
-//        */
+        */
       case SUBOP_SelectSpell:
         {
 #ifdef UAFEngine
@@ -6118,14 +6161,13 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_pushString2();
         };
         break;
-/*  Replaced with version that uses uniqueID instead of party index
       case SUBOP_SetMemorizeCount:
         {
 #ifdef UAFEngine
           m_popString1();
           m_popString3();
           m_popInteger1();
-          m_Integer1 = SetMemorizeCount(m_Integer1, m_string3, m_string1, "$SetMemorizeCount()");
+          m_Integer1 = SetMemorizeCount(m_Integer1, m_string3, m_string1);
           m_pushInteger1();
 #else
           m_popString1();
@@ -6136,41 +6178,30 @@ GPDL_STATE GPDL::m_interpret(void) {
 #endif
         };
         break;
-        */
-
-      case SUBOP_KNOW_SPELL:
+      case SUBOP_GetHighestLevelBaseclass:
         {
 #ifdef UAFEngine
-          CHARACTER *pCharacter;
-          SPELL_ID spellid;
-          const SPELL_DATA *pSpell;
-          m_popInteger1(); // Know or un-know
-          m_popString1(); // the spellID
-          pCharacter = m_popCharacterActor();
-          spellid = m_string1;
-          pSpell = spellData.PeekSpell(spellid);
-          m_string2 = "1";
-          if (pSpell == NULL)
-          {
-            m_string2.Empty();
-          }
-          else
-          {
-            if (!pCharacter->KnowSpellyyy(pSpell, m_Integer1 != 0))
-            {
-              m_string2.Empty();
-            };
-          };
+          m_popInteger1();
+          m_string2 = GetHighestLevelBaseclass(m_Integer1);
+          m_pushString2();
 #else
-          m_popString1(); // 'know' flag
-          m_popString1(); // spell name
-          m_popString1(); // actor
-          m_string2 = "1"; 
+          m_string2 = "OK";
+          m_pushString2();
 #endif
         };
-        m_pushString2();
         break;
-
+      case SUBOP_GetBaseclassLevel:
+        {
+#ifdef UAFEngine
+          m_popString1();
+          m_popInteger1();
+          m_Integer2 = GetBaseclassLevel(m_Integer1, m_string1);
+          m_pushInteger2();
+#else
+          m_popString1();
+#endif
+        };
+        break;
       case SUBOP_MonsterPlacement:
 #ifdef UAFEngine
         m_popString1();
@@ -6183,21 +6214,21 @@ GPDL_STATE GPDL::m_interpret(void) {
       case SUBOP_SetWall:
           m_popInts(5);
 #ifdef UAFEngine
-          SetMapOverride(WALL_OVERRIDE_USER, m_intArray);
+          SetMapOverride(WALL_OVERRIDE, m_intArray);
 #endif
           m_pushEmptyString();
           break;
       case SUBOP_SetBackground:
           m_popInts(5);
 #ifdef UAFEngine
-          SetMapOverride(BACKGROUND_OVERRIDE_USER, m_intArray);
+          SetMapOverride(BACKGROUND_OVERRIDE, m_intArray);
 #endif
           m_pushEmptyString();
           break;
       case SUBOP_SetOverlay:
           m_popInts(5);
 #ifdef UAFEngine
-          SetMapOverride(OVERLAY_OVERRIDE_USER, m_intArray);
+          SetMapOverride(OVERLAY_OVERRIDE, m_intArray);
 #endif
           m_pushEmptyString();
           break;
@@ -6211,28 +6242,28 @@ GPDL_STATE GPDL::m_interpret(void) {
       case SUBOP_SetDoor:
           m_popInts(5);
 #ifdef UAFEngine
-          SetMapOverride(DOOR_OVERRIDE_USER, m_intArray);
+          SetMapOverride(DOOR_OVERRIDE, m_intArray);
 #endif
           m_pushEmptyString();
           break;
       case SUBOP_GetWall:
           m_popInts(4);
 #ifdef UAFEngine
-          m_Integer1 = GetMapOverride(WALL_OVERRIDE_USER, m_intArray);
+          m_Integer1 = GetMapOverride(WALL_OVERRIDE, m_intArray);
 #endif
           m_pushInteger1();
           break;
       case SUBOP_GetBackground:
           m_popInts(4);
 #ifdef UAFEngine
-          m_Integer1 = GetMapOverride(BACKGROUND_OVERRIDE_USER, m_intArray);
+          m_Integer1 = GetMapOverride(BACKGROUND_OVERRIDE, m_intArray);
 #endif
           m_pushInteger1();
           break;
       case SUBOP_GetOverlay:
           m_popInts(4);
 #ifdef UAFEngine
-          m_Integer1 = GetMapOverride(OVERLAY_OVERRIDE_USER, m_intArray);
+          m_Integer1 = GetMapOverride(OVERLAY_OVERRIDE, m_intArray);
 #endif
           m_pushInteger1();
           break;
@@ -6246,7 +6277,7 @@ GPDL_STATE GPDL::m_interpret(void) {
       case SUBOP_GetDoor:
           m_popInts(5);
 #ifdef UAFEngine
-          m_Integer1 = GetMapOverride(DOOR_OVERRIDE_USER, m_intArray);
+          m_Integer1 = GetMapOverride(DOOR_OVERRIDE, m_intArray);
 #endif
           m_pushInteger1();
           break;
@@ -6337,9 +6368,6 @@ GPDL_STATE GPDL::m_interpret(void) {
       case SUBOP_AURA_Size:         AURA_FUNCTION($AURA_Size);      break;
       case SUBOP_AURA_Shape:        AURA_FUNCTION($AURA_Shape);     break;
       case SUBOP_AURA_Spell:        AURA_FUNCTION($AURA_Spell);     break;
-      case SUBOP_AURA_Location:     AURA_FUNCTION($AURA_Location);  break;
-      case SUBOP_AURA_GetData:      AURA_FUNCTION($AURA_GetData);   break;
-      case SUBOP_AURA_SetData:      AURA_FUNCTION($AURA_SetData);   break;
 
       case SUBOP_GrSet:
         {
@@ -6383,7 +6411,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         {
 #ifdef UAFEngine
           m_popString1();
-          m_string2 = GrPrint(m_string1, 0, FALSE);
+          m_string2 = GrPrint(m_string1);
           m_pushString2();
 #endif
         };
@@ -6392,7 +6420,7 @@ GPDL_STATE GPDL::m_interpret(void) {
         {
 #ifdef UAFEngine
           m_popString1();
-          m_string2 = GrPrtLF(m_string1, 0, FALSE);
+          m_string2 = GrPrtLF(m_string1);
           m_pushString2();
 #endif
         };
@@ -6586,18 +6614,6 @@ GPDL_STATE GPDL::m_interpret(void) {
           m_pushString2();
         };
         break;
-      case SUBOP_SLEEP:
-#ifdef UAFEngine
-        Sleep(m_popInteger());
-#endif
-        m_pushEmptyString();
-        break;
-      case SUBOP_DRAWADVENTURESCREEN:
-#ifdef UAFEngine
-        UpdateAdventureScreen();
-#endif
-        m_pushEmptyString();
-        break;
       default:
         {
           CString msg;
@@ -6778,7 +6794,6 @@ GPDL::DISCOURSETEXT::DISCOURSETEXT(void) {
   m_numLine=0;
   m_topLine=0;
   m_listening=false;
-  m_pushStack = NULL;
 }
 
 GPDL::DISCOURSETEXT::~DISCOURSETEXT(void) {  
@@ -6791,7 +6806,6 @@ GPDL::DISCOURSETEXT::~DISCOURSETEXT(void) {
     FL->m_prevLine=NULL;
     delete FL;
   };
-  if (m_pushStack != NULL) NotImplemented(0xdca76, false);
 }
 
 void GPDL::DISCOURSETEXT::SetText(CString& text, unsigned int width) {
@@ -6820,15 +6834,15 @@ void GPDL::DISCOURSETEXT::m_addLine(const char *line) {
   if (m_firstLine==NULL) 
   {
     m_firstLine=newline;
-    if (pDiscourseLine->discourseLine.GetSize() == 0)
-      pDiscourseLine->discourseLine.SetSize(TEXTBOX_LINES);
+    if (discourseLine.GetSize() == 0)
+      discourseLine.SetSize(TEXTBOX_LINES);
     return;
   };
   for (LL=m_firstLine; LL->m_nextLine!=NULL; LL=LL->m_nextLine) ;
   newline->m_prevLine=LL;
   LL->m_nextLine=newline;
-  if (pDiscourseLine->discourseLine.GetSize() == 0)
-    pDiscourseLine->discourseLine.SetSize(TEXTBOX_LINES);
+  if (discourseLine.GetSize() == 0)
+    discourseLine.SetSize(TEXTBOX_LINES);
 }
 
 CString GPDL::DISCOURSETEXT::GetInput(void) {
@@ -7148,10 +7162,10 @@ void GPDL::DISCOURSETEXT::Display(void) {
     if (L==NULL) break;
     L=L->m_nextLine;
   };
-  for (i=0; i < (unsigned)pDiscourseLine->discourseLine.GetSize(); i++) {
-    if (L==NULL) pDiscourseLine->discourseLine[i]=CString("");
+  for (i=0; i < (unsigned)discourseLine.GetSize(); i++) {
+    if (L==NULL) discourseLine[i]=CString("");
     else {
-      pDiscourseLine->discourseLine[i]=L->m_text;
+      discourseLine[i]=L->m_text;
       L=L->m_nextLine;
     };
   };
@@ -7160,9 +7174,9 @@ void GPDL::DISCOURSETEXT::Display(void) {
 void GPDL::DISCOURSETEXT::Clear(void) {
   int i;
   LINE *FL;
-  if (pDiscourseLine->discourseLine.GetSize() == 0)
-    pDiscourseLine->discourseLine.SetSize(TEXTBOX_LINES);
-  for (i=0; i<pDiscourseLine->discourseLine.GetSize(); i++) pDiscourseLine->discourseLine[i]="";
+  if (discourseLine.GetSize() == 0)
+    discourseLine.SetSize(TEXTBOX_LINES);
+  for (i=0; i<discourseLine.GetSize(); i++) discourseLine[i]="";
   while (m_firstLine!=NULL) {
     FL=m_firstLine;
     m_firstLine=FL->m_nextLine;
@@ -7174,39 +7188,9 @@ void GPDL::DISCOURSETEXT::Clear(void) {
   m_numLine=0;
 }
 
-void GPDL::DISCOURSETEXT::Push(void)
-{
-  DISCOURSETEXT *pEntry;
-  pEntry = new DISCOURSETEXT;
-  pEntry->m_firstLine = m_firstLine;
-  pEntry->m_listening = m_listening;
-  pEntry->m_MAXCHARS  = m_MAXCHARS;
-  pEntry->m_numLine   = m_numLine;
-  pEntry->m_promptLen = m_promptLen;
-  pEntry->m_pushStack = m_pushStack;
-  pEntry->m_topLine   = m_topLine;
-  m_pushStack = pEntry;
-  pDiscourseLine->Push();
-}
-
-void GPDL::DISCOURSETEXT::Pop(void)
-{
-  DISCOURSETEXT *pEntry;
-  pEntry      = m_pushStack;
-  m_firstLine = pEntry->m_firstLine;
-  m_listening = pEntry->m_listening;
-  m_MAXCHARS  = pEntry->m_MAXCHARS;
-  m_numLine   = pEntry->m_numLine;
-  m_promptLen = pEntry->m_promptLen;
-  m_pushStack = pEntry->m_pushStack;
-  m_topLine   = pEntry->m_topLine;
-  m_pushStack = pEntry->m_pushStack;
-  delete pEntry;
-  pDiscourseLine->Pop();
-}
 
 void GPDL::DISCOURSETEXT::downArrow(void) {
-  if (m_topLine+pDiscourseLine->discourseLine.GetSize()>=m_numLine) return;
+  if (m_topLine+discourseLine.GetSize()>=m_numLine) return;
   m_topLine++;
   Display();
 };
@@ -7279,16 +7263,6 @@ int GPDL::GLOBALS::read(CArchive& ar) {
   return 0;
 }
 
-int GPDL::GLOBALS::read(RAM_FILE& ar) {
-  unsigned int i;
-  if (m_value!=NULL) delete []m_value;
-  m_value=NULL;
-  ar >> m_allocatedSize;
-  m_value=new CString[m_allocatedSize];
-  for (i=0; i<m_allocatedSize; i++) ar >> m_value[i];
-  return 0;
-}
-
 #ifdef UAFEDITOR
 int GPDL::GLOBALS::read(GPDLCOMP *pGPDL) {
   unsigned int i;
@@ -7343,23 +7317,6 @@ int GPDL::INDEX::read(CArchive& ar) {
   return 0;
 }
 
-int GPDL::INDEX::read(RAM_FILE& ar) {
-  unsigned int i;
-  if (m_name!=NULL) delete []m_name;
-  if (m_value!=NULL) delete []m_value;
-  m_name=NULL;
-  m_value=NULL;
-  ar >> m_allocatedSize;
-  m_name=new CString [m_allocatedSize];
-  m_value=new unsigned int [m_allocatedSize];
-  for (i=0; i<m_allocatedSize; i++) 
-  {
-    ar >> m_name[i]; m_name[i].TrimLeft(); m_name[i].TrimRight();
-    ar >> m_value[i];
-  };
-  return 0;
-}
-
 #ifdef UAFEDITOR
 int GPDL::INDEX::read(GPDLCOMP *pGPDL) {
   unsigned int i;
@@ -7391,10 +7348,7 @@ GPDL::ERRORLOG::~ERRORLOG(void) {
 
 void GPDL::ERRORLOG::log(const char *msg) 
 {
-  if (logDebuggingInfo)
-  {
-    WriteDebugString("GPDL LOG: %s\n", msg);
-  };
+  WriteDebugString("GPDL LOG: %s\n", msg);
   if (m_file==NULL) 
   {
     m_file=fopen("interp.log","w");
@@ -7506,7 +7460,7 @@ ITEM_DATA *GPDL::m_StringToItemData(const CString& itemName)
 CString GPDL::m_Myself(void)
 {
   ActorType actor = GetCharContext();
-  //  20171206 PRS Not needed because GetCharContext processes this error.  ASSERT(actor!=NULL_ACTOR);
+  ASSERT(actor!=NULL_ACTOR);
   m_string1 = m_ActorToString(&actor);
   return m_string1;  
 }
@@ -7633,7 +7587,7 @@ CString GPDL::m_Name(const char *name)
 CString GPDL::m_Gender(CString &data)
 {  
   ActorType actor = m_StringToActor((LPCSTR)data);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor, "GPDL::m_Gender");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return m_false;
 #ifdef UAFEngine
   return (CharGenderTypeText[dude->GetAdjGender()]);
@@ -7645,7 +7599,7 @@ CString GPDL::m_Gender(CString &data)
 CString GPDL::m_Class(CString &data)
 {  
   ActorType actor = m_StringToActor((LPCSTR)data);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor,"GPDL::m_Class");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return m_false;
   //return (classData[dude->GetAdjClass()].m_name);
   return dude->GetAdjClass().UniqueName();
@@ -7663,7 +7617,7 @@ CString GPDL::m_Race(CString &data)
 CString GPDL::m_Status(CString &data)
 {
   ActorType actor = m_StringToActor((LPCSTR)data);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor,"GPDL::m_Status");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return m_false;
 #ifdef UAFEngine
   return (CharStatusTypeText[dude->GetAdjStatus()]);
@@ -7675,7 +7629,7 @@ CString GPDL::m_Status(CString &data)
 CString GPDL::m_Alignment(CString &data)
 {
   ActorType actor = m_StringToActor((LPCSTR)data);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor,"GPDL::m_Alignment");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return m_false;
 #ifdef UAFEngine
   return (CharAlignmentTypeText[dude->GetAdjAlignment()]);
@@ -7686,7 +7640,7 @@ CString GPDL::m_Alignment(CString &data)
 CString GPDL::m_AlignmentGood(CString &data)
 {
   ActorType actor = m_StringToActor((LPCSTR)data);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor,"GPDL::m_AlignmentGood");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return m_false;
   if (dude->IsAlignmentGood()) return m_true;
   return m_false;
@@ -7694,7 +7648,7 @@ CString GPDL::m_AlignmentGood(CString &data)
 CString GPDL::m_AlignmentEvil(CString &data)
 {
   ActorType actor = m_StringToActor((LPCSTR)data);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor,"GPDL::m_AlignmentEvil");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return m_false;
   if (dude->IsAlignmentEvil()) return m_true;
   return m_false;
@@ -7702,7 +7656,7 @@ CString GPDL::m_AlignmentEvil(CString &data)
 CString GPDL::m_AlignmentLawful(CString &data)
 {
   ActorType actor = m_StringToActor((LPCSTR)data);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor,"GPDL::m_AlignmentLawful");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return m_false;
   switch (dude->GetAdjAlignment())
   {
@@ -7716,7 +7670,7 @@ CString GPDL::m_AlignmentLawful(CString &data)
 CString GPDL::m_AlignmentNeutral(CString &data)
 {
   ActorType actor = m_StringToActor((LPCSTR)data);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor,"GPDL::m_AlignmentNeutral");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return m_false;
   switch (dude->GetAdjAlignment())
   {
@@ -7732,7 +7686,7 @@ CString GPDL::m_AlignmentNeutral(CString &data)
 CString GPDL::m_AlignmentChaotic(CString &data)
 {
   ActorType actor = m_StringToActor((LPCSTR)data);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor,"GPDL::m_AlignmentChaotic");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return m_false;
   switch (dude->GetAdjAlignment())
   {
@@ -7746,7 +7700,7 @@ CString GPDL::m_AlignmentChaotic(CString &data)
 CString GPDL::m_HitPoints(CString &data)
 {
   ActorType actor = m_StringToActor((LPCSTR)data);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor,"GPDL::m_HitPoints");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return CString("0");
   CString tmp;
   tmp.Format("%i", dude->GetAdjHitPoints());
@@ -7755,59 +7709,55 @@ CString GPDL::m_HitPoints(CString &data)
 CString GPDL::m_InParty(CString &data)
 {
   ActorType actor = m_StringToActor((LPCSTR)data);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor,"GPDL::m_InParty");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return m_false;
   return dude->IsPartyMember()?m_true:m_false;
 }
+//CString GPDL::m_SaveVsSpell(CString &data)
+//{
+//  ActorType actor = m_StringToActor((LPCSTR)data);
+//  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
+//  if (dude==NULL) return m_false;
+//  return dude->DidCharacterSaveVs(Sp,0)?m_true:m_false;
+//}
+//CString GPDL::m_SaveVsBreathWeapon(CString &data)
+//{
+//  ActorType actor = m_StringToActor((LPCSTR)data);
+//  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
+//  if (dude==NULL) return m_false;
+//  return dude->DidCharacterSaveVs(BreathWeapon,0)?m_true:m_false;
+//}
+//CString GPDL::m_SaveVsRodStaffWand(CString &data)
+//{
+//  ActorType actor = m_StringToActor((LPCSTR)data);
+//  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
+//  if (dude==NULL) return m_false;
+//  return dude->DidCharacterSaveVs(RodStaffWand,0)?m_true:m_false;
+//}
+//CString GPDL::m_SaveVsPetPoly(CString &data)
+//{
+//  ActorType actor = m_StringToActor((LPCSTR)data);
+//  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
+//  if (dude==NULL) return m_false;
+//  return dude->DidCharacterSaveVs(PetPoly,0)?m_true:m_false;
+//}
+//CString GPDL::m_SaveVsParPoiDM(CString &data)
+//{
+//  ActorType actor = m_StringToActor((LPCSTR)data);
+//  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
+//  if (dude==NULL) return m_false;
+//  return dude->DidCharacterSaveVs(ParPoiDM,0)?m_true:m_false;
+//}
 CString GPDL::m_IsUndead(CString &data)
 {
   ActorType actor = m_StringToActor((LPCSTR)data);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor,"GPDL::m_IsUndead");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return m_false;
   //return (dude->GetAdjUndeadType()!=NotUndead)?m_true:m_false;
   return (!dude->GetUndeadType().IsEmpty())?m_true:m_false;
 }
 
-
-CString GPDL::m_IndexToActor()
-{
-#ifdef UAFEngine
-  if (IsCombatActive())
-  {
-    COMBATANT *pCombatant;
-    int index;
-    m_popInteger1();
-    index = m_Integer1;
-    if ((index < 0) || (index >= combatData.NumCombatants()))
-    {
-      if (!debugStrings.AlreadyNoted("FITAICI"))
-      {
-        MsgBoxInfo("Function IndexToActor(Illegal combatant index)", "Warning");
-      };
-    }
-    else
-    {
-      ActorType actor;
-      pCombatant = combatData.getCombatantPtr(index);
-      pCombatant->GetContext(&actor);
-      return m_ActorToString(&actor);
-    };
-    return "";
-  }
-  else
-  {
-    ActorType actor;
-    CHARACTER *pChar;
-    pChar = Dude("$IndexToActor()");
-    pChar->GetContext(&actor);
-    return m_ActorToString(&actor);
-  };
-#else
-  return "";
-#endif
-}
-
-CString GPDL::m_IndexOf(const CString& data)
+CString GPDL::m_IndexOf(const CString &data)
 {
   ActorType actor = m_StringToActor((LPCSTR)data);
   CString index("");
@@ -7843,7 +7793,7 @@ CString GPDL::m_IsCharAffectedBySpell(const CString &ActorString, const SPELL_ID
 {
 #ifdef UAFEngine
   ActorType actor = m_StringToActor((LPCSTR)ActorString);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor,"GPDL::m_IsCharAffectedBySpell");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return m_false;
   return (dude->IsAffectedBySpell(SpellID)?m_true:m_false);
 #else
@@ -7854,7 +7804,7 @@ CString GPDL::m_IsCharAffectedBySpellAttribute(const CString &ActorString, const
 {
 #ifdef UAFEngine
   ActorType actor = m_StringToActor((LPCSTR)ActorString);
-  CHARACTER *dude = GetCurrentlyActiveContext(&actor,"GPDL::m_IsCharAffectedBySpellAttribute");
+  CHARACTER *dude = GetCurrentlyActiveContext(&actor);
   if (dude==NULL) return m_false;
   return (dude->IsAffectedBySpellAttribute(SpellAttribName)?m_true:m_false);
 #else

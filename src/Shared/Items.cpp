@@ -16,28 +16,28 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ******************************************************************************/
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 //#include "..\Shared\ProjectVersion.h"
 #ifdef UAFEDITOR
-#include "..\UAFwinEd\resource.h"
+#include "../UAFWinEd/resource.h"
 #endif
 #include <math.h>
 
 #ifdef UAFEDITOR
-#include "..\UAFWinEd\UAFWinEd.h"
+#include "../UAFWinEd/UAFWinEd.h"
 #else
-#include "externs.h"
-#include "..\UAFWin\Dungeon.h"
+#include "Externs.h"
+#include "../UAFWin/Dungeon.h"
 #endif
 
 #include "class.h"
 #ifdef UAFEDITOR
-#include "..\UAFWinEd\CrossReference.h"
+#include "../UAFWinEd/CrossReference.h"
 #endif
 #include "SurfaceMgr.h"
 #include "PicSlot.h"
 #include "SoundMgr.h"
-#include "items.h"
+#include "Items.h"
 #include "GlobalData.h"
 //#include "level.h"
 #include "Graphics.h"
@@ -263,6 +263,8 @@ BOOL WpnCanAttackAtRange(const ITEM_ID& weaponID, int Range)
       };
       return Range == 0;
     };
+    NotImplemented(0x55109, false);
+    break;
   default:
     WriteDebugString("Bogus item type in IsWeapon()\n");
     break;
@@ -360,6 +362,7 @@ BOOL isMagical(const ITEM_ID& itemID)
     //return TRUE;
   if (data->specAbs.GetCount() != 0) 
   {
+    //NotImplemented(0x4c9b9b,FALSE);
     return TRUE;
   };
 
@@ -642,114 +645,6 @@ int getItemEncumbrance(const ITEM_ID& itemID, int qty)
 }
 
 
-itemReadiedLocation ITEM::ReadyLocation(void) const
-{
-  return readyLocation;
-}
-
-void ITEM::ReadyLocation(DWORD rdyLoc)
-{
-  readyLocation = itemReadiedLocation(rdyLoc, this->itemID,  &pItemData);
-}
-
-
-void itemReadiedLocation::Serialize(CAR& car)
-{
-  if (car.IsStoring())
-  {
-    car << location;
-  }
-  else
-  {
-    DWORD temp;
-    car >> temp;
-    location = Synonym(temp);
-  };
-}
-
-void itemReadiedLocation::Serialize(CArchive& ar)
-{
-  if (ar.IsStoring())
-  {
-    ar << location;
-  }
-  else
-  {
-    DWORD temp;
-    ar >> temp;
-    location = Synonym(temp);
-  };
-}
-
-void itemReadiedLocation::CheckLocation(const ITEM_ID& itemID, 
-                                        const ITEM_DATA **ppItemDataCache)
-{
-  // Make sure that items are readied in their proper locations
-  if (ppItemDataCache != NULL)
-  {
-    if (*ppItemDataCache == NULL)
-    {
-      const ITEM_DATA *pItemData;
-      pItemData = itemData.PeekItem(itemID);
-      if (pItemData == NULL)
-      {
-        if (!debugStrings.AlreadyNoted("ATRNEI"))
-        {
-          MsgBoxInfo("One or more attempts have been made to 'READY' an undefined item");
-        };
-      }
-      else
-      {
-        *ppItemDataCache = pItemData;
-      };
-    }
-    if (     (*ppItemDataCache != NULL) 
-          && ((*ppItemDataCache)->Location_Readied != location)
-          && (location != NotReady))
-    {
-      MsgBoxError("An item is marked as being 'READY'ed at the wrong body location.  I will fix it",
-                  "Information",
-                  5);
-      location = (*ppItemDataCache)->Location_Readied;
-    };
-  };
-}
-
-itemReadiedLocation::itemReadiedLocation(DWORD loc, 
-                                         const ITEM_ID& itemID, 
-                                         const ITEM_DATA **ppItemDataCache)
-{
-  location = loc;
-#ifdef checkItemReadyLocation
-  CheckLocation(itemID, ppItemDataCache);
-#endif
-}
-
-DWORD itemReadiedLocation::Synonym(DWORD rdyLoc) const
-{
-  switch(rdyLoc)
-  {
-  case 0: return WeaponHand;
-  case 1: return ShieldHand;
-  case 2: return BodyArmor;
-  case 3: return AmmoQuiver;
-  case 4: return Head;
-  case 5: return Waist;
-  case 6: return BodyRobe;
-  case 7: return Back;
-  case 8: return Feet;
-  case 9: return Fingers;
-  case 10: return AmmoQuiver;
-  case 11: return Cannot;
-  case 12: return Arms;
-  case 13: return Legs;
-  case 14: return Face;
-  case 15: return Neck;
-  case 16: return Pack;
-  default: return rdyLoc;
-  };
-}
-
 //*****************************************************************************
 //    NAME: ITEM::Serialize
 //
@@ -763,10 +658,7 @@ void ITEM::Serialize(CArchive &ar, double ver)
     ar << key;
           //m_giID.Serialize(ar);
     ar << itemID;
-
-    readyLocation.Serialize(ar);
-    //ar << ready;
-
+    ar << ready;
     ar << qty;
     ar << identified;
     ar << charges;
@@ -789,30 +681,12 @@ void ITEM::Serialize(CArchive &ar, double ver)
     {
       ar >> itemID;
     };
-
-    readyLocation.Serialize(ar);
-    if (ver <3.53)
-    {
-      readyLocation.CheckLocation(itemID, &pItemData);
-    };
-    //ar >> ready;
-
+    ar >> ready;
     ar >> qty;
     ar >> identified;
     ar >> charges;
     ar >> cursed;
-
-
-    /* *********** PRS 20191207  The following 'if' is
-                   an attempt to read an old version 0.5751 game
-                   named "The Last Days of Autumn".
-                   I am totally guessing at the version number for the
-                   'if' statement.  I know that the game "Fury" was version 0.831
-                   and it worked OK with the later code.  So something changed
-                   between these two versions.  I copied the VERSION_0696 
-                   from a version 0.902 of the editor.  ***** */
-    if (ver >= _VERSION_0696_)
-       ar >> paid;
+    ar >> paid;
   };
 };
 
@@ -829,9 +703,7 @@ void ITEM::Serialize(CAR &ar, double ver)
     ar << key;
           //m_giID.Serialize(ar);
     ar << itemID;
-
-    //ar << ready;
-    readyLocation.Serialize(ar);
+    ar << ready;
     ar << qty;
     ar << identified;
     ar << charges;
@@ -855,16 +727,7 @@ void ITEM::Serialize(CAR &ar, double ver)
     {
       ar >> itemID;
     };
-
-    //ar >> temp;
-    pItemData = NULL;
-    readyLocation.Serialize(ar); // = itemReadiedLocation(temp, itemID, &pItemData);
-    if (ver < 3.53)
-    {
-      readyLocation.CheckLocation(itemID, &pItemData);
-    };
-    //ar >> ready;
-
+    ar >> ready;
     ar >> qty;
     ar >> identified;
     ar >> charges;
@@ -888,8 +751,7 @@ void ITEM::Export(JWriter& jw)
   jw.StartList();
   jw.NameAndValue (JKEY_KEY        ,key);
   jw.NameAndValue (JKEY_ITEMID     ,itemID);
-  jw.NameAndValue (JKEY_READY      ,ReadyLocation().Location());
-  //jw.NameAndValue (JKEY_READY      ,ready);
+  jw.NameAndValue (JKEY_READY      ,ready);
   jw.NameAndValue (JKEY_QUANTITY   ,qty);
   jw.NameAndValue (JKEY_IDENTIFIED ,identified);
   jw.NameAndValue (JKEY_CHARGES    ,charges);
@@ -899,15 +761,10 @@ void ITEM::Export(JWriter& jw)
 }
 bool ITEM::Import(JReader& jr)
 {
-  int temp;
   if (jr.Optional(), !jr.StartList()) return false;
   jr.NameAndValue (JKEY_KEY        ,key);
   jr.NameAndValue (JKEY_ITEMID     ,itemID);
-
-  //jr.NameAndValue (JKEY_READY      ,ready);
-  jr.NameAndValue(JKEY_READY       ,temp);
-  ReadyLocation(temp);
-
+  jr.NameAndValue (JKEY_READY      ,ready);
   jr.NameAndValue (JKEY_QUANTITY   ,qty);
   jr.NameAndValue (JKEY_IDENTIFIED ,identified);
   jr.NameAndValue (JKEY_CHARGES    ,charges);
@@ -956,7 +813,7 @@ int READY_ITEMS::GetReady(itemLocationType type) const
       // current sword/sheild/ammo items being used. The ASSERT is here
       // as a warning that there probably isn't a good reason to call
       // this function for finger items.
-      ASS ERT(FALSE);
+      ASSERT(FALSE);
 
 			if (readyRing1 != NO_READY_ITEM) 
         return readyRing1;
@@ -1340,35 +1197,20 @@ void READY_ITEMS::Serialize(CAR &ar)
   }
 }
 
-
-BOOL ITEM_DATA::IsUsableByBaseclass(const BASECLASS_ID& baseclassID) const
-{
-  int i, n;
-  n = usableByBaseclass.GetCount();
-  if (n == 0) { return TRUE; }  // No base classes = any base class
-  for (i=0; i<n; i++)
-  {
-    if (*this->PeekBaseclass(i) == baseclassID) return true;
-  };
-  return false;
-}
-
-
-#ifdef OldDualClass20180126
-BOOL ITEM_DATA::IsUsableByClass(const CLASS_ID& charClassID) const
+BOOL ITEM_DATA::IsUsableByClass(const CLASS_ID& classID) const
 {
   {
     int i,n;
-    const CLASS_DATA *pCharClass;
-    pCharClass = classData.PeekClass(charClassID);
-    if (pCharClass == NULL) return FALSE;
+    const CLASS_DATA *pClass;
+    pClass = classData.PeekClass(classID);
+    if (pClass == NULL) return FALSE;
     n = GetBaseclassCount();
     for (i=0; i<n; i++)
     {
-      const BASECLASS_ID *pItemBaseclassID;
-      pItemBaseclassID = PeekBaseclass(i);
+      const BASECLASS_ID *pBaseclassID;
+      pBaseclassID = PeekBaseclass(i);
       {
-        if (pCharClass->LocateBaseclass(*pItemBaseclassID) >= 0)
+        if (pClass->LocateBaseclass(*pBaseclassID) >= 0)
         {
           return TRUE;
         };
@@ -1377,94 +1219,29 @@ BOOL ITEM_DATA::IsUsableByClass(const CLASS_ID& charClassID) const
   };
   return FALSE;
 }
-#else //OldDualClass20180126
-BOOL ITEM_DATA::IsUsableByClass(const CHARACTER *pChar) const
-{
-  {
-    if (GetBaseclassCount() == 0) { return TRUE; }  // No base classes = any base class
-    int i, n;
-    n = pChar->GetBaseclassStatsCount();
-    for (i=0; i<n; i++)
-    {
-      if (!pChar->CanUseBaseclass(pChar->PeekBaseclassStats(i))) continue;
-      {
-        int j, m;
-        m = GetBaseclassCount();
-        for (j=0; j<m; j++)
-        {
-          if (*PeekBaseclass(j) == pChar->PeekBaseclassStats(i)->baseclassID)
-          {
-            return TRUE;
-          };
-        };
-      };
-    };
-  };
-  return FALSE;
-}
-#endif //OldDualClass20180126
 
-#ifdef OldDualClass20180126
-BOOL ITEM_DATA::IsUsableByPrevClass(const CHARACTER *pChar) const
-{
-  /* Here is our plan.
-   * Set 'maxCurLevel' to the hightest level among current baseclasses.
-   * Set 'minPrevLevel' to the lowest level among previous baseclasses
-   * that were were allowed to ready this item.
-   * return  maxCurLevel > minPrevLevel;
-   */
-  int maxCurLevel = 0;
-  int minPrevLevel = 99999;
-  int i, n;
-  n = pChar->GetBaseclassStatsCount();
-  for (i=0; i<n; i++)
-  {
-    const BASECLASS_STATS *pStats;
-    pStats = pChar->PeekBaseclassStats(i);
-    if (pStats->currentLevel > maxCurLevel) maxCurLevel = pStats->currentLevel;
-    if (pStats->previousLevel == 0) continue;
-    if (pStats->previousLevel >= minPrevLevel) continue;
-    if (IsUsableByBaseclass(pStats->baseclassID))
-    {
-      minPrevLevel = pStats->previousLevel;
-    };
-  };
-  return maxCurLevel > minPrevLevel;
-}
-#endif
+
 
 //*****************************************************************************
-// NAME: ITEM_LIST::CanReadyKey
+// NAME: ITEM_LIST::CanReady
 //
 // PURPOSE:  
 //*****************************************************************************
 //BOOL ITEM_LIST::CanReady(int index, BYTE ItemMask, CHARACTER *pChar)
-miscErrorType ITEM_LIST::CanReadyKey(int itemKey, CHARACTER *pChar) const
+miscErrorType ITEM_LIST::CanReady(int index, CHARACTER *pChar)
 {
   POSITION pos;
   const ITEM *pCharItem;
-  if ((pos = m_items.FindKeyPos(itemKey)) == NULL)
+  if ((pos = m_items.FindKeyPos(index)) == NULL)
     return UnknownError;
 
   pCharItem = &m_items.PeekAtPos(pos);
-  return CanReadyItem(pCharItem, pChar);
-}
 
-
-//*****************************************************************************
-// NAME: ITEM_LIST::CanReadyItem
-//
-// PURPOSE:  
-//*****************************************************************************
-//BOOL ITEM_LIST::CanReady(int index, BYTE ItemMask, CHARACTER *pChar)
-miscErrorType ITEM_LIST::CanReadyItem(const ITEM *pCharItem, CHARACTER *pChar) const
-{
   //if (IsMoneyItem(pItem->m_giID))
   if (IsMoneyItem(pCharItem->itemID))
     return UnknownError;
 
-  //if (pCharItem->ready)
-  if (pCharItem->ReadyLocation() != NotReady)
+  if (pCharItem->ready)
     return NoError;
 
   if (pCharItem->qty <= 0)
@@ -1479,29 +1256,22 @@ miscErrorType ITEM_LIST::CanReadyItem(const ITEM *pCharItem, CHARACTER *pChar) c
   if (pItem->Hands_to_Use > 2)
     return UnknownError;
 
-  /* The item is usable by this character's class if any of his current sub-classes can
-   * use the item.
-   */
-#ifdef OldDualClass20180126
+
+/*
+	if ((pItem->Usable_by_Class & ItemMask) == 0)
+*/ 
   if (!pItem->IsUsableByClass(pChar->GetClass()))
 	{
-    if (!pItem->IsUsableByPrevClass(pChar))
-    {
-		  return WrongClass;
-    };
-  };
-#else
-  if (!pItem->IsUsableByClass(pChar))
-  {
-    return WrongClass;
-	};
-#endif
+		return WrongClass;
+	}
 
   if (itemUsesRdySlot(pItem))
   {
 	  if (   (pItem->Hands_to_Use == 2) 
         && ((pItem->Location_Readied == WeaponHand) || (pItem->Location_Readied == ShieldHand)))
 	  {
+		  //if (   (rdyItems.GetReady(WeaponHand) != NO_READY_ITEM)
+			//    || (rdyItems.GetReady(ShieldHand) != NO_READY_ITEM))
 		  if (   (GetReadiedItem(WeaponHand, 0) != NO_READY_ITEM)
 			    || (GetReadiedItem(ShieldHand, 0) != NO_READY_ITEM))
       {
@@ -1511,10 +1281,12 @@ miscErrorType ITEM_LIST::CanReadyItem(const ITEM *pCharItem, CHARACTER *pChar) c
     else if (pItem->Hands_to_Use > 0)
     {
       int readiedItem, hand;
-      DWORD rdyLoc;
-      for (hand=0,rdyLoc=WeaponHand; hand<2; hand++,rdyLoc=ShieldHand)
+      itemReadiedType location;
+      //if (   (rdyItems.GetReady(WeaponHand) != NO_READY_ITEM)
+      //    && (rdyItems.GetReady(ShieldHand) != NO_READY_ITEM))
+      for (hand=0,location=WeaponHand; hand<2; hand++,location=ShieldHand)
       {
-        readiedItem = GetReadiedItem(rdyLoc, 0);
+        readiedItem = GetReadiedItem(location, 0);
         if (readiedItem != NO_READY_ITEM)
         {
           POSITION readiedPos;
@@ -1538,6 +1310,8 @@ miscErrorType ITEM_LIST::CanReadyItem(const ITEM *pCharItem, CHARACTER *pChar) c
       };
     }
 
+    // something in this slot already
+    //if (!rdyItems.CanReady(data->Location_Carried))
     if (!CanReady(pItem->Location_Readied, pChar, pCharItem))
     {
       {
@@ -1555,33 +1329,34 @@ miscErrorType ITEM_LIST::CanReadyItem(const ITEM *pCharItem, CHARACTER *pChar) c
 //
 // PURPOSE:  
 //*****************************************************************************
-BOOL ITEM_LIST::Ready(const ITEM_ID& itemID, DWORD rdyLoc, CHARACTER *pChar)
+//BOOL ITEM_LIST::Ready(const ITEM_ID& itemID, itemReadiedType ilt, BYTE itemMask, CHARACTER *pChar)
+BOOL ITEM_LIST::Ready(const ITEM_ID& itemID, itemReadiedType ilt, CHARACTER *pChar)
 {
   POSITION pos;
-  ITEM *pCharItem;
-//  ITEM_DATA *pItemData;
+  ITEM *pItem;
+  ITEM_DATA *pItemData;
   //if (name.IsEmpty())
   if (itemID.IsNoItem())
   {
     int index;
-    index = GetReadiedItem(rdyLoc, 0);
-    if (rdyLoc == Undefined) return FALSE;
+    //index = rdyItems.GetReady(ilt);
+    index = GetReadiedItem(ilt, 0);
+    if (ilt < 0) return FALSE;
     UnReady(index);
     return TRUE;
   };
   pos = GetHeadPosition();
   while (pos != NULL)
   {
-    pCharItem = &GetNext(pos);
-    if (pCharItem->itemID != itemID) continue;
-    ////pItemData = itemData.GetItemData(pItem->m_giID);
-    //pItemData = itemData.GetItem(pCharItem->itemID);
-    //if (pItemData == NULL) continue;
-    //if (pItemData->UniqueName() == itemID)
-    //{
-      ////return Ready(pItem->key, itemMask, pChar);
-      return Ready(pCharItem->key, pChar, rdyLoc);
-    //}
+    pItem = &GetNext(pos);
+    //pItemData = itemData.GetItemData(pItem->m_giID);
+    pItemData = itemData.GetItem(pItem->itemID);
+    if (pItem == NULL) continue;
+    if (pItemData->UniqueName() == itemID)
+    {
+      //return Ready(pItem->key, itemMask, pChar);
+      return Ready(pItem->key, pChar);
+    }
   };
   return FALSE;
 }
@@ -1593,20 +1368,35 @@ BOOL ITEM_LIST::Ready(const ITEM_ID& itemID, DWORD rdyLoc, CHARACTER *pChar)
 // PURPOSE:  
 //*****************************************************************************
 //BOOL ITEM_LIST::Ready(int index, BYTE ItemMask, CHARACTER *pChar)
-BOOL ITEM_LIST::Ready(int itemKey, CHARACTER *pChar, DWORD rdyLoc)
+BOOL ITEM_LIST::Ready(int index, CHARACTER *pChar)
 {
-  ITEM_DATA *pItem = itemData.GetItem(GetItem(itemKey));
-  if (pItem == NULL) return FALSE;
+  ITEM_DATA *data = itemData.GetItem(GetItem(index));
+  if (data == NULL) return FALSE;
 
   //if (!CanReady(index, ItemMask, pChar)) return FALSE;
-  if (CanReadyKey(itemKey, pChar) != NoError) return FALSE;
+  if (CanReady(index, pChar) != NoError) return FALSE;
 
   BOOL result = TRUE;
+  //if (itemUsesRdySlot(data))
+  //  result = rdyItems.Ready(index, data->Location_Carried, data->Hands_to_Use);
   if (result)
-    SetReady(itemKey, rdyLoc);
-  return (IsReady(itemKey));
+    SetReady(index, TRUE);
+  return (IsReady(index));
 }
 
+//*****************************************************************************
+//    NAME: ITEM_LIST::ClearReady
+//
+// PURPOSE: 
+//
+//*****************************************************************************
+/*
+BOOL ITEM_LIST::ClearReadyByType(itemLocationType type);
+{  
+  rdyItems.ClearReady(data->Location_Carried,);
+  SetReady(item, FALSE);
+  return TRUE;
+}*/
 
 
 
@@ -1619,7 +1409,9 @@ BOOL ITEM_LIST::UnReady(int item)
 {
   if (!IsReady(item)) return TRUE;
   if (!CanUnReady(item)) return FALSE;
-  SetReady(item, NotReady);
+//  if (itemUsesRdySlot(GetItem(item)))
+//    rdyItems.UnReady(item);
+  SetReady(item, FALSE);
   return TRUE;
 }
 
@@ -1667,7 +1459,7 @@ void ITEM_LIST::Serialize(CArchive &ar, double ver)
     }
   }
 
-  rdyItems_Deprecated.Serialize(ar);
+  rdyItems.Serialize(ar);
 }
 
 //*****************************************************************************
@@ -1713,7 +1505,7 @@ void ITEM_LIST::Serialize(CAR &ar, double ver)
     }
   }
 
-  rdyItems_Deprecated.Serialize(ar);
+  rdyItems.Serialize(ar);
 }
 
 #ifdef UAFEDITOR
@@ -1736,6 +1528,7 @@ void ITEM_LIST::Export(JWriter& jw, const char *name)
     };
   };
   jw.EndArray();
+  //No longer needed!   rdyItems.Export(jw);
 }
 bool ITEM_LIST::Import(JReader& jr, const char *name)
 {
@@ -1748,6 +1541,7 @@ bool ITEM_LIST::Import(JReader& jr, const char *name)
     m_items.Insert(data, 0);
   };
   jr.EndArray();
+  //No longer needed!   rdyItems.Export(jw);
   return true;
 }
 #endif
@@ -1762,7 +1556,6 @@ void ITEM_LIST::CrossReference(CR_LIST *pCRList, const CR_REFERENCE *pCRReferenc
    * For now, we will not check that 'readied' items exist in the
    * item list
    *************************************************
-  NotImplemented(); // This needs to use the new readyied items structures.
   pCRList->CR_AddItemReference(this->rdyItems.readyWeaponHand,  pCRReference);
   pCRList->CR_AddItemReference(this->rdyItems.readyShieldHand,  pCRReference);
   pCRList->CR_AddItemReference(this->rdyItems.readyMissileAmmo, pCRReference);
@@ -1803,8 +1596,7 @@ int ITEM_LIST::GetProtectModForRdyItems() const
   pos = m_items.GetHeadPosition();
   while (pos != NULL)
   {
-    //if (PeekAtPos(pos).ready)
-    if (PeekAtPos(pos).ReadyLocation() != NotReady)
+    if (PeekAtPos(pos).ready)
     {
       //ITEM_DATA *data = itemData.GetItemData(PeekAtPos(pos).m_giID);
       ITEM_DATA *data = itemData.GetItem(PeekAtPos(pos).itemID);
@@ -1829,7 +1621,7 @@ int ITEM_LIST::GetAttackModForRdyItems() const
   pos = m_items.GetHeadPosition();
   while (pos != NULL)
   {
-    if (PeekAtPos(pos).ReadyLocation() != NotReady)
+    if (PeekAtPos(pos).ready)
     {
       //ITEM_DATA *data = itemData.GetItemData(PeekAtPos(pos).m_giID);
       ITEM_DATA *data = itemData.GetItem(PeekAtPos(pos).itemID);
@@ -1863,14 +1655,7 @@ void ITEM_TEXT_LIST::UpdateDetectMagic(BOOL detecting)
 //*****************************************************************************
 void ITEM_TEXT_LIST::UpdateIsReady(int index, BOOL ready) 
 { 
-  if (ready)
-  {
-    items[index].ready = true;
-  }
-  else
-  {
-    items[index].ready = false;
-  };
+  items[index].ready = ready;
   DetectingMagic = party.PartyIsDetectingMagic();
 }
 
@@ -1917,7 +1702,7 @@ void ITEM_TEXT_LIST::FillItemListText(ITEM_LIST &list, UINT flags, costFactorTyp
               list.PeekAtPos(pos).charges,
               //giID,
               itemID,
-              list.PeekAtPos(pos).ReadyLocation() != NotReady);
+              list.PeekAtPos(pos).ready);
         };
       };
     };
@@ -1954,7 +1739,7 @@ void ITEM_TEXT_LIST::AddItemListText(ITEM_LIST &list, UINT flags, costFactorType
         list.PeekAtPos(pos).charges,
         //list.PeekAtPos(pos).m_giID,
         list.PeekAtPos(pos).itemID,
-        list.PeekAtPos(pos).ReadyLocation() != NotReady,
+        list.PeekAtPos(pos).ready,
         data);
 
     list.GetNext(pos);
@@ -1990,7 +1775,7 @@ void ITEM_TEXT_LIST::AddItemText(ITEM &addItem, UINT flags, costFactorType type)
         addItem.charges,
         //addItem.m_giID,
         addItem.itemID,
-        addItem.ReadyLocation() != NotReady);
+        addItem.ready);
 	}
 
   FormatItemListTitle();
@@ -2346,6 +2131,7 @@ void ITEM_DATA::Serialize(CArchive &ar, double ver)
   if (ar.IsStoring())
   {
     die("We should not be serializing itemdata with CArchive");
+    DWORD uTemp;
     if (ver <= _VERSION_0830_)  m_idName.Replace('/','|');
     //m_giID.Serialize(ar); //ar << key;
     AS(ar,m_uniqueName);
@@ -2369,7 +2155,8 @@ void ITEM_DATA::Serialize(CArchive &ar, double ver)
     ar << Cursed;
     ar << Bundle_Qty;
     ar << Num_Charges;
-    ar << Location_Readied;
+    uTemp = Location_Readied;
+    ar << uTemp;
     ar << Hands_to_Use;
     ar << Dmg_Dice_Sm;
     ar << Nbr_Dice_Sm;
@@ -2384,7 +2171,6 @@ void ITEM_DATA::Serialize(CArchive &ar, double ver)
     temp = Wpn_Type;
     ar << temp;
     ar << m_usageFlags;
-
     //ar << Usable_by_Class;
     {
       int i, n;
@@ -2405,7 +2191,11 @@ void ITEM_DATA::Serialize(CArchive &ar, double ver)
     AS(ar, attackMsg);
     ar << (int)Recharge_Rate;
     ar << IsNonLethal;
+#ifdef SIMPLE_STRUCTURE
     HitArt.Serialize(ar,ver, rte.CombatArtDir());
+#else
+    HitArt.Serialize(ar,ver);
+#endif
     ar << CanBeHalvedJoined;
     ar << CanBeTradeDropSoldDep;
     // MissileArt is serialized in attribute map
@@ -2413,25 +2203,8 @@ void ITEM_DATA::Serialize(CArchive &ar, double ver)
   else
   {
     DWORD uTemp;
-
-
-
-
     //m_giID.Serialize(ar); //ar >> key;
-    //die("We should look for a key in very old itemdata");
-/* *********** PRS 20191207  The following 'if' is
-               an attempt to read an old version 0.5751 game
-               named "The Last Days of Autumn".
-               I am totally guessing at the version number for the
-               'if' statement.  I know that the game "Fury" was version 0.831
-               and it worked OK with the later code.  So something changed
-               between these two versions.  ***** */
-    if (ver < 0.576)
-      ar >> preSpellNameKey;
-
-
-
-
+    die("We should look for a key in very old itemdata");
     DAS(ar,m_uniqueName);
 
 #ifdef UAFEngine
@@ -2505,7 +2278,7 @@ void ITEM_DATA::Serialize(CArchive &ar, double ver)
 	    case 9:  uTemp = Fingers;     break;  // Rings
 	    case 10: uTemp = AmmoQuiver;  break;  // Arrows, Bolts
     };
-    Location_Readied = uTemp;
+    Location_Readied = (itemReadiedType)uTemp;
 
     ar >> Hands_to_Use;
     ar >> Dmg_Dice_Sm;
@@ -2523,36 +2296,6 @@ void ITEM_DATA::Serialize(CArchive &ar, double ver)
 
     ar >> m_usageFlags;
     //ar >> Usable_by_Class;
-
-
-/* *********** PRS 20191207  The following 'if' is 
-               an attempt to read an old version 0.5751 game
-               named "The Last Days of Autumn".
-               I am totally guessing at the version number for the
-               'if' statement.  I know that the game "Fury" was version 0.831
-               and it worked OK with the later code.  So something changed
-               between these two versions.  ***** */
-#ifdef UAFEDITOR
-    if (ver < 0.576)
-    {
-      int Usable_by_Class;
-      ar >> Usable_by_Class;
-      // We cannot do this work now because we have not yet 
-      // established the classes and baseclasses available to us.
-      // We will remember this "Usable_by_Class" information
-      // and update the useable information after loading
-      // the baseclasses and classes.
-      preSpellNamesUsability = Usable_by_Class;
-      //AddUsableBaseclass(Usable_by_Class, FighterFlag,3,Baseclass_fighter,ver);
-      //AddUsableBaseclass(Usable_by_Class, MagicUserFlag,0,Baseclass_magicUser,ver);
-      //AddUsableBaseclass(Usable_by_Class, ClericFlag,1,Baseclass_cleric,ver);
-      //AddUsableBaseclass(Usable_by_Class, ThiefFlag,2,Baseclass_thief,ver);
-      //AddUsableBaseclass(Usable_by_Class, PaladinFlag,4,Baseclass_paladin,ver);
-      //AddUsableBaseclass(Usable_by_Class, RangerFlag,5,Baseclass_ranger,ver);
-      //AddUsableBaseclass(Usable_by_Class, DruidFlag,6,Baseclass_druid,ver);
-    }
-    else
-#endif
     {
       BASECLASS_ID baseclassID;
       int i, n;
@@ -2565,31 +2308,11 @@ void ITEM_DATA::Serialize(CArchive &ar, double ver)
       }
     }
 
-
-
     ar >> RangeMax;
   
-
-
-
-    /* *********** PRS 20191207  The following 'if' is
-                   an attempt to read an old version 0.5751 game
-                   named "The Last Days of Autumn".
-                   I am totally guessing at the version number for the
-                   'if' statement.  I know that the game "Fury" was version 0.831
-                   and it worked OK with the later code.  So something changed
-                   between these two versions.  ***** */
-    if (ver < 0.576)
-    {
-      //m_gsID.Serialize(ar, ver); //ar >> Spell;
-      //ar >> Spell_Level;
-      //ar >> Spell_Class;
-      DWORD Spell, Spell_Level, Spell_Class;
-      ar >> Spell;
-      ar >> Spell_Level;
-      ar >> Spell_Class;
-    };
-
+    //m_gsID.Serialize(ar, ver); //ar >> Spell;
+    //ar >> Spell_Level;
+    //ar >> Spell_Class;
 
     if (ver >= _VERSION_0662_)
       ar >> m_useEvent;
@@ -2633,36 +2356,13 @@ void ITEM_DATA::Serialize(CArchive &ar, double ver)
 }
 
 #ifdef UAFEDITOR
-void ITEM_DATA::AddUsableBaseclass(int usableFlags, 
-                                   int baseclassFlag, 
-                                   int baseclassType, 
-                                   const CString& name,
-                                   double ver)
+void ITEM_DATA::AddUsableBaseclass(int usableFlags, int baseclassFlag, const CString& name)
 {
   if ((usableFlags & baseclassFlag) == 0) return;
   {
     BASECLASS_ID baseclassID;
     baseclassID = name;
-    if (ver < VersionSpellNames)
-    { 
-      CLASS_ID classID;
-      const CLASS_DATA *pClass;
-      classID = classData.FindPreVersionSpellNamesClassID(baseclassType);
-      if (!classID.IsEmpty())
-      {
-        pClass = classData.PeekClass(classID);
-        if (pClass != NULL)
-        {
-          const BASECLASS_ID *pBaseclass;
-          pBaseclass = pClass->PeekBaseclassID(0);
-          if (pBaseclass != NULL)
-          {
-            baseclassID = *pBaseclass;
-          };
-        };
-      };
-    };
-    if (LocateBaseclass(baseclassID) >= 0) return; // Already there
+    if (LocateBaseclass(baseclassID) >= 0) return;
     usableByBaseclass.Add(baseclassID);
   };
 }
@@ -2680,6 +2380,7 @@ void ITEM_DATA::Serialize(CAR &ar, double ver)
 
   if (ar.IsStoring())
   {
+    DWORD uTemp;
     if (ver <= _VERSION_0830_)
       m_idName.Replace('/','|');
     //m_giID.Serialize(ar); //ar << key;
@@ -2706,7 +2407,8 @@ void ITEM_DATA::Serialize(CAR &ar, double ver)
     ar << Cursed;
     ar << Bundle_Qty;
     ar << Num_Charges;
-    ar << Location_Readied;
+    uTemp = Location_Readied;
+    ar << uTemp;
     ar << Hands_to_Use;
     ar << Dmg_Dice_Sm;
     ar << Nbr_Dice_Sm;
@@ -2798,9 +2500,11 @@ void ITEM_DATA::Serialize(CAR &ar, double ver)
 
 
 
+#ifdef SIMPLE_STRUCTURE
     //if (HitSound != "")   HitSound     = rte.SoundDir() + HitSound;
     //if (MissSound != "")   MissSound   = rte.SoundDir() + MissSound;
     //if (LaunchSound != "") LaunchSound = rte.SoundDir() + LaunchSound;
+#endif
 
     if (ver >= _VERSION_0690_)
       DAS(ar,AmmoType);
@@ -2831,7 +2535,7 @@ void ITEM_DATA::Serialize(CAR &ar, double ver)
 	    case 9:  uTemp = Fingers;     break;  // Rings
 	    case 10: uTemp = AmmoQuiver;  break;  // Arrows, Bolts
     };
-    Location_Readied = uTemp;
+    Location_Readied = (itemReadiedType)uTemp;
 
     ar >> Hands_to_Use;
     ar >> Dmg_Dice_Sm;
@@ -2853,19 +2557,13 @@ void ITEM_DATA::Serialize(CAR &ar, double ver)
     {
       int Usable_by_Class;
       ar >> Usable_by_Class;
-      // We cannot do this work now because we have not yet 
-      // established the classes and baseclasses available to us.
-      // We will remember this "Usable_by_Class" information
-      // and update the useable information after loading
-      // the baseclasses and classes.
-      preSpellNamesUsability = Usable_by_Class;
-      //AddUsableBaseclass(Usable_by_Class, FighterFlag,3,Baseclass_fighter,ver);
-      //AddUsableBaseclass(Usable_by_Class, MagicUserFlag,0,Baseclass_magicUser,ver);
-      //AddUsableBaseclass(Usable_by_Class, ClericFlag,1,Baseclass_cleric,ver);
-      //AddUsableBaseclass(Usable_by_Class, ThiefFlag,2,Baseclass_thief,ver);
-      //AddUsableBaseclass(Usable_by_Class, PaladinFlag,4,Baseclass_paladin,ver);
-      //AddUsableBaseclass(Usable_by_Class, RangerFlag,5,Baseclass_ranger,ver);
-      //AddUsableBaseclass(Usable_by_Class, DruidFlag,6,Baseclass_druid,ver);
+      AddUsableBaseclass(Usable_by_Class, FighterFlag,Baseclass_fighter);
+      AddUsableBaseclass(Usable_by_Class, MagicUserFlag,Baseclass_magicUser);
+      AddUsableBaseclass(Usable_by_Class, ClericFlag,Baseclass_cleric);
+      AddUsableBaseclass(Usable_by_Class, ThiefFlag,Baseclass_thief);
+      AddUsableBaseclass(Usable_by_Class, PaladinFlag,Baseclass_paladin);
+      AddUsableBaseclass(Usable_by_Class, RangerFlag,Baseclass_ranger);
+      AddUsableBaseclass(Usable_by_Class, DruidFlag,Baseclass_druid);
     }
     else
 #endif
@@ -2921,7 +2619,11 @@ void ITEM_DATA::Serialize(CAR &ar, double ver)
       ar >> temp;
       Recharge_Rate = (itemRechargeRate)temp;
       ar >> IsNonLethal;
+#ifdef SIMPLE_STRUCTURE
       HitArt.Serialize(ar,ver, rte.CombatArtDir());
+#else
+      HitArt.Serialize(ar,ver);
+#endif
     }
     if (ver >= _VERSION_0881_)
       ar >> CanBeHalvedJoined;
@@ -3054,7 +2756,7 @@ bool ITEM_DATA_TYPE:: operator ==(ITEM_DATA_TYPE& src) const
 void ITEM_DATA_TYPE::Serialize(CArchive &ar)
 {
 //  CObject::Serialize(ar);  
-  //int i;
+  int i;
   //POSITION pos;
   if (ar.IsStoring())
   {
@@ -3079,7 +2781,7 @@ void ITEM_DATA_TYPE::Serialize(CArchive &ar)
   {
     //Clear();
     ITEM_DATA data;
-    int temp, i;
+    int temp;
     ar >> temp;
     for (i=0; i<temp; i++)
     {
@@ -3108,7 +2810,7 @@ void ITEM_DATA_TYPE::Serialize(CArchive &ar)
 //*****************************************************************************
 void ITEM_DATA_TYPE::Serialize(CAR &ar)
 {
-  //int i;
+  int i;
   //POSITION pos;
   if (ar.IsStoring())
   {
@@ -3132,7 +2834,7 @@ void ITEM_DATA_TYPE::Serialize(CAR &ar)
   {
     //Clear();
     ITEM_DATA data;
-    int temp, i;
+    int temp;
     ar >> temp;
     for (i=0; i<temp; i++)
     {
@@ -3226,7 +2928,7 @@ ActorType ITEM_DATA_TYPE::GetContext(int index)
   {
     ActorType data;
     data.Clear();
-    ASS ERT(FALSE);
+    ASSERT(FALSE);
     return data;
   }
 }
@@ -3309,7 +3011,6 @@ void ITEM_DATA::Clear(BOOL ctor)
 #ifdef UAFEDITOR
 //  preVersionSpellNames_giID = -1;
   preVersionSpellNames_gsID = -1;
-  preSpellNamesUsability = -3;
 #endif
   preSpellNameKey = -1;
   spellID.Clear();
@@ -3332,8 +3033,14 @@ BOOL saveData(ITEM_DATA_TYPE& data)
 {
   EditorStatusMsg("Saving item data...");
 
+#ifdef SIMPLE_STRUCTURE
   CString fullPath;
   fullPath = rte.DataDir() + ITEM_DB_NAME;
+#else
+  char fullPath[_MAX_PATH+1];
+  GetDesignPath(fullPath);
+  strcat(fullPath, ITEM_DB_NAME);
+#endif
   return saveData(data, fullPath);
 }
 
@@ -3446,7 +3153,7 @@ int loadData(ITEM_DATA_TYPE& data, LPCSTR fullPath)
     CAR ar(&myFile, CArchive::load);
     if (ver >= _SPECIAL_ABILITIES_VERSION_)
     {
-      ar.Compress(true); // 
+      ar.Compress(true); // qqqqq
     };
     try
     {
@@ -3508,7 +3215,7 @@ void ITEM_LIST::halveItem(int index)
   // insert new item
   ITEM newItem = theItem; 
   newItem.qty = newQty;
-  newItem.ClearReadyLocation();
+  newItem.ready = FALSE;
   
   AddItem(newItem,FALSE); // don't auto join them back together!
 }
@@ -3625,7 +3332,7 @@ BOOL ITEM_LIST::addItem(const ITEM_ID& itemID, int qty, int numCharges, BOOL id,
 	  //newItem.m_giID = giID;
 	  newItem.itemID = itemID;
 	  newItem.qty = qty;
-	  newItem.ClearReadyLocation();
+	  newItem.ready = FALSE;
  	  newItem.charges = numCharges;
 	  newItem.identified = id;
     newItem.cursed = FALSE;
@@ -3649,7 +3356,7 @@ BOOL ITEM_LIST::addItem(const ITEM_ID& itemID, int qty, int numCharges, BOOL id,
 	  //newItem.m_giID = giID;
 	  newItem.itemID = itemID;
 	  newItem.qty = qty;
-	  newItem.ClearReadyLocation();
+	  newItem.ready = FALSE;
  	  newItem.charges = numCharges;
 	  newItem.identified = id;
     newItem.cursed = theItem->Cursed;
@@ -3689,7 +3396,6 @@ BOOL ITEM_LIST::deleteItem(int index, int qty)
   return TRUE;
 }
 
-/* Replaced with CELL_LEVEL_CONTENTS 20181216 PRS
 void DROPPED_ITEM::Copy(const ITEM& item)
 {
   const ITEM_DATA *pItem;
@@ -3702,8 +3408,6 @@ void DROPPED_ITEM::Copy(const ITEM& item)
   data.commonItem.paid = item.paid;
   data.commonItem.qty = item.qty;
 }
-*/
-
 
 //*****************************************************************************
 // NAME: ITEM_DATA::operator=
@@ -3771,7 +3475,6 @@ ITEM_DATA& ITEM_DATA::operator=(const ITEM_DATA& src)
 #ifdef UAFEDITOR
 //  preVersionSpellNames_giID = src.preVersionSpellNames_giID;
   preVersionSpellNames_gsID = src.preVersionSpellNames_gsID;
-  preSpellNamesUsability = src.preSpellNamesUsability;
 #endif
   //Spell_Level = src.Spell_Level;
   //Spell_Class = src.Spell_Class;
@@ -3951,7 +3654,7 @@ void ITEM_DATA_TYPE::PreSerialize(BOOL IsStoring)
 // PURPOSE: 
 //
 //*****************************************************************************
-void ITEM_DATA_TYPE::PostSerialize(BOOL IsStoring, double Version)
+void ITEM_DATA_TYPE::PostSerialize(BOOL IsStoring, double version)
 {
   // after loading, make sure data that is set to "DEFAULT"
   // is converted to proper filename
@@ -3963,11 +3666,11 @@ void ITEM_DATA_TYPE::PostSerialize(BOOL IsStoring, double Version)
   n = GetCount();
   for (i=0; i<n; i++)
   {
-    //ItemData.GetAtPos(p).PostSerialize(IsStoring, Version);
-    //ItemData.GetAt(p).PostSerialize(IsStoring, Version);
-    GetItem(i)->PostSerialize(IsStoring, Version);
+    //ItemData.GetAtPos(p).PostSerialize(IsStoring, version);
+    //ItemData.GetAt(p).PostSerialize(IsStoring, version);
+    GetItem(i)->PostSerialize(IsStoring, version);
     
-    if ((!IsStoring)&&(Version<=_VERSION_0840_))
+    if ((!IsStoring)&&(version<=_VERSION_0840_))
     {
       //ItemData.GetAtPos(p).MissileArt.SetPre0840NonLoopDefaults();
       //ItemData.GetAtPos(p).HitArt.SetPre0840NonLoopDefaults();
@@ -4282,11 +3985,10 @@ void ITEM_DATA::CommitRestore(void)
 
 void ITEM_DATA::CrossReference(CR_LIST *pCRList) const
 {
-  //CR_ENTRY *pCREntry;
+  CR_ENTRY *pCREntry;
   CR_REFERENCE CRReference;
   //pCREntry = pCRList->CR_AddResource(CR_TYPE_item, this->UniqueName(), m_giID.UniqueIdentifier());
-  //pCREntry = pCRList->CR_AddResource(CR_TYPE_item, this->UniqueName(), 0);
-  pCRList->CR_AddResource(CR_TYPE_item, this->UniqueName(), 0);
+  pCREntry = pCRList->CR_AddResource(CR_TYPE_item, this->UniqueName(), 0);
   CRReference.m_referenceType = CR_TYPE_item;
   CRReference.m_referenceName = this->UniqueName();
   pCRList->CR_AddSoundReference(HitSound, &CRReference);
@@ -4294,7 +3996,7 @@ void ITEM_DATA::CrossReference(CR_LIST *pCRList) const
   pCRList->CR_AddSoundReference(LaunchSound, &CRReference);
   //pCRList->CR_AddSpellReference(m_gsID, &CRReference);
   pCRList->CR_AddSpellReference(spellID, &CRReference);
-  specAbs.CrossReference(pCRList, &CRReference);
+  specAbs.CrossReference(pCRList);
   MissileArt.CrossReference(pCRList, &CRReference);
   HitArt.CrossReference(pCRList, &CRReference);
 }
@@ -4596,21 +4298,11 @@ int ITEM_LIST::GetNextKey()
 // PURPOSE: 
 //
 //*****************************************************************************
-//void ITEM_LIST::SetReady(int index, BOOL ready)
-void ITEM_LIST::SetReady(int index, DWORD rdyLoc)
+void ITEM_LIST::SetReady(int index, BOOL ready)
 { 
   POSITION pos;
   if ((pos = m_items.FindKeyPos(index)) != NULL)
-  {
-    if (rdyLoc == NotReady) 
-    {
-      m_items.GetAtPos(pos).ReadyLocation(NotReady); //readyLocation.Clear();
-    }
-    else
-    {
-      m_items.GetAtPos(pos).ReadyLocation(rdyLoc);
-    };
-  };
+    m_items.GetAtPos(pos).ready = ready;
 }
 
 
@@ -4786,7 +4478,7 @@ ITEM_LIST& ITEM_LIST::operator=(const ITEM_LIST& src)
   pos = const_cast<ITEM_LIST&>(src).GetHeadPosition();
   while (pos != NULL)
     AddItemWithCurrKey(const_cast<ITEM_LIST&>(src).GetNext(pos));
-  rdyItems_Deprecated = src.rdyItems_Deprecated;
+  rdyItems = src.rdyItems;
   return *this;
 }
 
@@ -4813,47 +4505,61 @@ BOOL ITEM_LIST::operator==(const ITEM_LIST& src) const
 }
 
 //*****************************************************************************
-//    NAME: ITEM_LIST::GetReadiedItem
-//        rdyLoc must already have passed through ITEM::Synonym()
+//    NAME: ITEM_LIST::GetReady
 //
 // PURPOSE: 
 //
 //*****************************************************************************
-int ITEM_LIST::GetReadiedItem(DWORD rdyLoc, int readiedItemCount) const
+// Deprecated
+/*
+int ITEM_LIST::GetReady(itemLocationType type) const
 { 
+  return rdyItems.GetReady(type); 
+}
+*/
+//*****************************************************************************
+
+
+//*****************************************************************************
+//    NAME: ITEM_LIST::GetNextReady
+//
+// PURPOSE: 
+//
+//*****************************************************************************
+int ITEM_LIST::GetReadiedItem(itemReadiedType type, int position) const
+{ 
+  //return rdyItems.GetReady(type); 
   POSITION pos=NULL;
-  const ITEM* pCharItem;
-//  const ITEM_DATA *pItemData;
+  const ITEM* pItem;
+  const ITEM_DATA *pItemData;
 //  WriteDebugString("DEBUG - Item Count = %d\n",m_items.GetCount());
   pos = GetHeadPosition();
-  for (pCharItem=PeekNext(pos); pCharItem!=NULL; pCharItem=PeekNext(pos))
+  for (pItem=PeekNext(pos); pItem!=NULL; pItem=PeekNext(pos))
   {
 //    WriteDebugString("DEBUG - weapon = %s; ready = %d\n",(LPCSTR)pItem->itemID, pItem->ready);
-    //if (pItem->ready)
-
-
-    if (pCharItem->ReadyLocation() == rdyLoc)
+    if (pItem->ready)
     {
       //pItemData = itemData.GetItemData(pItem->m_giID);
-      //pItemData = itemData.GetItem(pCharItem->itemID);
+      pItemData = itemData.GetItem(pItem->itemID);
 //      WriteDebugString("DEBUG - Location Readied = %d\n", pItemData->Location_Readied);
-      //if (pItemData->Location_Readied == rdyLoc)
-      if (readiedItemCount == 0)
+      if (pItemData->Location_Readied == type)
       {
-        return pCharItem->key;
-      }
-      else 
-      {
-        readiedItemCount--;
+        if (position == 0)
+        {
+          return pItem->key;
+        }
+        else 
+        {
+          position--;
+        };
       };
-      
     };
   };
   return NO_READY_ITEM;
 }
 
 
-int ITEM_LIST::GetReadiedCount(DWORD rdyLoc) const
+int ITEM_LIST::GetReadiedCount(itemReadiedType type) const
 {
   POSITION pos;
   int result;
@@ -4864,12 +4570,11 @@ int ITEM_LIST::GetReadiedCount(DWORD rdyLoc) const
   result = 0;
   while (pItem != NULL)
   {
-    //if (pItem->ready)
-    if (pItem->ReadyLocation() != NotReady)
+    if (pItem->ready)
     {
       //pItemData = itemData.GetItemData(pItem->m_giID);
       pItemData = itemData.GetItem(pItem->itemID);
-      if (pItemData->Location_Readied == rdyLoc) result++;
+      if (pItemData->Location_Readied == type) result++;
     };
     pItem = m_items.PeekNext(pos);
   };
@@ -4894,7 +4599,7 @@ int ITEM_LIST::GetReadiedCount(DWORD rdyLoc) const
 //
 //
 //*****************************************************************************
-BOOL ITEM_LIST::CanReady(DWORD rdyLoc, CHARACTER *pChar, const ITEM *pItem) const
+BOOL ITEM_LIST::CanReady(itemReadiedType type, CHARACTER *pChar, const ITEM *pItem) const
 { 
   {
     int count;
@@ -4910,12 +4615,9 @@ BOOL ITEM_LIST::CanReady(DWORD rdyLoc, CHARACTER *pChar, const ITEM *pItem) cons
     scriptContext.SetCharacterContext(pChar);
     scriptContext.SetItemContext(pItemData);
     scriptContext.SetItemContextKey(pItem->key);
-    count = GetReadiedCount(rdyLoc);
+    count = GetReadiedCount(type);
     hookParameters[5].Format("%d", count);
-    result = pItemData->RunItemScripts(CAN_READY, 
-                                       ScriptCallback_RunAllScripts, 
-                                       NULL,
-                                       "Test if item can be readied");
+    result = pItemData->RunItemScripts(CAN_READY, ScriptCallback_RunAllScripts, NULL);
     answer = TRUE;
     if (result.IsEmpty())
     {
@@ -4936,6 +4638,34 @@ BOOL ITEM_LIST::CanReady(DWORD rdyLoc, CHARACTER *pChar, const ITEM *pItem) cons
     //specAbs.RunScripts(scriptName, ScriptCallback_RunAllScripts, NULL, name, "");
   };
  
+  /*
+  //return rdyItems.GetReady(type); 
+  switch (type) 
+  {
+		case WeaponHand:
+    case ShieldHand:
+    case BodyArmor:
+    case Hands:
+    case Head:
+    case Waist:
+    case BodyRobe:
+    case Back:
+    case Feet:
+    case AmmoQuiver:
+      return (GetNextReady(type) == NO_READY_ITEM);
+    case Fingers:
+      {
+        int itemKey;
+        itemKey = GetNextReady(type);
+        if (itemKey == NO_READY_ITEM) return TRUE;
+        itemKey = GetNextReady(type, itemKey);
+        return (itemKey == NO_READY_ITEM);
+      };
+    default:
+      WriteDebugString("BOGUS body location %i in READY_ITEMS::Ready\n", type);
+      return NO_READY_ITEM;
+  };
+  */
 }
 
 
@@ -4948,7 +4678,7 @@ BOOL ITEM_LIST::IsReady(int index) const
 { 
   POSITION pos;
   if ((pos = m_items.FindKeyPos(index)) != NULL)
-    return m_items.PeekAtPos(pos).ReadyLocation() != NotReady; 
+    return m_items.PeekAtPos(pos).ready; 
   else 
     return FALSE; 
 }
@@ -6338,7 +6068,7 @@ ITEM_DATA *ITEM_DATA_TYPE::GetItemData(const ITEM_ID& itemID)
 void ITEM_DATA::CastSpell(int spell) const
 {
   // nothing yet
-  die(0xab523);
+  ASSERT(FALSE);
 }
 //*****************************************************************************
 //    NAME: ITEM_DATA::SpellActivate
@@ -6349,7 +6079,7 @@ void ITEM_DATA::CastSpell(int spell) const
 void ITEM_DATA::SpellActivate(const PENDING_SPELL &data) const
 {
   // nothing yet
-  die(0xab524);
+  ASSERT(FALSE);
 }
 
 
@@ -6418,48 +6148,6 @@ CString ITEM_CONTEXT::Name(void)
 #endif // UAFEngine spell code
 
 #ifdef UAFEDITOR
-
-void ITEM_DATA_TYPE::FixPreSpellNamesUsability(void)
-{
-  int i, n;
-  n = GetCount();
-  for (i=0; i<n; i++)
-  {
-    ITEM_DATA *pItem;
-    //pItem = PeekItemData(pos);
-    pItem = GetItem(i);
-    pItem->AddUsableBaseclass(pItem->preSpellNamesUsability,
-                              FighterFlag,Fighter,
-                              Baseclass_fighter,
-                              globalData.version);
-    pItem->AddUsableBaseclass(pItem->preSpellNamesUsability,
-                              MagicUserFlag,MagicUser,
-                              Baseclass_magicUser,
-                              globalData.version);
-    pItem->AddUsableBaseclass(pItem->preSpellNamesUsability, 
-                              ClericFlag,Cleric,
-                              Baseclass_cleric,
-                              globalData.version);
-    pItem->AddUsableBaseclass(pItem->preSpellNamesUsability,  
-                              ThiefFlag,Thief,
-                              Baseclass_thief,
-                              globalData.version);
-    pItem->AddUsableBaseclass(pItem->preSpellNamesUsability, 
-                              PaladinFlag,Paladin,
-                              Baseclass_paladin,
-                              globalData.version);
-    pItem->AddUsableBaseclass(pItem->preSpellNamesUsability, 
-                              RangerFlag,Ranger,
-                              Baseclass_ranger,
-                              globalData.version);
-    pItem->AddUsableBaseclass(pItem->preSpellNamesUsability, 
-                              DruidFlag,Druid,
-                              Baseclass_druid,
-                              globalData.version);
-  };
-}
-
-
 ITEM_ID ITEM_DATA_TYPE::FindPreVersionSpellNamesItemID(int preSpellNameKey) const
 {
   //POSITION pos;
@@ -6478,10 +6166,9 @@ ITEM_ID ITEM_DATA_TYPE::FindPreVersionSpellNamesItemID(int preSpellNameKey) cons
     };
     //GetNext(pos);
   };
-  if (!debugStrings.AlreadyNoted("IIBY"))
-    MsgBoxInfo("Searching for an Item that was defined by its 'key'.  We lost that information "
-               "at about version 0.998101 of the editor.  If this is a problem for you, please "
-               "contact the DC development team for help.");
+  MsgBoxInfo("Searching for an Item that was defined by its 'key'.  We lost that information "
+             "at about version 0.998101 of the editor.  If this is a problem for you, please "
+             "contact the DC development team for help.");
   return ITEM_ID();
 }
 #endif

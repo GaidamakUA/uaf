@@ -62,7 +62,6 @@ void StoreIntAsASL(A_ASLENTRY_L &asl, int data, const char *prefix, unsigned cha
 void RetrieveIntFromASL(A_ASLENTRY_L &asl, int &data, const char *prefix);
 void StoreStringAsASL(A_ASLENTRY_L &asl, CString &data, const char *prefix, unsigned char flags=ASLF_EDITOR);
 void RetrieveStringFromASL(A_ASLENTRY_L &asl, CString &data, const char *prefix);
-void NotImplemented(int code, bool loopForever);
 
 extern const double VersionSpellNames;
 extern const double VersionSpellIDs;
@@ -92,7 +91,6 @@ extern const CString Skill_HearNoise;
 extern const CString Skill_ClimbWalls;
 extern const CString Skill_ReadLanguages;
 
-extern BOOL logDebuggingInfo;
 
 int setPartyXY_x = -1;
 int setPartyXY_y = -1;
@@ -163,7 +161,7 @@ CLASS_ID ConvertClassTypeToClassID(int type);
 //IMPLEMENT_SERIAL( LOGIC_BLOCK_DATA, GameEvent, 1)
 //IMPLEMENT_SERIAL( RANDOM_EVENT_DATA, GameEvent, 1)
 //IMPLEMENT_SERIAL( PLAY_MOVIE_DATA, GameEvent, 1)
-//IMPLEMENT_SERIAL( jwOURNAL_EVENT, GameEvent, 1)
+//IMPLEMENT_SERIAL( JOURNAL_EVENT, GameEvent, 1)
 
 double LoadingVersion;
 
@@ -213,7 +211,7 @@ BOOL CheckValidEvent(GameEvent *pEvent)
     break;
 #endif
   default:
-    die(0xab50b);
+    ASSERT(FALSE);
     return FALSE;
   }
 }
@@ -243,7 +241,7 @@ BOOL CheckValidEvent(GameEvent *pEvent, DWORD id) // id might be a chain id
     break;
 #endif
   default:
-    die(0xab50c);
+    ASSERT(FALSE);
     return FALSE;
   }
 }
@@ -325,7 +323,6 @@ BOOL AllowedAsGlobalCombatEvent(eventType type)
    case RandomEvent:
    case PlayMovieEvent:
    case JournalEvent:
-   case FlowControl:
      result = FALSE;
      break;
 
@@ -400,8 +397,7 @@ const char *JKEY_TYPE = "type";
 
 void SPECIAL_OBJECT_EVENT_DATA::Export(JWriter& jw)
 {
-  jw.StartList();
-  //jw.StartList(JKEY_SPECIALOBJECT);
+  jw.StartList(JKEY_SPECIALOBJECT);
   CString temp;
 
   if      (ItemType & ITEM_FLAG)  temp = "item";
@@ -754,163 +750,129 @@ EVENT_CONTROL::EVENT_CONTROL(const EVENT_CONTROL& src) :
 }
 
 #ifdef UAFEngine
-BOOL EVENT_CONTROL::EventShouldTrigger(DWORD id, int level, int x, int y)
+BOOL EVENT_CONTROL::EventShouldTrigger(DWORD id)
 {
   BOOL shouldTrigger = FALSE;
 
-  switch (eventTrigger)
-  {
+  switch (eventTrigger) 
+  {           
   case AlwaysTrigger:
     if (id != 0)
     {
-      if (logDebuggingInfo)
-      {
-        WriteDebugString("Event %d triggered: always triggers\n", id);
-      };
+      WriteDebugString("Event %d triggered: always triggers\n", id);
     };
     shouldTrigger = TRUE;
     break;
-
-  case PartyHaveItem:
+      
+  case PartyHaveItem: 
     //if (m_giID.IsValidItem())
     if (itemID.IsValidItem())
       //shouldTrigger = party.PartyHasItem(m_giID);
       shouldTrigger = party.PartyHasItem(itemID);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party has item\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party does not have item\n", id);
-    };
-    break;
 
-  case PartyNotHaveItem:
+    if (shouldTrigger)
+       WriteDebugString("Event %d triggered: party has item\n", id);
+    else
+       WriteDebugString("Event %d NOT triggered: party does not have item\n", id);
+    break;
+      
+  case PartyNotHaveItem:      
     //if (m_giID.IsValidItem())
-    //shouldTrigger = !party.PartyHasItem(m_giID);
+      //shouldTrigger = !party.PartyHasItem(m_giID);
     if (itemID.IsValidItem())
       shouldTrigger = !party.PartyHasItem(itemID);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party does not have item\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party has item\n", id);
-    };
-    break;
 
-  case PartyHaveSpecialItem:
+    if (shouldTrigger)      
+      WriteDebugString("Event %d triggered: party does not have item\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: party has item\n", id);
+    break;
+      
+  case PartyHaveSpecialItem: 
     //if (m_giID.IsValidItem())
     //else if (specialItem >= 0)
-    shouldTrigger = party.hasSpecialItem(specialItem);
+      shouldTrigger = party.hasSpecialItem(specialItem);
 
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party has item\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party does not have item\n", id);
-    };
+    if (shouldTrigger)
+       WriteDebugString("Event %d triggered: party has item\n", id);
+    else
+       WriteDebugString("Event %d NOT triggered: party does not have item\n", id);
     break;
-
-  case PartyNotHaveSpecialItem:
+      
+  case PartyNotHaveSpecialItem:      
     //if (m_giID.IsValidItem())
-    //shouldTrigger = !party.PartyHasItem(m_giID);
+      //shouldTrigger = !party.PartyHasItem(m_giID);
     //if (specialItem >= 0)
-    shouldTrigger = !party.hasSpecialItem(specialItem);
+      shouldTrigger = !party.hasSpecialItem(specialItem);
 
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party does not have item\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party has item\n", id);
-    };
+    if (shouldTrigger)      
+      WriteDebugString("Event %d triggered: party does not have item\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: party has item\n", id);
     break;
-
-
-  case PartyHaveSpecialKey:
+    
+    
+  case PartyHaveSpecialKey: 
     //else if (specialKey >= 0)
-    shouldTrigger = party.hasSpecialKey(specialKey);
+      shouldTrigger = party.hasSpecialKey(specialKey);
 
-
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party has item\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party does not have item\n", id);
-    };
+    if (shouldTrigger)
+       WriteDebugString("Event %d triggered: party has item\n", id);
+    else
+       WriteDebugString("Event %d NOT triggered: party does not have item\n", id);
     break;
-
-  case PartyNotHaveSpecialKey:
+      
+  case PartyNotHaveSpecialKey: 
     //else if (specialKey >= 0)
-    shouldTrigger = !party.hasSpecialKey(specialKey);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party has item\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party does not have item\n", id);
-    };
-    break;
+      shouldTrigger = !party.hasSpecialKey(specialKey);
 
+    if (shouldTrigger)
+       WriteDebugString("Event %d triggered: party has item\n", id);
+    else
+       WriteDebugString("Event %d NOT triggered: party does not have item\n", id);
+    break;
+      
 
 
   case Daytime:
     shouldTrigger = party.PartyInDaytime();
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: daytime\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: not daytime\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: daytime\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: not daytime\n", id);
     break;
-
+      
   case Nighttime:
     shouldTrigger = !party.PartyInDaytime();
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: night-time\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: not night-time\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: night-time\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: not night-time\n", id);
     break;
-
+      
   case RandomChance:
     shouldTrigger = (RollDice(100, 1, 0) <= chance);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: rnd chance\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: rnd chance\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: rnd chance\n", id);
+    else 
+      WriteDebugString("Event %d NOT triggered: rnd chance\n", id);
     break;
 
   case PartySearching:
     shouldTrigger = party.PartyIsSearching();
     shouldTrigger |= party.looking;
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party is searching or looking\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party is not searching or looking\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: party is searching or looking\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: party is not searching or looking\n", id);
     break;
 
   case PartyNotSearching:
     shouldTrigger = !party.PartyIsSearching();
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d NOT triggered: party is searching\n", id);
-      else
-        WriteDebugString("Event %d triggered: party is not searching\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d NOT triggered: party is searching\n", id);
+    else
+      WriteDebugString("Event %d triggered: party is not searching\n", id);
     break;
 
   case FacingDirection:
@@ -924,289 +886,207 @@ BOOL EVENT_CONTROL::EventShouldTrigger(DWORD id, int level, int x, int y)
       switch (party.GetPartyFacing())
       {
       case FACE_NORTH:
-        shouldTrigger = ((facing == North)
-          || (facing == N_S)
-          || (facing == N_E)
-          || (facing == N_W)
-          || (facing == N_S_E)
-          || (facing == N_S_W)
-          || (facing == N_W_E));
+        shouldTrigger = (   (facing == North)
+                         || (facing == N_S)
+                         || (facing == N_E)
+                         || (facing == N_W)
+                         || (facing == N_S_E)
+                         || (facing == N_S_W)
+                         || (facing == N_W_E));
         break;
       case FACE_EAST:
-        shouldTrigger = ((facing == East)
-          || (facing == N_E)
-          || (facing == S_E)
-          || (facing == E_W)
-          || (facing == N_S_E)
-          || (facing == N_W_E)
-          || (facing == W_S_E));
+        shouldTrigger = (   (facing == East)
+                         || (facing == N_E)
+                         || (facing == S_E)
+                         || (facing == E_W)
+                         || (facing == N_S_E)
+                         || (facing == N_W_E)
+                         || (facing == W_S_E));
         break;
       case FACE_SOUTH:
-        shouldTrigger = ((facing == South)
-          || (facing == N_S)
-          || (facing == S_E)
-          || (facing == S_W)
-          || (facing == N_S_E)
-          || (facing == N_S_W)
-          || (facing == W_S_E));
+        shouldTrigger = (   (facing == South)
+                         || (facing == N_S)
+                         || (facing == S_E)
+                         || (facing == S_W)
+                         || (facing == N_S_E)
+                         || (facing == N_S_W)
+                         || (facing == W_S_E));
         break;
       case FACE_WEST:
-        shouldTrigger = ((facing == West)
-          || (facing == N_W)
-          || (facing == S_W)
-          || (facing == E_W)
-          || (facing == N_S_W)
-          || (facing == N_W_E)
-          || (facing == W_S_E));
-        break;
+        shouldTrigger = (   (facing == West)
+                         || (facing == N_W)
+                         || (facing == S_W)
+                         || (facing == E_W)
+                         || (facing == N_S_W)
+                         || (facing == N_W_E)
+                         || (facing == W_S_E));
+         break;
       }
     }
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party facing\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party facing\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: party facing\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: party facing\n", id);
     break;
 
   case QuestPresent:
     shouldTrigger = globalData.questData.IsPresent(quest);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: quest present\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: quest not present\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: quest present\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: quest not present\n", id);
     break;
 
   case QuestNotPresent:
     shouldTrigger = !globalData.questData.IsPresent(quest);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: quest not present\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: quest present\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: quest not present\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: quest present\n", id);
     break;
 
   case QuestComplete:
     shouldTrigger = globalData.questData.IsComplete(quest);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: quest complete\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: quest not complete\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: quest complete\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: quest not complete\n", id);
     break;
 
-  case QuestFailed:
+  case QuestFailed: 
     shouldTrigger = globalData.questData.IsFailed(quest);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: quest failed\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: quest not failed\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: quest failed\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: quest not failed\n", id);
     break;
 
   case QuestInProgress:
     shouldTrigger = globalData.questData.IsInProgress(quest);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: quest in progress\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: quest not in progress\n", id);
-    };
-    break;
-
-  case QuestStageEqual:
-    shouldTrigger = globalData.questData.StageEqual(quest, partyX);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: quest stage not equal %d\n", id, partyX);
-      else
-        WriteDebugString("Event %d NOT triggered: quest not in progress\n", id);
-    };
-    break;
-
-  case QuestStageNotEqual:
-    shouldTrigger = globalData.questData.StageEqual(quest, partyX) == FALSE;
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: quest in progress\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: quest stage equal %d\n", id, partyX);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: quest in progress\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: quest not in progress\n", id);
     break;
 
   case PartyDetectingTraps:
     shouldTrigger = party.PartyIsDetectingTraps();
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party is detecting traps\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party is not detecting traps\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: party is detecting traps\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: party is not detecting traps\n", id);
     break;
 
   case PartyNotDetectingTraps:
     shouldTrigger = !party.PartyIsDetectingTraps();
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party is not detecting traps\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party is detecting traps\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: party is not detecting traps\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: party is detecting traps\n", id);
     break;
 
   case PartySeeInvisible:
     shouldTrigger = party.PartyIsDetectingInvisible();
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party can see invisible\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party can not see invisible\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: party can see invisible\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: party can not see invisible\n", id);
     break;
 
   case PartyNotSeeInvisible:
     shouldTrigger = !party.PartyIsDetectingInvisible();
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party can not see invisible\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party can see invisible\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: party can not see invisible\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: party can see invisible\n", id);
     break;
 
   case ClassInParty:
     //shouldTrigger = party.PartyHasClass(charClass);
     shouldTrigger = party.PartyHasClass(classBaseclassID.classID);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: class in party\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: class not in party\n", id);
-    };
-    break;
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: class in party\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: class not in party\n", id);
+    break;         
 
   case ClassNotInParty:
     //shouldTrigger = !party.PartyHasClass(charClass);
     shouldTrigger = !party.PartyHasClass(classBaseclassID.classID);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: class not in party\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: class in party\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: class not in party\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: class in party\n", id);
     break;
-
+      
   case BaseclassInParty:
     //shouldTrigger = party.PartyHasClass(charClass);
     shouldTrigger = party.PartyHasBaseclass(classBaseclassID.baseclassID);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: class in party\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: class not in party\n", id);
-    };
-    break;
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: class in party\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: class not in party\n", id);
+    break;         
 
   case BaseclassNotInParty:
     //shouldTrigger = !party.PartyHasClass(charClass);
     shouldTrigger = !party.PartyHasBaseclass(classBaseclassID.baseclassID);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: class not in party\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: class in party\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: class not in party\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: class in party\n", id);
     break;
-
+      
   case RaceInParty:
     //shouldTrigger = party.PartyHasRace(race);
     shouldTrigger = party.PartyHasRace(raceID);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: race in party\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: race not in party\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: race in party\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: race not in party\n", id);
     break;
       
   case RaceNotInParty:
     //shouldTrigger = !party.PartyHasRace(race);
     shouldTrigger = !party.PartyHasRace(raceID);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: race not in party\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: race in party\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: race not in party\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: race in party\n", id);
     break;
 
   case GenderInParty:
     shouldTrigger = party.PartyHasGender(gender);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: gender in party\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: gender not in party\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: gender in party\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: gender not in party\n", id);
     break;
 
   case GenderNotInParty:
     shouldTrigger = !party.PartyHasGender(gender);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: gender not in party\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: gender in party\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: gender not in party\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: gender in party\n", id);
     break;
 
   case NPCInParty:
     //shouldTrigger = party.PartyHasNPC(npc);
     shouldTrigger = party.PartyHasNPC(characterID);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: npc in party\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: npc not in party\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: npc in party\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: npc not in party\n", id);
     break;
 
   case NPCNotInParty:
     //shouldTrigger = !party.PartyHasNPC(npc);
     shouldTrigger = !party.PartyHasNPC(characterID);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: npc not in party\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: npc in party\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: npc not in party\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: npc in party\n", id);
     break;
 
   case ExecuteGPDL:
@@ -1240,10 +1120,14 @@ BOOL EVENT_CONTROL::EventShouldTrigger(DWORD id, int level, int x, int y)
 
       if (IsCombatActive())
       {
+#ifdef UAFEngine
         ActorType actor;
         combatData.getActiveCombatCharacter().GetContext(&actor);
         SetCharContext(&actor);
         SetTargetContext(&actor); // combatData.getActiveCombatCharacter().GetContext() );
+#else
+        ASSERT(FALSE);
+#endif
       }
       else
       {
@@ -1254,15 +1138,7 @@ BOOL EVENT_CONTROL::EventShouldTrigger(DWORD id, int level, int x, int y)
       }
       setPartyXY_x = -1;
       gpdlStack.Push();
-      {
-        SCRIPT_CONTEXT scriptContext;
-        scriptContext.SetSA_Source_Type(ScriptSourceType_EventTrigger);
-        scriptContext.SetSA_EventX(x);
-        scriptContext.SetSA_EventY(y);
-        scriptContext.SetSA_EventLevel(level);
-        scriptContext.SetSA_EventID(id);
-        shouldTrigger = gpdlStack.activeGPDL()->ExecuteScript(gpdlData,1)=="1";
-      };
+      shouldTrigger = gpdlStack.activeGPDL()->ExecuteScript(gpdlData,1)=="1";
       gpdlStack.Pop();
 
       ClearTargetContext();
@@ -1272,37 +1148,29 @@ BOOL EVENT_CONTROL::EventShouldTrigger(DWORD id, int level, int x, int y)
       {
         shouldTrigger = false;
       };
-      if (logDebuggingInfo)
-      {
-        if (shouldTrigger)
-          WriteDebugString("Event %d triggered: GPDL script returns true\n", id);
-        else
-          WriteDebugString("Event %d NOT triggered: GPDL script returns false\n", id);
-      };
+
+      if (shouldTrigger)
+        WriteDebugString("Event %d triggered: GPDL script returns true\n", id);
+      else
+        WriteDebugString("Event %d NOT triggered: GPDL script returns false\n", id);
     }  
     break;
 
   case SpellMemorized:    
     //shouldTrigger = party.PartyHasSpellMemorized(memorizedSpellDbKey);
     shouldTrigger = party.PartyHasSpellMemorized(memorizedSpellID);
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party has spell memorized\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party does not have spell memorized\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: party has spell memorized\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: party does not have spell memorized\n", id);
     break;
 
   case PartyAtXY:
     shouldTrigger = ((party.Posx == partyX) && (party.Posy == partyY));
-    if (logDebuggingInfo)
-    {
-      if (shouldTrigger)
-        WriteDebugString("Event %d triggered: party at x,y\n", id);
-      else
-        WriteDebugString("Event %d NOT triggered: party not at x,y\n", id);
-    };
+    if (shouldTrigger)
+      WriteDebugString("Event %d triggered: party at x,y\n", id);
+    else
+      WriteDebugString("Event %d NOT triggered: party not at x,y\n", id);
     break;
 
   default:
@@ -1839,14 +1707,9 @@ bool EVENT_CONTROL::Import(JReader& jr)
   if (eventTrigger == PartyAtXY)
   {
     jr.NameAndValue(JKEY_PARTYXY, i, 2);
-    partyX = i[0];
-    partyY = i[1];
-  }
-  else
-  {
-    partyX = -1;
-    partyY = -1;
   };
+  partyX = i[0];
+  partyY = i[1];
   eventcontrol_asl.Import(jr);
   jr.EndList();
   return true;
@@ -1872,7 +1735,7 @@ GameEvent::GameEvent() :
 }
 
 #ifdef UAFEDITOR
-CString GameEvent::Name(void) const
+CString GameEvent::Name(void)
 {
   eventType type;
   type = GetEventType();
@@ -1880,7 +1743,7 @@ CString GameEvent::Name(void) const
   return CString(EventListText[type]);
 };
 #else
-const char *GameEvent::Name(void) const
+const char *GameEvent::Name(void)
 {
   static char name[20];
   sprintf(name,"[%d]", GetEventType());
@@ -1997,17 +1860,6 @@ void GameEvent::Clear()
 
 #ifdef UAFEngine
 
-CString& GameEvent::GetEventText()
-{
-  HOOK_PARAMETERS hookParameters;
-  RunEventScript(EVENT_TEXT1);
-  if (hookParameters[0].IsEmpty())
-  {
-    return text;
-  };
-  return hookParameters[0];
-};
-
 BOOL GameEvent::EventShouldTrigger()
 {
    BOOL shouldTrigger=FALSE;
@@ -2058,7 +1910,7 @@ BOOL GameEvent::EventShouldTrigger()
       break;
   #endif
     default:
-      die(0xab50d);
+      ASSERT(FALSE);
       return FALSE;
     }
 
@@ -2067,7 +1919,7 @@ BOOL GameEvent::EventShouldTrigger()
      else
      {
        setPartyXY_x = -1;
-       shouldTrigger = control.EventShouldTrigger(id, levelData.eventData.m_level, x, y);
+       shouldTrigger = control.EventShouldTrigger(id);
      };
    }
    return shouldTrigger;
@@ -2098,10 +1950,8 @@ BOOL GameEvent::GetChainedEvent(DWORD &cid)
   {
     if (chainEventNotHappen > 0)
     {
-      // This occurred in "The Last Days of Autumn". version 0.5751
-      // I see no harm if the two are equal.  PRS 20191207
-      //die(0xab50e);
-      if (chainEventHappen!=chainEventNotHappen) die(0xab50f); // shouldn't happen
+      ASSERT(FALSE);
+      if (chainEventHappen!=chainEventNotHappen) ASSERT(FALSE); // shouldn't happen
       chainEventNotHappen=0;
     }
     cid = chainEventHappen;
@@ -2111,8 +1961,8 @@ BOOL GameEvent::GetChainedEvent(DWORD &cid)
   {
     if (chainEventNotHappen > 0)
     {
-      die(0xab510);
-      if (chainEventHappen!=chainEventNotHappen) die(0xab511); // shouldn't happen
+      ASSERT(FALSE);
+      if (chainEventHappen!=chainEventNotHappen) ASSERT(FALSE); // shouldn't happen
       chainEventNotHappen=0;        
     }
     cid = chainEventHappen;
@@ -2122,18 +1972,8 @@ BOOL GameEvent::GetChainedEvent(DWORD &cid)
   {
     if (chainEventHappen > 0)
     {
-      // This occurred in "The Last Days of Autumn". version 0.5751
-      // I see no harm if the two are equal.  PRS 20191207
-      //die(0xab512);
-      if (chainEventHappen != chainEventNotHappen)
-      {
-        // This occurred in "The Last Days of Autumn". version 0.5751
-        // I am just guessing at 0.576.  PRS 20191207
-        if (globalData.version >= 0.576)
-        {
-          die(0xab513); // shouldn't happen
-        };
-      };
+      ASSERT(FALSE);
+      if (chainEventHappen!=chainEventNotHappen) ASSERT(FALSE); // shouldn't happen
       chainEventHappen=0;        
     }
     cid = chainEventNotHappen;
@@ -2178,7 +2018,7 @@ void GameEvent::PostSerialize(BOOL IsStoring, double version)
     case Stairs:
     case Teleporter: event=TransferModule; break;
 
-    case InnEvent: die(0xab514); break;
+    case InnEvent: ASSERT(FALSE); break;
 
     case TavernTales: 
     default:
@@ -2249,9 +2089,6 @@ const char *JKEY_EVENTID   = "eventID";
 const char *JKEY_TEXT      ="text";
 const char *JKEY_TEXT2     ="text2";
 const char *JKEY_TEXT3     ="text3";
-const char *JKEY_MTEXT      ="mtext";   // MTEXT is multi-line text
-const char *JKEY_MTEXT2     ="mtext2";
-const char *JKEY_MTEXT3     ="mtext3";
 const char *JKEY_CHAINEVENTHAPPEN = "chainEventHappen";
 const char *JKEY_CHAINEVENTNOTHAPPEN = "chainEventNotHappen";
 const char *JKEY_TIMER     = "timer";
@@ -2273,14 +2110,9 @@ void GameEvent::ExportEvent(JWriter& jw)
     control.Export(jw);
     pic.Export(jw, JKEY_PICTURE1);
     pic2.Export(jw, JKEY_PICTURE2);
-
-    //jw.NameAndQuotedNonBlank(JKEY_TEXT, text);
-    //jw.NameAndQuotedNonBlank(JKEY_TEXT2, text2);
-    //jw.NameAndQuotedNonBlank(JKEY_TEXT3, text3);
-    if (!text.IsEmpty())  jw.NameAndMultiLineString(JKEY_MTEXT, text);
-    if (!text2.IsEmpty()) jw.NameAndMultiLineString(JKEY_MTEXT2, text2);
-    if (!text3.IsEmpty()) jw.NameAndMultiLineString(JKEY_MTEXT3, text3);
-
+    jw.NameAndQuotedNonBlank(JKEY_TEXT, text);
+    jw.NameAndQuotedNonBlank(JKEY_TEXT2, text2);
+    jw.NameAndQuotedNonBlank(JKEY_TEXT3, text3);
     jw.NameAndNonZero(JKEY_CHAINEVENTHAPPEN,chainEventHappen);
     jw.NameAndNonZero(JKEY_CHAINEVENTNOTHAPPEN,chainEventNotHappen);
     jw.NameAndNonZero(JKEY_TIMER, timer);
@@ -2303,17 +2135,9 @@ bool GameEvent::ImportEvent(JReader& jr)
   control.Import(jr);
   jr.Optional(); pic.Import(jr, JKEY_PICTURE1);
   jr.Optional(); pic2.Import(jr, JKEY_PICTURE2);
-
-
   jr.Optional(); jr.NameAndQuotedNonBlank(JKEY_TEXT, text);
   jr.Optional(); jr.NameAndQuotedNonBlank(JKEY_TEXT2, text2);
   jr.Optional(); jr.NameAndQuotedNonBlank(JKEY_TEXT3, text3);
-  // We can read both old and new versions of text
-  jr.Optional(); jr.NameAndMultiLineString(JKEY_MTEXT, text);
-  jr.Optional(); jr.NameAndMultiLineString(JKEY_MTEXT2, text2);
-  jr.Optional(); jr.NameAndMultiLineString(JKEY_MTEXT3, text3);
-
-
   jr.NameAndNonZero(JKEY_CHAINEVENTHAPPEN,chainEventHappen);
   jr.NameAndNonZero(JKEY_CHAINEVENTNOTHAPPEN,chainEventNotHappen);
   if (control.chainTrigger == AlwaysChain) chainEventNotHappen = 0;
@@ -2335,8 +2159,13 @@ void GameEvent::Serialize( CArchive &ar, double version )
 
 //  CObject::Serialize(ar);
   control.Serialize(ar, version);
+#ifdef SIMPLE_STRUCTURE
   pic.Serialize(ar, LoadingVersion, rte.PicArtDir());
   pic2.Serialize(ar, LoadingVersion, rte.PicArtDir());
+#else
+  pic.Serialize(ar, LoadingVersion);
+  pic2.Serialize(ar, LoadingVersion);
+#endif
 
   if (ar.IsStoring())
   {
@@ -2433,7 +2262,7 @@ void GameEvent::Serialize( CAR &ar, double version )
      ar << y;
      ar << chainEventHappen;
      ar << chainEventNotHappen;
-
+  
      AS(ar,text);
 //     if (text.IsEmpty())
 //     {
@@ -2520,12 +2349,12 @@ void NULL_EVENT_DATA::DetailedCrossReference(CR_EVENT_INFO *pCREI)
 }
 void NULL_EVENT_DATA::Export(JWriter& jw)
 {
-  /* Really */ NotImplemented(0xcd940, false);
+  NotImplemented(0xcd940, false);
 }
 
 bool NULL_EVENT_DATA::Import(JReader& jr)
 {
-  /* Really */NotImplemented(0xcd941, false);
+  NotImplemented(0xcd941, false);
   return true;
 }
 
@@ -2541,9 +2370,8 @@ void GameEvent::CreateCRReference(CR_EVENT_INFO *pCREI)
   {
     pCREI->m_anchorLocation.Format("%d,%d,%d",pCREI->m_level, x, y);
   };
-  pCREI->m_CRReference.m_referenceName.Format("%s(%s)", Name(),pCREI->m_anchorLocation);
+  pCREI->m_CRReference.m_referenceName.Format("%s(%s)%d", Name(),pCREI->m_anchorLocation,id);
   pCREI->m_CRReference.m_referenceType = CR_TYPE_event;
-  pCREI->m_CRReference.m_referenceID = id;
 }
 
 void GameEvent::CrossReferenceEventItems(CR_EVENT_INFO *pCREI, ITEM_LIST *itemList)
@@ -2721,7 +2549,7 @@ int GameEventList::AddEventWithCurrKey(GameEvent *data)
     count = max(0,count);
 
     WriteDebugString("Added '%s' %s event: x %i, y %i - (%u total)\n",
-                    GetEventIdDescription(data->id,GetEventSource(), this), 
+                    GetEventIdDescription(data->id,GetEventSource()), 
                     //(IsGlobalList()?"global":"level"),
                     EventSourceText[(int)data->GetEventSource()],
                     data->x, data->y,
@@ -3040,7 +2868,7 @@ EVENT_CONTROL &GameEventList::GetEventControl(DWORD id)
     return NullEvent.GetEventControl();
 }
 
-const eventType &GameEventList::GetEventType(DWORD id) const
+eventType &GameEventList::GetEventType(DWORD id)
 { 
   POSITION pos;
   if ((pos = m_events.FindKeyPos(id)) != NULL)
@@ -3074,9 +2902,9 @@ CString &GameEventList::GetEventText(DWORD id)
 //  CSingleLock sLock(&m_CS, TRUE);
   POSITION pos;
   if ((pos = m_events.FindKeyPos(id)) != NULL)
-    return m_events.PeekAtPos(pos)->text;
+    return m_events.PeekAtPos(pos)->GetEventText();
   else
-    return NullEvent.text;
+    return NullEvent.GetEventText();
 }
 
 CString &GameEventList::GetEventText2(DWORD id)  
@@ -3084,9 +2912,9 @@ CString &GameEventList::GetEventText2(DWORD id)
 //  CSingleLock sLock(&m_CS, TRUE);
   POSITION pos;
   if ((pos = m_events.FindKeyPos(id)) != NULL)
-    return m_events.PeekAtPos(pos)->text2;
+    return m_events.PeekAtPos(pos)->GetEventText2();
   else
-    return NullEvent.text2;
+    return NullEvent.GetEventText2();
 }
 
 CString &GameEventList::GetEventText3(DWORD id)  
@@ -3094,9 +2922,9 @@ CString &GameEventList::GetEventText3(DWORD id)
 //  CSingleLock sLock(&m_CS, TRUE);
   POSITION pos;
   if ((pos = m_events.FindKeyPos(id)) != NULL)
-    return m_events.PeekAtPos(pos)->text3;
+    return m_events.PeekAtPos(pos)->GetEventText3();
   else
-    return NullEvent.text3;
+    return NullEvent.GetEventText3();
 }
 
 int &GameEventList::GetEventX(DWORD id)  
@@ -3188,18 +3016,7 @@ void GameEvent::CommitRestore(void)
 	temp_asl.Clear();
 }
 
-#ifdef UAFEngine
-CString GameEvent::FindEventAttribute(const CString& name) const
-{
-  const ASLENTRY *pASL;
-   pASL = control.eventcontrol_asl.Find(name);
-  if (pASL != NULL)
-  {
-    return pASL->Value();
-  };
-  return "-?-?-";
-}
-#endif
+
 #if (defined UAFEDITOR)
 
 void GameEvent::ChainToEventId(int num, DWORD cid)
@@ -3218,9 +3035,8 @@ void GameEvent::ChainToEventId(int num, DWORD cid)
       if (chainEventNotHappen > 0)
       {
         // these two are mutually exclusive
-        //die(0xab515);
-        //if (chainEventHappen!=chainEventNotHappen) die(0xab516); // shouldn't happen
-        if (chainEventNotHappen!=cid) die(0xab516); // shouldn't happen
+        ASSERT(FALSE);
+        if (chainEventHappen!=chainEventNotHappen) ASSERT(FALSE); // shouldn't happen
         chainEventNotHappen=0;
       }
       chainEventHappen = cid;
@@ -3230,9 +3046,8 @@ void GameEvent::ChainToEventId(int num, DWORD cid)
       if (chainEventHappen > 0)
       {
         // these two are mutually exclusive
-        //die(0xab517);
-        //if (chainEventHappen!=chainEventNotHappen) die(0xab518); // shouldn't happen
-        if (chainEventHappen!=cid) die(0xab518); // shouldn't happen
+        ASSERT(FALSE);
+        if (chainEventHappen!=chainEventNotHappen) ASSERT(FALSE); // shouldn't happen
         chainEventHappen=0;
       }
       chainEventNotHappen = cid;      
@@ -3265,25 +3080,22 @@ BOOL GameEvent::GetEVChainText(int num, char *ctext)
     switch (control.chainTrigger)
     {
     case AlwaysChain:
-      if (ctext != NULL)
-        sprintf(ctext, 
-                "%s: %s", 
-                "Normal Chain",
-                (LPCSTR)GetEventIdDescription(chainEventHappen,GetEventSource()));
+      sprintf(ctext, 
+              "%s: %s", 
+              "Normal Chain",
+              GetEventIdDescription(chainEventHappen,GetEventSource()));
       break;
     case IfEventHappen:
-      if (ctext != NULL)
-        sprintf(ctext, 
-                "%s: %s", 
-                "Normal Chain",
-                (LPCSTR)GetEventIdDescription(chainEventHappen,GetEventSource()));
+      sprintf(ctext, 
+              "%s: %s", 
+              "Normal Chain",
+              GetEventIdDescription(chainEventHappen,GetEventSource()));
       break;
     case IfEventNotHappen:
-      if (ctext != NULL)
-        sprintf(ctext, 
-                "%s: %s", 
-                "Normal Chain",
-                (LPCSTR)GetEventIdDescription(chainEventNotHappen,GetEventSource()));
+      sprintf(ctext, 
+              "%s: %s", 
+              "Normal Chain",
+              GetEventIdDescription(chainEventNotHappen,GetEventSource()));
       break;
     }
     return TRUE;
@@ -3300,10 +3112,7 @@ void GameEventList::markEventHappened(GameEvent *event)
   if (!IsValidEvent(event))
     return;
   party.MarkEventHappened(m_level, event->id);
-  if (logDebuggingInfo)
-  {
-    WriteDebugString("Marking event %u happened\n", event->id);
-  };
+  WriteDebugString("Marking event %u happened\n", event->id);
 }
 
 BOOL GameEventList::HasEventHappened(DWORD eventID)
@@ -3329,232 +3138,6 @@ GameEvent *GameEventList::GetFirstEvent(int x, int y)
 
   return NULL;
 }
-
-int LocateEvent(GameEvent **pEvents, int numEvent, DWORD id)
-{
-  int f, k, n;
-  f = 0;
-  n = numEvent;
-  while (n > 0)
-  {                         
-    k = f + n/2; 
-    if (pEvents[k]->id == id) return k;
-    if (pEvents[k]->id < id)
-    {
-      
-      f = k + 1; 
-      n = (n - 1) / 2;
-    }
-    else
-    {
-      n = k - f;
-    };
-  };  
-  return -1;
-}
-
-#ifdef UAFEDITOR
-void GameEventList::BuildMarkerIndex(void)
-{
-  // Wherein we try to be clever enough to survive a 100,000 event level.
-  GameEvent **pEvents, **pParents;
-  int *flowControlIndex;
-  DWORD *flowControlRoots;
-  int numFlowControl;
-  int numEvent, n;
-  POSITION pos;
-  numEvent = m_events.GetCount();
-  pEvents = (GameEvent **)malloc(numEvent*sizeof(*pEvents));
-  pParents = (GameEvent **)malloc(numEvent*sizeof(*pParents));
-  n = 0;
-  numFlowControl = 0;
-  pos = m_events.GetHeadPosition();
-  // First we get a linear list of all events and count the flowControl events.
-  while (pos != NULL)
-  {
-    GameEvent *pEv;
-    pEv = m_events.GetNext(pos);
-    if (pEv->GetEventType() == FlowControl)
-    {
-      numFlowControl++;
-    };
-    pEvents[n++] = pEv;
-  };
-  flowControlIndex = (int *)  malloc(numFlowControl*sizeof(flowControlIndex[0]));
-  flowControlRoots = (DWORD *)malloc(numFlowControl*sizeof(flowControlRoots[0]));
-  // Now we sort the list of events by event ID.
-  {
-    int d;
-    for (d = numEvent / 2; d > 0; d /= 2)
-    {
-      int i;
-      for (i = 0; i < d; i++)
-      {
-        int j, k;
-        for (j = i; j < numEvent - d; j += d)
-        {
-          for (k = j;
-          (k >= 0) && (pEvents[k + d]->id < pEvents[k]->id);
-            k -= d)
-          {
-            GameEvent *pk;
-            pk = pEvents[k];
-            pEvents[k] = pEvents[k + d];
-            pEvents[k + d] = pk;
-          };
-        };
-      };
-    };
-  };
-  // Now we go through the list and compute each event's parent
-  //   and record all FLOW_CONTROL events.
-  {
-    int i, nfc;
-    nfc = 0;
-    for (i = 0; i < numEvent; i++)
-    {
-      pParents[i] = NULL;
-      if (pEvents[i]->GetEventType() == FlowControl)
-      {
-        flowControlIndex[nfc++] = i;
-      };
-    };
-    for (i = 0; i < numEvent; i++)
-    {
-      // Find all children of this event and set the parent of each.
-      GameEvent *pEv;
-      int j;
-      pEv = pEvents[i];
-      for (j = 0; pEv->GetEVChainText(j, NULL); j++) //Is there such a chain?
-      {
-        DWORD childID;
-        int k;
-        if(!pEv->GetEVChain(j, childID)) continue;
-        if (childID == 0) continue;
-        k = LocateEvent(pEvents, numEvent, childID);
-        if (k >= 0) pParents[k] = pEv;
-      };
-    };
-  };
-  // At this point....
-  // pEvents is in ID order and pParents is each event's parent.
-  //
-  // Now we want to find the root of each FLOW_CONTROL event.
-  {
-    int i;
-    for (i = 0; i < numFlowControl; i++)
-    {
-      int j, loopTest;
-      GameEvent *pFlowEvent, *pParentEvent, *pGrandParentEvent;
-      DWORD parentID;
-      j = flowControlIndex[i];
-      pFlowEvent = pEvents[j];
-      pParentEvent = pParents[j];
-      if (pParentEvent == NULL)
-      {
-        // No parent.  Therefore the FLowControl is its own root.
-        flowControlRoots[i] = pFlowEvent->id;
-        continue;
-      };
-      for (loopTest=0;loopTest<1000000;loopTest++)
-      {
-        int parentIndex;
-        parentID = pParentEvent->id;
-        parentIndex = LocateEvent(pEvents, numEvent, parentID);
-        pGrandParentEvent = pParents[parentIndex];
-        if (pGrandParentEvent == NULL)
-        {
-          break;
-        };
-        pParentEvent = pGrandParentEvent;
-      };
-      if (loopTest == 1000000)
-      {
-        MsgBoxInfo("Infinite chaining loop", "Warning");
-      };
-      flowControlRoots[i] = parentID;
-    };
-  };
-  // Now we have a list of FLOW_CONTROL events along with the
-  // the event ID of the root of each event's chain.
-  // It is time to link each FlowControl's destination marker
-  // to a particular eventID.
-  // For each FlowControl with a destinationMArkerName we will
-  // search all other FlowControls for a matching entry- or 
-  // exitMarkername
-  {
-    int i;
-    for (i = 0; i<numFlowControl; i++)
-    {
-      int j, k;
-      bool entry=false;
-      bool exit;
-      FLOW_CONTROL_EVENT_DATA *pSource, *pFinalTarget;
-      j = flowControlIndex[i];
-      pSource = (FLOW_CONTROL_EVENT_DATA*)pEvents[j];
-      pSource->destID = 0;
-      if (pSource->action == ACTION_NONE)
-      {
-        continue;
-      };
-      if (pSource->destinationMarkerName.IsEmpty())
-      {
-        continue;
-      };
-      pFinalTarget = NULL;
-      for (k = 0; k < numFlowControl; k++)
-      {
-        FLOW_CONTROL_EVENT_DATA *pTargetEvent;
-        pTargetEvent = (FLOW_CONTROL_EVENT_DATA *)pEvents[flowControlIndex[k]];
-        entry = pSource->destinationMarkerName == pTargetEvent->entryMarkerName;
-        exit = pSource->destinationMarkerName == pTargetEvent->exitMarkerName;
-        if ( entry || exit )
-        {
-          if ((pSource->flags & FCF_LocalChainOnly) != 0)
-          {
-            if (flowControlRoots[i] != flowControlRoots[k])
-            {
-              continue;
-            };
-          };
-          if (pFinalTarget != NULL)
-          {
-            CString msg;
-            msg.Format("Double defined FLOW_CONTROL Marker\n"
-                       "The marker \"%s\" is defined in events\n"
-                       "%d and %d", pSource->destinationMarkerName, pFinalTarget->id, pTargetEvent->id);
-            MsgBoxInfo(msg, "Warning");
-          };
-          pFinalTarget = pTargetEvent;
-        };
-      };
-      if (pFinalTarget == NULL)
-      {
-        CString msg;
-        msg.Format("Undefined FLOW_CONTROL Marker\n\"%s\"", pSource->destinationMarkerName);
-        MsgBoxInfo(msg, "Warning");
-      }
-      else
-      {
-        if (entry)
-        {
-          pSource->destID = pFinalTarget->id;
-        }
-        else
-        {
-          pSource->destID = pFinalTarget->chainEventHappen;
-        };
-      };
-    };
-  };
-  free(flowControlRoots);
-  free(flowControlIndex);
-  free(pEvents);
-  free(pParents);
-}
-#endif
-
-
 void GameEventList::Serialize( CArchive &ar, double version )
 {
 //  CSingleLock sLock(&m_CS, TRUE);
@@ -3764,9 +3347,8 @@ GameEventList& GameEventList::operator =(GameEventList& src)
        case LogicBlock:        *((LOGIC_BLOCK_DATA*)pNewEvent)=*((LOGIC_BLOCK_DATA*)pSrcEvent);  break;
        case PlayMovieEvent:    *((PLAY_MOVIE_DATA*)pNewEvent)=*((PLAY_MOVIE_DATA*)pSrcEvent);  break;    
        case JournalEvent:      *((JOURNAL_EVENT*)pNewEvent)=*((JOURNAL_EVENT*)pSrcEvent);  break;
-       case FlowControl:       *((FLOW_CONTROL_EVENT_DATA*)pNewEvent) = *((FLOW_CONTROL_EVENT_DATA*)pSrcEvent);  break;
        default:
-          die(0xab519);
+          ASSERT(FALSE);
           WriteDebugString("Unhandled event type %i in GameEventList::operator=()\n", pSrcEvent->GetEventType());
           break;
       }  
@@ -3867,7 +3449,7 @@ GameEvent *GameEventList::CreateNewEvent(int type)
 //#endif
    case TavernEvent:       event = new TAVERN;                      break;
 
-   case TextStatement:     event = new TEXT_EVENT_DATA(true);       break;
+   case TextStatement:     event = new TEXT_EVENT_DATA;             break;
    case Stairs: 
    case Teleporter: 
    case TransferModule:    event = new TRANSFER_EVENT_DATA;         break;
@@ -3887,12 +3469,11 @@ GameEvent *GameEventList::CreateNewEvent(int type)
    case LogicBlock:        event = new LOGIC_BLOCK_DATA;            break;
    case PlayMovieEvent:    event = new PLAY_MOVIE_DATA;             break;
    case JournalEvent:      event = new JOURNAL_EVENT;               break;
-   case FlowControl:       event = new FLOW_CONTROL_EVENT_DATA;     break;
    
    case InnEvent: // never
    default:
+      ASSERT(FALSE);
       WriteDebugString("Unhandled event type %i in CreateNewEvent()\n", type);
-      die(0xab51a);
       break;       
   }
   
@@ -3976,9 +3557,8 @@ GameEvent* GameEventList::CreateEventCopy(GameEvent *pSrcEvent)
    case LogicBlock:        *((LOGIC_BLOCK_DATA*)pNewEvent)=*((LOGIC_BLOCK_DATA*)pSrcEvent);  break;
    case PlayMovieEvent:    *((PLAY_MOVIE_DATA*)pNewEvent)=*((PLAY_MOVIE_DATA*)pSrcEvent);  break;    
    case JournalEvent:      *((JOURNAL_EVENT*)pNewEvent)=*((JOURNAL_EVENT*)pSrcEvent);  break;
-   case FlowControl:       *((FLOW_CONTROL_EVENT_DATA*)pNewEvent)=*((FLOW_CONTROL_EVENT_DATA*)pSrcEvent); break;
    default:
-      die(0xab51b);
+      ASSERT(FALSE);
       WriteDebugString("Unhandled event type %i in CreateNewEvent()\n", pSrcEvent->GetEventType());
       break;
   }  
@@ -4005,7 +3585,7 @@ void GameEventList::CopyEvent(DWORD &RootId, DWORD SrcId, GameEventList *pSrcLis
                    EventSourceText[(int)GetEventSource()],
                    GetCount());
 #endif
-  // I cannot see why this is needed. PRS 20151009  if (pSrcEvent->IsChained())
+  if (pSrcEvent->IsChained())
   {
     switch (pSrcEvent->control.chainTrigger)
     {
@@ -4252,7 +3832,7 @@ void GameEventList::LogEventText()
   bool IsGlobalSrc=false;
   if (GetEventSource()==LevelEventSrc)
   {
-    file.Format("Level%03i_TextLog.txt", globalData.currLevel+1);
+    file.Format("Level%03i_TextLog.txt", globalData.currLevel);
     strcat(filename, file);
   }
   else if (GetEventSource()==GlobalEventSrc)
@@ -4300,7 +3880,7 @@ void GameEventList::LogEventText()
     GameEvent *pEvent = m_events.PeekAtPos(gpos);
     if (pEvent==NULL) continue;    
     fprintf(pFile, "\nEvent '%s' at %i,%i:\n",
-            (LPCSTR)GetEventIdDescription(pEvent->id,GetEventSource()),
+            GetEventIdDescription(pEvent->id,GetEventSource()),
             pEvent->x,pEvent->y);
 
     char label[512+1];
@@ -4353,19 +3933,19 @@ void GameEventList::LogEventText()
       }
     }
 
-    if (pEvent->text != "")
+    if (pEvent->GetEventText() != "")
     {
-      fprintf(pFile, "Text 1: '%s'\n", (LPCSTR)pEvent->text);
+      fprintf(pFile, "Text 1: '%s'\n", pEvent->GetEventText());
       hasText=true;
     }
-    if (pEvent->text2 != "")
+    if (pEvent->GetEventText2() != "")
     {
-      fprintf(pFile, "Text 2: '%s'\n", (LPCSTR)pEvent->text2);
+      fprintf(pFile, "Text 2: '%s'\n", pEvent->GetEventText2());
       hasText=true;
     }
-    if (pEvent->text3 != "")
+    if (pEvent->GetEventText3() != "")
     {
-      fprintf(pFile, "Text 3: '%s'\n", (LPCSTR)pEvent->text3);
+      fprintf(pFile, "Text 3: '%s'\n", pEvent->GetEventText3());
       hasText=true;
     }
     if (!hasText)
@@ -4376,9 +3956,9 @@ void GameEventList::LogEventText()
       TAVERN *pTavern = (TAVERN*)pEvent;
       int i;
       for (i=0;i<MAX_TALES;i++)
-        fprintf(pFile, "Tavern Tale %i: %s\n", i+1, (LPCSTR)pTavern->tales[i].tale);
+        fprintf(pFile, "Tavern Tale %i: %s\n", i+1, pTavern->tales[i].tale);
       for (i=0;i<MAX_DRINKS;i++)
-        fprintf(pFile, "Drink Name %i: %s\n", i+1, (LPCSTR)pTavern->drinks[i].name);
+        fprintf(pFile, "Drink Name %i: %s\n", i+1, pTavern->drinks[i].name);
     }
     else if (   (pEvent->GetEventType()==GiveTreasure)
              || (pEvent->GetEventType()==CombatTreasure))
@@ -4390,7 +3970,7 @@ void GameEventList::LogEventText()
         const ITEM& it = pTreasure->items.PeekAtPos(ipos);
         //CString name = itemData.GetItemIdName(it.m_giID);
         CString name = itemData.GetItemIdName(it.itemID);
-        fprintf(pFile, "GiveTreasure Item: %s\n", (LPCSTR)name);
+        fprintf(pFile, "GiveTreasure Item: %s\n", name);
         pTreasure->items.GetNext(ipos);
       }
     }
@@ -4403,7 +3983,7 @@ void GameEventList::LogEventText()
         const ITEM& it = pData->itemsAvail.PeekAtPos(ipos);
         //CString name = itemData.GetItemIdName(it.m_giID);
         CString name = itemData.GetItemIdName(it.itemID);
-        fprintf(pFile, "SHOP Item: %s\n", (LPCSTR)name);
+        fprintf(pFile, "SHOP Item: %s\n", name);
         pData->itemsAvail.GetNext(ipos);
       }
     }
@@ -4436,17 +4016,17 @@ void GameEventList::LogEventText()
         {
           fprintf(pFile, "Item %s Examine Event '%s' *** uses duplicate id ***\n",
                   //item.UniqueName(),
-                  (LPCSTR)pItem->UniqueName(),
+                  pItem->UniqueName(),
                   //GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
-                  (LPCSTR)GetEventIdDescription(pItem->ExamineEvent, GlobalEventSrc));
+                  GetEventIdDescription(pItem->ExamineEvent, GlobalEventSrc));
         }
         else
         {
           fprintf(pFile, "Item %s Examine Event '%s'\n",
                   //item.UniqueName(),
-                  (LPCSTR)pItem->UniqueName(),
+                  pItem->UniqueName(),
                   //GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
-                  (LPCSTR)GetEventIdDescription(pItem->ExamineEvent, GlobalEventSrc));
+                  GetEventIdDescription(pItem->ExamineEvent, GlobalEventSrc));
           //eids[item.ExamineEvent] = item.ExamineEvent;
           eids[pItem->ExamineEvent] = pItem->ExamineEvent;
         }
@@ -4461,17 +4041,17 @@ void GameEventList::LogEventText()
         {
           fprintf(pFile, "Item %s Use Event '%s' *** uses duplicate id ***\n",
                   //item.UniqueName(),
-                  (LPCSTR)pItem->UniqueName(),
+                  pItem->UniqueName(),
                   //GetEventIdDescription(item.m_useEvent, GlobalEventSrc));
-                  (LPCSTR)GetEventIdDescription(pItem->m_useEvent, GlobalEventSrc));
+                  GetEventIdDescription(pItem->m_useEvent, GlobalEventSrc));
         }
         else
         {
           fprintf(pFile, "Item %s Use Event '%s'\n",
                   //item.UniqueName(),
-                  (LPCSTR)pItem->UniqueName(),
+                  pItem->UniqueName(),
                   //GetEventIdDescription(item.m_useEvent, GlobalEventSrc));
-                  (LPCSTR)GetEventIdDescription(pItem->m_useEvent, GlobalEventSrc));
+                  GetEventIdDescription(pItem->m_useEvent, GlobalEventSrc));
           //eids[item.m_useEvent] = item.m_useEvent;
           eids[pItem->m_useEvent] = pItem->m_useEvent;
         }
@@ -4493,14 +4073,14 @@ void GameEventList::LogEventText()
         if (eids.Lookup(item.ExamineEvent, tmpid))
         {
           fprintf(pFile, "Character %s Examine Event '%s' *** uses duplicate id ***\n",
-                  (LPCSTR)item.GetName(),
-                  (LPCSTR)GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
+                  item.GetName(),
+                  GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
         }
         else
         {
           fprintf(pFile, "Character %s Examine Event '%s'\n",
-            (LPCSTR)item.GetName(),
-            (LPCSTR)GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
+                  item.GetName(),
+                  GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
           eids[item.ExamineEvent] = item.ExamineEvent;
         }
       }
@@ -4510,14 +4090,14 @@ void GameEventList::LogEventText()
         if (eids.Lookup(item.TalkEvent, tmpid))
         {
           fprintf(pFile, "Character %s Talk Event '%s' *** uses duplicate id ***\n",
-            (LPCSTR)item.GetName(),
-            (LPCSTR)GetEventIdDescription(item.TalkEvent, GlobalEventSrc));
+                  item.GetName(),
+                  GetEventIdDescription(item.TalkEvent, GlobalEventSrc));
         }
         else
         {
           fprintf(pFile, "Character %s Talk Event '%s'\n",
-            (LPCSTR)item.GetName(),
-            (LPCSTR)GetEventIdDescription(item.TalkEvent, GlobalEventSrc));
+                  item.GetName(),
+                  GetEventIdDescription(item.TalkEvent, GlobalEventSrc));
           eids[item.TalkEvent] = item.TalkEvent;
         }
       }
@@ -4535,14 +4115,14 @@ void GameEventList::LogEventText()
         if (eids.Lookup(item.ExamineEvent, tmpid))
         {
           fprintf(pFile, "Special Item %s Examine Event '%s' *** uses duplicate id ***\n",
-            (LPCSTR)item.name,
-            (LPCSTR)GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
+                  item.name,
+                  GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
         }
         else
         {
           fprintf(pFile, "Special Item %s Examine Event '%s'\n",
-            (LPCSTR)item.name,
-            (LPCSTR)GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
+                  item.name,
+                  GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
           eids[item.ExamineEvent] = item.ExamineEvent;
         }
       }
@@ -4560,14 +4140,14 @@ void GameEventList::LogEventText()
         if (eids.Lookup(item.ExamineEvent, tmpid))
         {
           fprintf(pFile, "Special Key %s Examine Event '%s' *** uses duplicate id ***\n",
-            (LPCSTR)item.name,
-            (LPCSTR)GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
+                  item.name,
+                  GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
         }
         else
         {
           fprintf(pFile, "Special Key %s Examine Event '%s'\n",
-            (LPCSTR)item.name,
-            (LPCSTR)GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
+                  item.name,
+                  GetEventIdDescription(item.ExamineEvent, GlobalEventSrc));
           eids[item.ExamineEvent] = item.ExamineEvent;
         }
       }
@@ -4607,6 +4187,15 @@ void GPDL_EVENT::DetailedCrossReference(CR_EVENT_INFO *pCREI)
 {
   MsgBoxInfo("GPDL_EVENT::DetailedCrossReference");
 }
+//void GPDL_EVENT::Export(JWriter& jw)
+//{
+//  NotImplemented(0xcd952, false);
+//}
+//bool GPDL_EVENT::Import(JReader& jr)
+//{
+//  NotImplemented(0xcd953, false);
+//  return true;
+//}
 #endif
 
 
@@ -5043,8 +4632,7 @@ void TOUR_STEP::Export(JWriter& jw, int stepNum)
   jw.StartList();
   jw.Linefeed(false);
   jw.NameAndValue(JKEY_STEPNUM, stepNum);
-  //jw.NameAndValue(JKEY_TEXT, text);
-  if (!text.IsEmpty()) jw.NameAndMultiLineString(JKEY_MTEXT, text);
+  jw.NameAndValue(JKEY_TEXT, text);
   jw.NameAndEnum(JKEY_STEP, step);
   jw.EndList();
   jw.Linefeed(true);
@@ -5055,8 +4643,7 @@ int TOUR_STEP::Import(JReader& jr)
   jr.StartList();
   jr.Linefeed(false);
   jr.NameAndValue(JKEY_STEPNUM, stepNum);
-  jr.Optional(); jr.NameAndValue(JKEY_TEXT, text);
-  jr.Optional(); jr.NameAndMultiLineString(JKEY_MTEXT, text);
+  jr.NameAndValue(JKEY_TEXT, text);
   jr.NameAndEnum(JKEY_STEP, step);
   jr.EndList();
   jr.Linefeed(true);
@@ -5657,8 +5244,7 @@ void TALE::Export(JWriter& jw, int i)
   jw.Linefeed(false);
   jw.NameAndValue(JKEY_INDEX, i);
   jw.NameAndValue(JKEY_COUNT, m_count);
-  if (!tale.IsEmpty())  jw.NameAndMultiLineString(JKEY_MTEXT, tale);
-  //jw.NameAndValue(JKEY_TEXT, tale);
+  jw.NameAndValue(JKEY_TEXT, tale);
   jw.EndList();
   jw.Linefeed(true);
 }
@@ -5669,9 +5255,7 @@ int TALE::Import(JReader& jr)
   jr.StartList();
   jr.Linefeed(false);
   jr.NameAndValue(JKEY_INDEX, i);
-  //jr.NameAndValue(JKEY_TEXT, tale);
-  jr.Optional(); jr.NameAndValue(JKEY_TEXT, tale);
-  jr.Optional(); jr.NameAndMultiLineString(JKEY_MTEXT, tale);
+  jr.NameAndValue(JKEY_TEXT, tale);
   jr.NameAndValue(JKEY_COUNT, m_count);
   jr.EndList();
   jr.Linefeed(true);
@@ -5846,7 +5430,7 @@ void REST_EVENT::Import(JReader& jr)
 }
 #endif
 
-void TIME_EVENT_DATA::PreSerialize(BOOL IsStoring)
+void TIME_EVENT::PreSerialize(BOOL IsStoring)
 {
   if (IsStoring)
   {
@@ -5855,7 +5439,7 @@ void TIME_EVENT_DATA::PreSerialize(BOOL IsStoring)
   }
 }
 
-void TIME_EVENT_DATA::PostSerialize(BOOL IsStoring)
+void TIME_EVENT::PostSerialize(BOOL IsStoring)
 {
   if (!IsStoring)
   {
@@ -5864,7 +5448,7 @@ void TIME_EVENT_DATA::PostSerialize(BOOL IsStoring)
   }
 }
 
-void TIME_EVENT_DATA::Serialize(CArchive &ar, double version)
+void TIME_EVENT::Serialize(CArchive &ar, double version)
 {
   PreSerialize(ar.IsStoring());
   
@@ -5894,7 +5478,7 @@ void TIME_EVENT_DATA::Serialize(CArchive &ar, double version)
   PostSerialize(ar.IsStoring());
 }
 
-void TIME_EVENT_DATA::Serialize(CAR &ar, double version)
+void TIME_EVENT::Serialize(CAR &ar, double version)
 {
   PreSerialize(ar.IsStoring());
   //CObject::Serialize(ar);
@@ -5923,35 +5507,32 @@ void TIME_EVENT_DATA::Serialize(CAR &ar, double version)
 }
 
 
-void STEP_EVENT_DATA::PreSerialize(BOOL IsStoring)
+void STEP_EVENT::PreSerialize(BOOL IsStoring)
 {
   if (IsStoring)
   {
     // move fields that need to be serialized
     // as attributes into the attribute map  
-    //StoreIntAsASL(stepevent_asl, stepCount, "StpCnt");
+    StoreIntAsASL(stepevent_asl, stepCount, "StpCnt");
   }
 }
 
-void STEP_EVENT_DATA::PostSerialize(BOOL IsStoring, double version)
+void STEP_EVENT::PostSerialize(BOOL IsStoring)
 {
   if (IsStoring)
   {
-    //stepevent_asl.Delete("StpCnt");
+    stepevent_asl.Delete("StpCnt");
   }
   else
   {
     // retrieve fields that are serialized as
     // attributes from the attribute map
-    if (version < 1.0210)
-    {
     RetrieveIntFromASL(stepevent_asl, stepCount, "StpCnt");
     stepevent_asl.Delete("StpCnt");
-    };
   }
 }
 
-void STEP_EVENT_DATA::Serialize(CArchive &ar, double version)
+void STEP_EVENT::Serialize(CArchive &ar, double version)
 {
   PreSerialize(ar.IsStoring());
 
@@ -5960,117 +5541,70 @@ void STEP_EVENT_DATA::Serialize(CArchive &ar, double version)
   
   if (ar.IsStoring())
   {
-    ar << stepCount;
     ar << stepEvent;
-    //ar << MAX_ZONES;
-    //for (i=0;i<MAX_ZONES;i++)
-    //  ar << stepTrigger[i];
-    ar << zoneMask;
-    ar << name;
+    ar << MAX_ZONES;
+    for (i=0;i<MAX_ZONES;i++)
+      ar << stepTrigger[i];
     stepevent_asl.Serialize(ar, "STEPEVENT_ATTR");
   }
   else
   {
-    if (version < 1.0210)
-    {
     ar >> stepEvent;
     if (version >= _VERSION_05661_)
     {
       int count;
-        BOOL v;
       ar >> count;
       for (i=0;i<count;i++)
-        //  ar >> stepTrigger[i];
-        {
-          ar >> v;
-          if (v) zoneMask |= (1 << i);
-        };
+        ar >> stepTrigger[i];
     }
     else
     {
-        BOOL v;
       for (i=0;i<8;i++) // load old quantity of zones (= 8)
-          //ar >> stepTrigger[i];
-        {
-          ar >> v;
-          if (v) zoneMask |= (1 << i);
-        };
-      };
+        ar >> stepTrigger[i];
     }
-    else
-    {
-      ar >> stepCount;
-      ar >> stepEvent;
-      ar >> zoneMask;
-      ar >> name;
-    };
-
 
     if (version >= _VERSION_0566_)
       stepevent_asl.Serialize(ar, "STEPEVENT_ATTR");
   }
 
-  PostSerialize(ar.IsStoring(), version);
+  PostSerialize(ar.IsStoring());
 }
 
-void STEP_EVENT_DATA::Serialize(CAR &ar, double version)
+void STEP_EVENT::Serialize(CAR &ar, double version)
 {
   PreSerialize(ar.IsStoring());
   //CObject::Serialize(ar);
   int i;  
   if (ar.IsStoring())
   {
-    ar << stepCount;
     ar << stepEvent;
-    //ar << MAX_ZONES;
-    //for (i=0;i<MAX_ZONES;i++)
-    //  ar << stepTrigger[i];
-    ar << zoneMask;
-    ar << name;
+    ar << MAX_ZONES;
+    for (i=0;i<MAX_ZONES;i++)
+      ar << stepTrigger[i];
+
     stepevent_asl.Serialize(ar, "STEPEVENT_ATTR");
   }
   else
   {
-    if (version < 1.0210)
-    {
     ar >> stepEvent;
     if (version >= _VERSION_05661_)
     {
       int count;
-        BOOL v;
       ar >> count;
       for (i=0;i<count;i++)
-        //  ar >> stepTrigger[i];
-        {
-          ar >> v;
-          if (v) zoneMask |= (1 << i);
-        };
+        ar >> stepTrigger[i];
     }
     else
     {
-        BOOL v;
       for (i=0;i<8;i++) // load old quantity of zones (= 8)
-          //ar >> stepTrigger[i];
-        {
-          ar >> v;
-          if (v) zoneMask |= (1 << i);
-        };
-      };
+        ar >> stepTrigger[i];
     }
-    else
-    {
-      ar >> stepCount;
-      ar >> stepEvent;
-      ar >> zoneMask;
-      ar >> name;
-    };
-
 
     if (version >= _VERSION_0566_)
       stepevent_asl.Serialize(ar, "STEPEVENT_ATTR");
   }
 
-  PostSerialize(ar.IsStoring(), version);
+  PostSerialize(ar.IsStoring());
 }
 
 #ifdef UAFEDITOR
@@ -6079,50 +5613,42 @@ const char *JKEY_ID = "id";
 const char *JKEY_TRIGGERS = "triggers";
 extern const char *JKEY_ASL;
 
-void STEP_EVENT_DATA::Export(JWriter& jw)
+void STEP_EVENT::Export(JWriter& jw)
 {
   int i;
   jw.StartList();
-  //jw.NameAndValue(JKEY_ID, stepEvent);
+  jw.NameAndValue(JKEY_ID, stepEvent);
   jw.StartArray(JKEY_TRIGGERS);
   jw.Linefeed(false);
   for (i=0;i<MAX_ZONES;i++)
   {
-    BOOL b;
     jw.NextEntry();
-    b = ((1 << i) & zoneMask) != 0;
-    //jw.NameAndValue(NULL, stepTrigger[i]);
-    jw.NameAndValue(NULL, b);
+    jw.NameAndValue(NULL, stepTrigger[i]);
   };
   jw.EndArray();
   jw.Linefeed(true);
   jw.NameAndValue(JKEY_EVENT, stepEvent);
   jw.NameAndValue(JKEY_STEPS, stepCount);
-  jw.NameAndValue(JKEY_NAME,  name);
   stepevent_asl.Export(jw);
   jw.EndList();
 }
 
-void STEP_EVENT_DATA::Import(JReader& jr)
+void STEP_EVENT::Import(JReader& jr)
 {
   int i;
   jr.StartList();
-  //jr.NameAndValue(JKEY_ID, stepEvent);
+  jr.NameAndValue(JKEY_ID, stepEvent);
   jr.StartArray(JKEY_TRIGGERS);
   jr.Linefeed(false);
-  //for (i=0;i<MAX_ZONES;i++)
-  //{
-  //  stepTrigger[i] = 0;
-  //};
-  zoneMask = 0;
   for (i=0;i<MAX_ZONES;i++)
   {
-    BOOL b;
+    stepTrigger[i] = 0;
+  };
+  for (i=0;i<MAX_ZONES;i++)
+  {
     jr.Optional(); 
     if (!jr.NextEntry()) break;;
-    //jr.NameAndValue(NULL, stepTrigger[i]);
-    jr.NameAndValue(NULL, b);
-    if (b) zoneMask |= (1<<i);
+    jr.NameAndValue(NULL, stepTrigger[i]);
   };
   jr.EndArray();
   jr.Linefeed(true);
@@ -6133,7 +5659,7 @@ void STEP_EVENT_DATA::Import(JReader& jr)
 }
 
 
-void STEP_EVENT_DATA::CrossReference(CR_EVENT_INFO *pCREI)
+void STEP_EVENT::CrossReference(CR_EVENT_INFO *pCREI)
 {
   GameEvent *pEvent;
   if (pCREI->m_pEventList->IsValidEvent(stepEvent))
@@ -6455,7 +5981,7 @@ bool REST_EVENT::operator ==(const REST_EVENT& src)
   return true;
 }
 #endif
-TIME_EVENT_DATA& TIME_EVENT_DATA::operator =(const TIME_EVENT_DATA& src)
+TIME_EVENT& TIME_EVENT::operator =(const TIME_EVENT& src)
 {
   if (&src == this)
     return *this;
@@ -6475,36 +6001,32 @@ TIME_EVENT_DATA& TIME_EVENT_DATA::operator =(const TIME_EVENT_DATA& src)
   return *this;
 }
 
-STEP_EVENT_DATA& STEP_EVENT_DATA::operator =(const STEP_EVENT_DATA& src)
+STEP_EVENT& STEP_EVENT::operator =(const STEP_EVENT& src)
 {
   if (&src == this)
     return *this;
 
   stepEvent = src.stepEvent;
   stepCount = src.stepCount;
-  //for (int i=0;i<MAX_ZONES;i++)
-  //  stepTrigger[i] = src.stepTrigger[i];
-  zoneMask = src.zoneMask;
-  name = src.name;
+  for (int i=0;i<MAX_ZONES;i++)
+    stepTrigger[i] = src.stepTrigger[i];
   stepevent_asl.Copy(src.stepevent_asl);
   temp_asl.Copy(src.temp_asl);
   return *this;
 }
 
 #ifdef UAFEDITOR
-bool STEP_EVENT_DATA::operator ==(const STEP_EVENT_DATA& src)const
+bool STEP_EVENT::operator ==(const STEP_EVENT& src)
 {
   if (&src == this) return true;
   if (stepEvent != src.stepEvent) return false;
   if (stepCount != src.stepCount) return false;
-  if (name != src.name) return false;
-  //for (int i=0;i<MAX_ZONES;i++)
-  //{
-  //  if (stepTrigger[i] != src.stepTrigger[i]) return false;
-  //};
-  if (zoneMask != src.zoneMask) return false;
+  for (int i=0;i<MAX_ZONES;i++)
+  {
+    if (stepTrigger[i] != src.stepTrigger[i]) return false;
+  };
   if (!(stepevent_asl == src.stepevent_asl)) return false;
-  //if (!(temp_asl ==src.temp_asl)) return false;
+  if (!(temp_asl ==src.temp_asl)) return false;
   return true;
 }
 #endif
@@ -6526,36 +6048,22 @@ void PLAY_MOVIE_DATA::Serialize(CArchive &ar, double version)
   }
   else
   {
-    if (globalData.version < 3.05)
-    {
-      StripFilenamePath(m_filename);
-    };
     DAS(ar, m_filename);
     if (LoadingVersion >= _VERSION_0790_)
       ar >> m_mode;
   }
 }
 
-
-
-
-
-
 void PLAY_MOVIE_DATA::Serialize(CAR &ar, double version)
 {
   GameEvent::Serialize(ar, version);
   if (ar.IsStoring())
   {
-    StripFilenamePath(m_filename);
     AS(ar, m_filename);
     ar << m_mode;
   }
   else
   {
-    if (globalData.version < 3.05)
-    {
-      StripFilenamePath(m_filename);
-    };
     DAS(ar, m_filename);
     if (LoadingVersion >= _VERSION_0790_)
       ar >> m_mode;
@@ -6634,14 +6142,7 @@ void ADD_NPC_DATA::Serialize(CAR &ar, double version)
       ar >> charKey;
     //ar >> charAdded;
       indx = globalData.charData.LocateOrigIndex(charKey);
-      if (indx < 0)
-      {
-        characterID.Format("UnknownNPC%04d", charKey);
-      }
-      else
-      {
-        characterID = globalData.charData.PeekCharacter(indx)->GetName();
-      };
+      characterID = globalData.charData.PeekCharacter(indx)->GetName();
     }
     else
 #endif
@@ -7904,7 +7405,7 @@ void GIVE_DAMAGE_DATA::Serialize(CArchive &ar, double version)
     ar >> temp;
     eventSave = (spellSaveEffectType)temp;   
     ar >> temp;
-    spellSave = (spellSaveVersusType)temp;   
+    spellSave = (spellSaveVsType)temp;   
     ar >> temp;
     who = (eventPartyAffectType)temp;   
     ar >> temp;
@@ -7946,7 +7447,7 @@ void GIVE_DAMAGE_DATA::Serialize(CAR &ar, double version)
     ar >> temp;
     eventSave = (spellSaveEffectType)temp;   
     ar >> temp;
-    spellSave = (spellSaveVersusType)temp;   
+    spellSave = (spellSaveVsType)temp;   
     ar >> temp;
     who = (eventPartyAffectType)temp;   
     ar >> temp;
@@ -8552,130 +8053,6 @@ void TEXT_EVENT_DATA::Serialize(CAR &ar, double version)
 
 #ifdef UAFEDITOR
 
-const char *JKEY_ENTRYMARKER = "EntryMarker";
-const char *JKEY_EXITMARKER = "ExitMarker";
-const char *JKEY_DESTMARKER = "DestinationMarker";
-const char *JKEY_GLOBALVARIABLE = "GlobalVariable";
-extern const char *JKEY_VALUE;
-const char *JKEY_MODIFICATION = "Modification";
-const char *JKEY_ACTIONCONDITION = "ActionCondition";
-const char *JKEY_ACTION = "Action";
-extern const char *JKEY_FLAGS;
-extern const char *FLOW_CONTROL_FLAGSText[];
-
-void FLOW_CONTROL_EVENT_DATA::Export(JWriter& jw)
-{
-  jw.NameAndValue(JKEY_ENTRYMARKER, entryMarkerName);
-  jw.NameAndValue(JKEY_EXITMARKER,  exitMarkerName);
-  jw.NameAndValue(JKEY_DESTMARKER, destinationMarkerName);
-  jw.NameAndValue(JKEY_GLOBALVARIABLE, globalVariableName);
-  jw.NameAndValue(JKEY_VALUE, value);
-  jw.NameAndEnum(JKEY_MODIFICATION, valueModification);
-  jw.NameAndEnum(JKEY_ACTIONCONDITION, actionCondition);
-  jw.NameAndEnum(JKEY_ACTION,  action);
-  jw.NameAndFlags(JKEY_FLAGS, flags, 1, FLOW_CONTROL_FLAGSText);
-}
-
-bool FLOW_CONTROL_EVENT_DATA::Import(JReader& jr)
-{
-  jr.NameAndValue(JKEY_ENTRYMARKER, entryMarkerName);
-  jr.NameAndValue(JKEY_EXITMARKER, exitMarkerName);
-  jr.NameAndValue(JKEY_DESTMARKER, destinationMarkerName);
-  jr.NameAndValue(JKEY_GLOBALVARIABLE, globalVariableName);
-  jr.NameAndValue(JKEY_VALUE, value);
-  jr.NameAndEnum(JKEY_MODIFICATION, valueModification);
-  jr.NameAndEnum(JKEY_ACTIONCONDITION, actionCondition);
-  jr.NameAndEnum(JKEY_ACTION, action);
-  jr.Optional();  jr.NameAndFlags(JKEY_FLAGS, flags, 1, FLOW_CONTROL_FLAGSText);
-  return true;
-}
-#endif
-FLOW_CONTROL_EVENT_DATA& FLOW_CONTROL_EVENT_DATA::operator =(const FLOW_CONTROL_EVENT_DATA& src)
-{
-  entryMarkerName = src.entryMarkerName;
-  exitMarkerName = src.exitMarkerName;
-  globalVariableName = src.globalVariableName;
-  value = src.value;
-  valueModification = src.valueModification;
-  actionCondition = src.actionCondition;
-  action = src.action;
-  flags = src.flags;
-  destID = src.destID;
-  return *this;
-}
-#ifdef UAFEDITOR
-bool FLOW_CONTROL_EVENT_DATA::operator ==(const GameEvent& src) const
-{
-  /* Really */ NotImplemented(0x5aab, false);
-  return false;
-}
-#endif
-
-
-void FLOW_CONTROL_EVENT_DATA::Clear(void)
-{
-  entryMarkerName.Empty();
-  exitMarkerName.Empty();
-  globalVariableName.Empty();
-  value.Empty();
-  valueModification = NO_CHANGE;
-  actionCondition = CONDITION_ALWAYS;
-  action = ACTION_NONE;
-  flags = FCF_LocalChainOnly;
-  destID = 0;
-}
-
-
-void FLOW_CONTROL_EVENT_DATA::Serialize(CAR& ar, double version)
-{
-  GameEvent::Serialize(ar, version);
-
-  if (ar.IsStoring())
-  {
-    int ver = 1;
-    ar << ver; 
-    ar << entryMarkerName;
-    ar << exitMarkerName;
-    ar << destinationMarkerName;
-    ar << globalVariableName;
-    ar << value;
-    ar << destID;
-    ar << (int)valueModification;
-    ar << (int)actionCondition;
-    ar << (int)action;
-    ar << flags;
-  }
-  else
-  {
-    int ver;
-    int temp;
-    ar >> ver;
-    ar >> entryMarkerName;
-    ar >> exitMarkerName;
-    ar >> destinationMarkerName;
-    ar >> globalVariableName;
-    ar >> value;
-    ar >> destID; 
-#ifdef UAFEDITOR
-    destID = 0; // Ignore this when reading
-#endif
-    ar >> temp;
-    valueModification = (VALUE_MODIFICATION)temp;
-    ar >> temp;
-    actionCondition = (ACTION_CONDITION)temp;
-    ar >> temp;
-    action = (ACTION)temp;
-    ar >> flags;
-  };
-}
-
-#ifdef UAFEDITOR
-
-void FLOW_CONTROL_EVENT_DATA::DetailedCrossReference(CR_EVENT_INFO *pCREI)
-{
-  /* Really */ NotImplemented(0x96cb, false);
-}
-
 const char *JKEY_WAITFORRETURN = "waitForReturn";
 const char *JKEY_FORCEBACKUP = "forceBackup";
 const char *JKEY_HIGHLIGHTTEXT = "highLightText";
@@ -8816,9 +8193,9 @@ void WHO_PAYS_EVENT_DATA::Serialize(CArchive &ar, double version)
 
     if (LoadingVersion >= _VERSION_0912_)
     {
-      int tmp;
-      ar >> tmp;
-      moneyType = (itemClassType)tmp;
+      int temp;
+      ar >> temp;
+      moneyType = (itemClassType)temp;
     }
   }
 
@@ -8857,9 +8234,9 @@ void WHO_PAYS_EVENT_DATA::Serialize(CAR &ar, double version)
 
     if (LoadingVersion >= _VERSION_0912_)
     {
-      int tmp;
-      ar >> tmp;
-      moneyType = (itemClassType)tmp;
+      int temp;
+      ar >> temp;
+      moneyType = (itemClassType)temp;
     }
   }
 
@@ -10295,8 +9672,8 @@ void TRAININGHALL::Serialize(CArchive &ar, double version)
 
   if (ar.IsStoring())
   {
-    die("TRAINING_HALL::Serialize(CArchive)"); //Not Implemented(0xce9ac, false);  // Should not be using CArchive
- 	  ar  << forceExit;
+    NotImplemented(0xce9ac, false);  // Should not be using CArchive
+ 	  ar  << forceExit
         //<< TrainCleric
         //<< TrainFighter
         //<< TrainMagicUser
@@ -10304,11 +9681,11 @@ void TRAININGHALL::Serialize(CArchive &ar, double version)
         //<< TrainRanger
         //<< TrainPaladin
         //<< TrainDruid
-	  ar << Cost;
+	      << Cost;
   }
   else
   {
-    die("TRAINING_HALL::Serialize(CArchive)"); //Not Implemented(0xce9ac, false);  // Should not be using CArchive
+    NotImplemented(0xc4e5d, false);
  	  ar  >> forceExit;
     //ar  >> TrainCleric;
     //ar  >> TrainFighter;
@@ -12342,20 +11719,18 @@ BOOL QUEST_EVENT_DATA::GetEVChainText(int num, char *ptext)
 
   if (num == 1)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Accept Chain",
-              (LPCSTR)GetEventIdDescription(acceptChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Accept Chain",
+            GetEventIdDescription(acceptChain,GetEventSource()));
     return TRUE;
   }
   else if (num == 2)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Reject Chain",
-              (LPCSTR)GetEventIdDescription(rejectChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Reject Chain",
+            GetEventIdDescription(rejectChain,GetEventSource()));
     return TRUE;
   }
 
@@ -12425,20 +11800,18 @@ BOOL TAVERN::GetEVChainText(int num, char *ptext)
 
   if (num == 1)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Fight Chain",
-              (LPCSTR)GetEventIdDescription(fightChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Fight Chain",
+            GetEventIdDescription(fightChain,GetEventSource()));
     return TRUE;
   }
   else if (num == 2)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Drunk Chain",
-              (LPCSTR)GetEventIdDescription(drinkChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Drunk Chain",
+            GetEventIdDescription(drinkChain,GetEventSource()));
     return TRUE;
   }
 
@@ -12522,11 +11895,10 @@ BOOL TEMPLE::GetEVChainText(int num, char *ptext)
 
   if (num == 1)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Donate Chain",
-              (LPCSTR)GetEventIdDescription(donationChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Donate Chain",
+            GetEventIdDescription(donationChain,GetEventSource()));
     return TRUE;
   }
 
@@ -12611,12 +11983,11 @@ BOOL RANDOM_EVENT_DATA::GetEVChainText(int num, char *ptext)
 
   if ((num>0) && (num < MAX_RANDOM_EVENTS))
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s %i: %s", 
-              "Random Chain",
-              num,
-              (LPCSTR)GetEventIdDescription(EventChains[num-1],GetEventSource()));
+    sprintf(ptext, 
+            "%s %i: %s", 
+            "Random Chain",
+            num,
+            GetEventIdDescription(EventChains[num-1],GetEventSource()));
     return TRUE;
   }
 
@@ -12735,51 +12106,45 @@ BOOL SMALL_TOWN_DATA::GetEVChainText(int num, char *ptext)
   switch (num)
   {
   case 1:
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Temple Chain",
-              (LPCSTR)GetEventIdDescription(TempleChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Temple Chain",
+            GetEventIdDescription(TempleChain,GetEventSource()));
     return TRUE;
     break;
   case 2:
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Training Hall Chain",
-              (LPCSTR)GetEventIdDescription(TrainingHallChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Training Hall Chain",
+            GetEventIdDescription(TrainingHallChain,GetEventSource()));
     return TRUE;
     break;  
   case 3:
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Shop Chain",
-              (LPCSTR)GetEventIdDescription(ShopChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Shop Chain",
+            GetEventIdDescription(ShopChain,GetEventSource()));
     return TRUE;
     break;  
   case 4:
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Inn Chain",
-              (LPCSTR)GetEventIdDescription(InnChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Inn Chain",
+            GetEventIdDescription(InnChain,GetEventSource()));
     return TRUE;
     break;  
   case 5:
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Tavern Chain",
-              (LPCSTR)GetEventIdDescription(TavernChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Tavern Chain",
+            GetEventIdDescription(TavernChain,GetEventSource()));
     return TRUE;
     break;  
   case 6:
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Vault Chain",
-              (LPCSTR)GetEventIdDescription(VaultChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Vault Chain",
+            GetEventIdDescription(VaultChain,GetEventSource()));
     return TRUE;
     break;
   }
@@ -12879,11 +12244,10 @@ BOOL CHAIN_EVENT::GetEVChainText(int num, char *ptext)
   switch (num)
   {
   case 1:
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Chained Event",
-              (LPCSTR)GetEventIdDescription(Chain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Chained Event",
+            GetEventIdDescription(Chain,GetEventSource()));
     return TRUE;
     break;
   }
@@ -12982,32 +12346,28 @@ BOOL ENCOUNTER_DATA::GetEVChainText(int num, char *ptext)
     return GameEvent::GetEVChainText(num, ptext);
   if (num <= MAX_BUTTONS)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "Button %i Chain: %s", 
-              num,
-              (LPCSTR)GetEventIdDescription(buttons.buttons[num-1].chain,GetEventSource()));
+    sprintf(ptext, 
+            "Button %i Chain: %s", 
+            num,
+            GetEventIdDescription(buttons.buttons[num-1].chain,GetEventSource()));
     return TRUE;
   };
   if (num==MAX_BUTTONS+1)
   {
-    if (ptext != NULL)
-      sprintf(ptext,"Combat Chain: %s",
-              (LPCSTR)GetEventIdDescription(combatChain,GetEventSource()));
+    sprintf(ptext,"Combat Chain: %s",
+            GetEventIdDescription(combatChain,GetEventSource()));
     return TRUE;
   };
   if (num==MAX_BUTTONS+2)
   {
-    if (ptext != NULL)
-      sprintf(ptext,"Talk Chain: %s",
-              (LPCSTR)GetEventIdDescription(talkChain,GetEventSource()));
+    sprintf(ptext,"Talk Chain: %s",
+            GetEventIdDescription(talkChain,GetEventSource()));
     return TRUE;
   };
   if (num==MAX_BUTTONS+3)
   {
-    if (ptext != NULL)
-      sprintf(ptext,"Escape Chain: %s",
-              (LPCSTR)GetEventIdDescription(escapeChain,GetEventSource()));
+    sprintf(ptext,"Escape Chain: %s",
+            GetEventIdDescription(escapeChain,GetEventSource()));
     return TRUE;
   };
   return FALSE;
@@ -13101,20 +12461,18 @@ BOOL PASSWORD_DATA::GetEVChainText(int num, char *ptext)
 
   if (num == 1)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Pswd Success Chain",
-              (LPCSTR)GetEventIdDescription(successChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Pswd Success Chain",
+            GetEventIdDescription(successChain,GetEventSource()));
     return TRUE;
   }
   else if (num == 2)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Pswd Fail Chain",
-              (LPCSTR)GetEventIdDescription(failChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Pswd Fail Chain",
+            GetEventIdDescription(failChain,GetEventSource()));
     return TRUE;
   }
 
@@ -13194,20 +12552,18 @@ BOOL WHO_PAYS_EVENT_DATA::GetEVChainText(int num, char *ptext)
 
   if (num == 1)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Pay Success Chain",
-              (LPCSTR)GetEventIdDescription(successChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Pay Success Chain",
+            GetEventIdDescription(successChain,GetEventSource()));
     return TRUE;
   }
   else if (num == 2)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Pay Fail Chain",
-              (LPCSTR)GetEventIdDescription(failChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Pay Fail Chain",
+            GetEventIdDescription(failChain,GetEventSource()));
     return TRUE;
   }
 
@@ -13287,20 +12643,18 @@ BOOL WHO_TRIES_EVENT_DATA::GetEVChainText(int num, char *ptext)
 
   if (num == 1)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Try Success Chain",
-              (LPCSTR)GetEventIdDescription(successChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Try Success Chain",
+            GetEventIdDescription(successChain,GetEventSource()));
     return TRUE;
   }
   else if (num == 2)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Try Fail Chain",
-              (LPCSTR)GetEventIdDescription(failChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Try Fail Chain",
+            GetEventIdDescription(failChain,GetEventSource()));
     return TRUE;
   }
 
@@ -13384,11 +12738,10 @@ BOOL QUESTION_BUTTON_DATA::GetEVChainText(int num, char *ptext)
   if (num == 0)
     return GameEvent::GetEVChainText(num, ptext);
 
-  if (ptext != NULL)
     sprintf(ptext, 
             "Button %i Chain: %s", 
             num,
-            (LPCSTR)GetEventIdDescription(buttons.buttons[num-1].chain,GetEventSource()));
+            GetEventIdDescription(buttons.buttons[num-1].chain,GetEventSource()));
 
   return TRUE;
 }
@@ -13465,11 +12818,10 @@ BOOL QUESTION_LIST_DATA::GetEVChainText(int num, char *ptext)
   if (num == 0)
     return GameEvent::GetEVChainText(num, ptext);
 
-  if (ptext != NULL)
     sprintf(ptext, 
             "Button %i Chain: %s", 
             num,
-            (LPCSTR)GetEventIdDescription(buttons.buttons[num-1].chain,GetEventSource()));
+            GetEventIdDescription(buttons.buttons[num-1].chain,GetEventSource()));
 
   return TRUE;
 }
@@ -13541,20 +12893,18 @@ BOOL QUESTION_YES_NO::GetEVChainText(int num, char *ptext)
 
   if (num == 1)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "Yes Chain",
-              (LPCSTR)GetEventIdDescription(YesChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "Yes Chain",
+            GetEventIdDescription(YesChain,GetEventSource()));
     return TRUE;
   }
   else if (num == 2)
   {
-    if (ptext != NULL)
-      sprintf(ptext, 
-              "%s: %s", 
-              "No Chain",
-              (LPCSTR)GetEventIdDescription(NoChain,GetEventSource()));
+    sprintf(ptext, 
+            "%s: %s", 
+            "No Chain",
+            GetEventIdDescription(NoChain,GetEventSource()));
     return TRUE;
   }
 
@@ -13628,9 +12978,7 @@ BOOL ENCOUNTER_DATA::IsChained()
     if (buttons.buttons[i].chain > 0)
 			return TRUE;
 	}
-  if (combatChain > 0) return TRUE;
-  if (escapeChain > 0) return TRUE;
-  if (talkChain > 0) return TRUE;
+
   return FALSE;
 }
 
@@ -14183,198 +13531,18 @@ void LOGIC_BLOCK_DATA::Serialize(CAR& ar, double version)
   };
 }
 
-const char *JKEY_FALSECHAIN = "falseChain";
-const char *JKEY_TRUECHAIN = "trueChain";
-const char *JKEY_INPUTS = "inputs";
-const char *JKEY_GATES = "gates";
-const char *JKEY_INPUTTYPE = "type";
-const char *JKEY_GATETYPE = "type";
-const char *JKEY_ACTIONTYPE = "type";
-const char *JKEY_NOT = "not";
-const char *JKEY_ACTIONS = "actions";
-const char *JKEY_CONDITION = "condition";
-const char *JKEY_CHAINCONTROL = "chainControl";
-const char *JKEY_CHAINCOND = "condition";
-const char *JKEY_MISC = "misc";
-const char *JKEY_CHAINIFFALSE = "chainIfFalse";
-const char *JKEY_CHAINIFTRUE = "chainIfTrue";
-const char *JKEY_RUNTIMEDEBUG = "runtimeDebug";
-const char *JKEY_RECORDVALUES = "recordValues";
 
 #ifdef UAFEDITOR
 void LOGIC_BLOCK_DATA::DetailedCrossReference(CR_EVENT_INFO *pCREIl)
 {
 }
-
-const char *GetLogicBlockInputTypeText(int type);
-int         GetLogicBlockInputType(const CString& text);
-const char *GetLogicBlockGateTypeText(int type);
-int         GetLogicBlockGateType(const CString& text);
-const char *GetLogicBlockActionTypeText(int index);
-int         GetLogicBlockActionType(const CString& text);
-const char *GetLogicBlockActionConditionText(int index);
-int         GetLogicBlockActionCondition(const CString& text);
-const char *GetLogicBlockChainConditionText(int type);
-int         GetLogicBlockChainCondition(const CString& text);
-
-void LOGIC_BLOCK_DATA::ExportInput(JWriter& jw, char c, BYTE& type, CString& value)
-{
-  jw.StartList(CString(c));
-  jw.Linefeed(false);
-    jw.NameAndValue(JKEY_INPUTTYPE, GetLogicBlockInputTypeText(type));
-    jw.NameAndValue(JKEY_VALUE, value);
-  jw.EndList();
-  jw.Linefeed(true);
-}
-
-void LOGIC_BLOCK_DATA::ExportAction(JWriter& jw, const CString& name, BYTE& type, BYTE& cond, CString& value)
-{
-  jw.StartList(name);
-  jw.Linefeed(false);
-    jw.NameAndValue(JKEY_CONDITION, GetLogicBlockActionConditionText(cond));
-    jw.NameAndValue(JKEY_INPUTTYPE, GetLogicBlockActionTypeText(type));
-    jw.NameAndValue(JKEY_VALUE, value);
-  jw.EndList();
-  jw.Linefeed(true);
-}
-
-
-void LOGIC_BLOCK_DATA::ExportGate(JWriter& jw, char c, BYTE& type, BYTE *negate)
-{
-  jw.StartList(CString(c));
-  jw.Linefeed(false);
-    jw.NameAndValue(JKEY_ACTIONTYPE, GetLogicBlockGateTypeText(type));
-    if (negate != NULL)
-    jw.NameAndValue(JKEY_NOT, (*negate != 0)?"yes":"no");
-  jw.EndList();
-  jw.Linefeed(true);
-}
-
 void LOGIC_BLOCK_DATA::Export(JWriter& jw)
 {
-    jw.NameAndValue(JKEY_FALSECHAIN,falseChain);
-    jw.NameAndValue(JKEY_TRUECHAIN,trueChain);
-    jw.StartList(JKEY_INPUTS);
-    ExportInput(jw, 'A', m_InputTypeA, m_InputParamA);
-    ExportInput(jw, 'B', m_InputTypeB, m_InputParamB);
-    ExportInput(jw, 'D', m_InputTypeD, m_InputParamD);
-    ExportInput(jw, 'F', m_InputTypeF, m_InputParamF);
-    ExportInput(jw, 'G', m_InputTypeG, m_InputParamG);
-    jw.EndList();
-
-    jw.StartList(JKEY_GATES);
-    ExportGate(jw,'C', m_GateTypeC, &m_NotC);
-    ExportGate(jw,'E', m_GateTypeE, &m_NotE);
-    ExportGate(jw,'H', m_GateTypeH, &m_NotH);
-    ExportGate(jw,'I', m_GateTypeI, &m_NotI);
-    ExportGate(jw,'J', m_GateTypeJ, &m_NotJ);
-    ExportGate(jw,'K', m_GateTypeK, &m_NotK);
-    ExportGate(jw,'L', m_GateTypeL, NULL);
-    jw.EndList();
-
-    jw.StartList(JKEY_ACTIONS);
-    ExportAction(jw,"First", m_ActionType1, m_IfTrue1, m_ActionParam1);
-    ExportAction(jw,"Second", m_ActionType2, m_IfTrue2, m_ActionParam2);
-    jw.EndList();
-
-    jw.StartList(JKEY_CHAINCONTROL);
-    jw.NameAndValue(JKEY_CHAINCOND, GetLogicBlockChainConditionText(m_NoChain));
-    jw.NameAndValue(JKEY_CHAINIFFALSE, (m_ChainIfFalse!=0)?"yes":"no");
-    jw.NameAndValue(JKEY_CHAINIFTRUE, (m_ChainIfTrue!=0)?"yes":"no");
-    jw.EndList();
-   
-    jw.NameAndValue(JKEY_RUNTIMEDEBUG, ((m_Flags & LBF_RUNTIME_DEBUG)!=0)?"yes":"no");
-    jw.NameAndValue(JKEY_RECORDVALUES, ((m_Flags & LBF_RECORD_VALUES)!=0)?"yes":"no");   
+  NotImplemented(0xcd929, false);
 }
-
-void LOGIC_BLOCK_DATA::ImportInput(JReader& jr, char c, BYTE& type, CString& value)
-{
-  CString temp;
-  jr.StartList(CString(c));
-  jr.Linefeed(false);
-    jr.NameAndValue(JKEY_INPUTTYPE, temp);
-    type = GetLogicBlockInputType(temp);
-    jr.NameAndValue(JKEY_VALUE, value);
-  jr.EndList();
-  jr.Linefeed(true);
-}
-
-void LOGIC_BLOCK_DATA::ImportAction(JReader& jr, const CString& name, BYTE& type, BYTE& cond, CString& value)
-{
-  CString temp;
-  jr.StartList(name);
-  jr.Linefeed(false);
-    jr.NameAndValue(JKEY_CONDITION, temp);
-    cond = GetLogicBlockActionCondition(temp);
-    jr.NameAndValue(JKEY_INPUTTYPE, temp);
-    type = GetLogicBlockActionType(temp);
-    jr.NameAndValue(JKEY_VALUE, value);
-  jr.EndList();
-  jr.Linefeed(true);
-}
-
-
-void LOGIC_BLOCK_DATA::ImportGate(JReader& jr, char c, BYTE& type, BYTE *negate)
-{
-  CString temp;
-  jr.StartList(CString(c));
-  jr.Linefeed(false);
-    jr.NameAndValue(JKEY_ACTIONTYPE, temp);
-    type = GetLogicBlockGateType(temp);
-    if (negate != NULL)
-    {
-      jr.NameAndValue(JKEY_NOT, temp);
-      *negate = temp == "yes";
-    };
-  jr.EndList();
-  jr.Linefeed(true);
-}
-
-
-
-
 bool LOGIC_BLOCK_DATA::Import(JReader& jr)
-{ 
-  CString temp;
-  jr.NameAndValue(JKEY_FALSECHAIN,falseChain);
-  jr.NameAndValue(JKEY_TRUECHAIN,trueChain);
-  jr.StartList(JKEY_INPUTS);
-  ImportInput(jr, 'A', m_InputTypeA, m_InputParamA);
-  ImportInput(jr, 'B', m_InputTypeB, m_InputParamB);
-  ImportInput(jr, 'D', m_InputTypeD, m_InputParamD);
-  ImportInput(jr, 'F', m_InputTypeF, m_InputParamF);
-  ImportInput(jr, 'G', m_InputTypeG, m_InputParamG);
-  jr.EndList();
-
-  jr.StartList(JKEY_GATES);
-  ImportGate(jr,'C', m_GateTypeC, &m_NotC);
-  ImportGate(jr,'E', m_GateTypeE, &m_NotE);
-  ImportGate(jr,'H', m_GateTypeH, &m_NotH);
-  ImportGate(jr,'I', m_GateTypeI, &m_NotI);
-  ImportGate(jr,'J', m_GateTypeJ, &m_NotJ);
-  ImportGate(jr,'K', m_GateTypeK, &m_NotK);
-  ImportGate(jr,'L', m_GateTypeL, NULL);
-  jr.EndList();
-
-  jr.StartList(JKEY_ACTIONS);
-  ImportAction(jr,"First", m_ActionType1, m_IfTrue1, m_ActionParam1);
-  ImportAction(jr,"Second", m_ActionType2, m_IfTrue2, m_ActionParam2);
-  jr.EndList();
-
-  jr.StartList(JKEY_CHAINCONTROL);
-  jr.NameAndValue(JKEY_CHAINCOND, temp);
-  m_NoChain = GetLogicBlockChainCondition(temp);
-  jr.NameAndValue(JKEY_CHAINIFFALSE, temp);
-  m_ChainIfFalse = temp == "yes";
-  jr.NameAndValue(JKEY_CHAINIFTRUE, temp);
-  m_ChainIfTrue = temp =="yes";
-  jr.EndList();
-   
-  m_Flags = 0;
-  jr.NameAndValue(JKEY_RUNTIMEDEBUG, temp);
-  if (temp == "yes") m_Flags |= LBF_RUNTIME_DEBUG;
-  jr.NameAndValue(JKEY_RECORDVALUES, temp);
-  if (temp == "yes") m_Flags |= LBF_RECORD_VALUES;   
+{
+  NotImplemented(0xcd92a, false);
   return true;
 }
 #endif
@@ -14427,16 +13595,12 @@ BOOL LOGIC_BLOCK_DATA::GetEVChainText(int num, char *ctext)
     return FALSE;
 
   if (num==0) return GameEvent::GetEVChainText(num, ctext);
-  if (num==1) 
-    if (ctext != NULL)
-      sprintf(ctext,
-              "False Chain: %s",
-              (LPCSTR)GetEventIdDescription(falseChain,GetEventSource()));
-  if (num==2) 
-    if (ctext != NULL)
-      sprintf(ctext,
-              "True Chain: %s",
-              (LPCSTR)GetEventIdDescription(trueChain,GetEventSource()));
+  if (num==1) sprintf(ctext,
+                      "False Chain: %s",
+                      GetEventIdDescription(falseChain,GetEventSource()));
+  if (num==2) sprintf(ctext,
+                      "True Chain: %s",
+                      GetEventIdDescription(trueChain,GetEventSource()));
   return TRUE;
 }
 
@@ -14501,17 +13665,17 @@ void GameEvent::CrossReference(CR_EVENT_INFO *pCREI)
   CreateCRReference(&crEI);
 
 
-  //pCREI->m_pCRList->CR_AddResource(
-  //                    crEI.m_CRReference.m_referenceType, 
-  //                    crEI.m_CRReference.m_referenceName,
-  //                    id);
-  //pCREI->m_pCRList->CR_AddReference(
-  //                    CR_TYPE_event, 
-  //                    crEI.m_CRReference.m_referenceName, 
-  //                    id, 
-  //                    &crEI.m_CRReference);
-  pic.CrossReference  (crEI.m_pCRList, &crEI.m_CRReference);
-  pic2.CrossReference (crEI.m_pCRList, &crEI.m_CRReference);
+  pCREI->m_pCRList->CR_AddResource(
+                      crEI.m_CRReference.m_referenceType, 
+                      crEI.m_CRReference.m_referenceName,
+                      id);
+  pCREI->m_pCRList->CR_AddReference(
+                      CR_TYPE_event, 
+                      crEI.m_CRReference.m_referenceName, 
+                      id, 
+                      &pCREI->m_CRReference);
+  pic.CrossReference  (pCREI->m_pCRList, &pCREI->m_CRReference);
+  pic2.CrossReference (pCREI->m_pCRList, &pCREI->m_CRReference);
   DetailedCrossReference(&crEI);  // The particular event
   for (i=0; GetEVChain(i, cid); i++)
   {
@@ -14865,7 +14029,6 @@ void TEXT_EVENT_DATA::Clear()
   ForceBackup=FALSE;
   KillSound=FALSE; 
   distance = UpClose;
-  m_displaySpecialGraphics = false;
 }
 void TRANSFER_EVENT_DATA::Clear() 
 { 
@@ -15042,16 +14205,3 @@ void SOUND_EVENT::Clear()
   
   sounds.RemoveAll(); 
 }
-
-#ifdef UAFEngine
-void GameEvent::RunEventScript(LPCSTR scriptname)
-{
-  A_ASLENTRY_L *pAttributes;
-  pAttributes = &this->GetEventControl().eventcontrol_asl;
-  pAttributes->RunScripts(scriptname,
-                          ScriptCallback_RunAllScripts, 
-                          NULL, 
-                          ScriptSourceType_Event,
-                          "EventScript");
-}
-#endif

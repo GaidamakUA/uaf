@@ -1381,7 +1381,7 @@ T& UnorderedQueue< T, Size >::GetAt(DWORD key)
     return (m_Msgs.GetAt(pos).data);
   }
 
-  die(0xab536);
+  ASSERT(FALSE);
   UnorderedQueueNode<T> temp;
   return (temp.data);
 }

@@ -19,9 +19,9 @@
    write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.  */
 
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 
-#include "externs.h"
+#include "Externs.h"
 #include <stdlib.h>
 #include "regexp.h"
 
@@ -2524,14 +2524,14 @@ union register_info_type {
         DEBUG_PRINT2 ("  Pushing reg: %lu\n", this_reg);              \
         DEBUG_STATEMENT (num_regs_pushed++);                          \
                                                                       \
-        DEBUG_PRINT2 ("    start: %08x\n", (unsigned int)regstart[this_reg]);         \
+        DEBUG_PRINT2 ("    start: %p\n", regstart[this_reg]);         \
         PUSH_FAILURE_POINTER (regstart[this_reg]);                    \
                                                                       \
-        DEBUG_PRINT2 ("    end: %08x\n", (unsigned int)regend[this_reg]);             \
+        DEBUG_PRINT2 ("    end: %p\n", regend[this_reg]);             \
         PUSH_FAILURE_POINTER (regend[this_reg]);                      \
                                                                       \
-        DEBUG_PRINT2 ("    info: %08x\n      ",                         \
-                         (unsigned int)reg_info[this_reg].word.pointer);            \
+        DEBUG_PRINT2 ("    info: %p\n      ",                         \
+                         reg_info[this_reg].word.pointer);            \
         DEBUG_PRINT2 (" match_null=%d",                               \
               REG_MATCH_NULL_STRING_P (reg_info[this_reg]));    \
         DEBUG_PRINT2 (" active=%d", IS_ACTIVE (reg_info[this_reg]));  \
@@ -2548,11 +2548,11 @@ union register_info_type {
     DEBUG_PRINT2 ("  Pushing high active reg: %ld\n", highest_active_reg);\
     PUSH_FAILURE_INT (highest_active_reg);                                \
                                                                           \
-    DEBUG_PRINT2 ("  Pushing pattern %08x:\n", (unsigned int)pattern_place);              \
+    DEBUG_PRINT2 ("  Pushing pattern %p:\n", pattern_place);              \
     DEBUG_PRINT_COMPILED_PATTERN (bufp, pattern_place, pend);             \
     PUSH_FAILURE_POINTER (pattern_place);                                 \
                                                                           \
-    DEBUG_PRINT2 ("  Pushing string %08x: `", (unsigned int)string_place);                \
+    DEBUG_PRINT2 ("  Pushing string %p: `", string_place);                \
     DEBUG_PRINT_DOUBLE_STRING (string_place, string1, size1, string2,     \
                   size2);                                   \
     DEBUG_PRINT1 ("'\n");                                                 \
@@ -2596,7 +2596,7 @@ union register_info_type {
 
 #define POP_FAILURE_POINT(str, pat, low_reg, high_reg, regstart, regend, reg_info)\
 {                                                                                 \
-  DEBUG_STATEMENT (unsigned failure_ID;)                                        \
+  DEBUG_STATEMENT (unsigned failure_id;)                                        \
   active_reg_t this_reg;                                                        \
   const unsigned char *string_temp;                                             \
                                                                                 \
@@ -2609,8 +2609,8 @@ union register_info_type {
                                                                                 \
   assert (fail_stack.avail >= NUM_NONREG_ITEMS);                                \
                                                                                 \
-  DEBUG_POP (&failure_ID);                                                      \
-  DEBUG_PRINT2 ("  Popping failure id: %u\n", failure_ID);                      \
+  DEBUG_POP (&failure_id);                                                      \
+  DEBUG_PRINT2 ("  Popping failure id: %u\n", failure_id);                      \
                                                                                 \
   /* If the saved string location is NULL, it came from an                      \
      on_failure_keep_string_jump opcode, and we want to throw away the          \
@@ -3001,7 +3001,7 @@ static int re_match_2_internal (re_pattern_buffer *bufp,
   // function if the match is complete, or it drops through if the match
   // fails at this starting point in the input data.
   for (;;) {
-    DEBUG_PRINT2 ("\n0x%x: ", (unsigned int)p);
+    DEBUG_PRINT2 ("\n0x%x: ", p);
 
     if (p == pend) { 
       // End of pattern means we might have succeeded.
@@ -3494,7 +3494,7 @@ static int re_match_2_internal (re_pattern_buffer *bufp,
     case on_failure_keep_string_jump:
       DEBUG_PRINT1 ("EXECUTING on_failure_keep_string_jump");
       EXTRACT_NUMBER_AND_INCR (mcnt, p);
-      DEBUG_PRINT3 (" %d (to 0x%x):\n", mcnt, (unsigned int)(p + mcnt));
+      DEBUG_PRINT3 (" %d (to 0x%x):\n", mcnt, p + mcnt);
       PUSH_FAILURE_POINT (p + mcnt, NULL, -2);
       break;
 
@@ -3515,7 +3515,7 @@ static int re_match_2_internal (re_pattern_buffer *bufp,
   on_failure:
       DEBUG_PRINT1 ("EXECUTING on_failure_jump");
       EXTRACT_NUMBER_AND_INCR (mcnt, p);
-      DEBUG_PRINT3 (" %d (to 0x%x)", mcnt, (unsigned int)(p + mcnt));
+      DEBUG_PRINT3 (" %d (to 0x%x)", mcnt, p + mcnt);
       // If this on_failure_jump comes right before a group (i.e.,
       // the original * applied to a group), save the information
       // for that group and all inner ones, so that if we fail back
@@ -3673,13 +3673,13 @@ static int re_match_2_internal (re_pattern_buffer *bufp,
         const char *sdummy=NULL;
         DEBUG_PRINT1 ("EXECUTING pop_failure_jump.\n");
         POP_FAILURE_POINT (sdummy, pdummy,
-                           dummy_low_reg, dummy_high_reg,
-                           reg_dummy, reg_dummy, reg_info_dummy);
+                         dummy_low_reg, dummy_high_reg,
+                   reg_dummy, reg_dummy, reg_info_dummy);
       };
     // Note fall through.
 
   unconditional_jump:
-      DEBUG_PRINT2 ("\n0x%x: ", (unsigned int)p);
+      DEBUG_PRINT2 ("\n0x%x: ", p);
     // Note fall through.
       
       // Unconditionally jump (without popping any failure points).
@@ -3687,7 +3687,7 @@ static int re_match_2_internal (re_pattern_buffer *bufp,
       EXTRACT_NUMBER_AND_INCR (mcnt, p);  // Get the amount to jump. 
       DEBUG_PRINT2 ("EXECUTING jump %d ", mcnt);
       p += mcnt;  // Do the jump.
-      DEBUG_PRINT2 ("(to 0x%x).\n", (unsigned int)p);
+      DEBUG_PRINT2 ("(to 0x%x).\n", p);
       break;
       // We need this opcode so we can detect where alternatives end
       // in `group_match_null_string_p' et al.
@@ -3730,9 +3730,9 @@ static int re_match_2_internal (re_pattern_buffer *bufp,
         mcnt--;
         p += 2;
         STORE_NUMBER_AND_INCR (p, mcnt);
-        DEBUG_PRINT3 ("  Setting 0x%x to %d.\n", (unsigned int)(p - 2), mcnt);
+        DEBUG_PRINT3 ("  Setting 0x%x to %d.\n", p - 2, mcnt);
       } else if (mcnt == 0) {
-        DEBUG_PRINT2 ("  Setting two bytes from 0x%x to no_op.\n", (unsigned int)(p+2));
+        DEBUG_PRINT2 ("  Setting two bytes from 0x%x to no_op.\n", p+2);
         p[2] = (unsigned char) no_op;
         p[3] = (unsigned char) no_op;
         goto on_failure;
@@ -3746,7 +3746,7 @@ static int re_match_2_internal (re_pattern_buffer *bufp,
       if (mcnt) {
         mcnt--;
         STORE_NUMBER (p + 2, mcnt);
-        DEBUG_PRINT3 ("  Setting 0x%x to %d.\n", (unsigned int)(p + 2), mcnt);
+        DEBUG_PRINT3 ("  Setting 0x%x to %d.\n", p + 2, mcnt);
         goto unconditional_jump;
       } else {
         // If don't have to jump any more, skip over the rest of command.
@@ -3760,7 +3760,7 @@ static int re_match_2_internal (re_pattern_buffer *bufp,
         EXTRACT_NUMBER_AND_INCR (mcnt, p);
         p1 = p + mcnt;
         EXTRACT_NUMBER_AND_INCR (mcnt, p);
-        DEBUG_PRINT3 ("  Setting 0x%x to %d.\n", (unsigned int)p1, mcnt);
+        DEBUG_PRINT3 ("  Setting 0x%x to %d.\n", p1, mcnt);
         STORE_NUMBER (p1, mcnt);
         break;
       };

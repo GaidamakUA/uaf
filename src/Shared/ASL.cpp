@@ -22,19 +22,12 @@
 #include "Externs.h"
 #include "ASL.h"
 #include "class.h"
-#include "specAb.h"
+#include "Specab.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
-#endif
-
-#ifdef UAFEngine
-// THe following line was inserted to get rid of an undefined when attempting
-// to create a 'DLL' version of UAFwin.  I don't know what it does, but it seems to work.
-// PRS 20150708
-//extern "C" { FILE _iob[3] = { __iob_func()[0], __iob_func()[1], __iob_func()[2] }; }
 #endif
 
 #pragma warning (disable:4201) // Nameless structure
@@ -43,6 +36,16 @@ void die(const char *msg);
 
 CString emptyString = "";
 
+
+struct BTREE_ENVIRONMENT
+{
+  BOOL  (*bTreeKeyCompare)(int a);          // Compare bTreeKey to entry a.
+  BOOL  (*bTreeEntryCompare)(int a, int b); // Compare entry a to entry b.
+  void  (*bTreeDeleteData)(int a);
+  int     bTreeNoData;
+  LPCTSTR bTreeKey;
+  int     bTreeData;
+};
 
 
 
@@ -148,31 +151,6 @@ int DELIMITED_STRING::Count(void) const
   if (str > end) return count-1;
   return count;
 }
-
-bool DELIMITED_STRING::Next(int *col, CString *result) const
-{
-  int len, start;
-  const char *str;
-  char delim;
-  str = LPCTSTR(m_string);
-  len = m_string.GetLength();
-  if (*col < 0) *col = 0;
-  result->Empty();
-  if (*col >= len)
-  {
-    return false;
-  };
-  delim = str[*col];
-  (*col)++;
-  start = *col;
-  while ((*col < len) && (str[*col] != delim))
-  {
-    (*col)++;
-  };
-  *result = CString(str+start, *col-start);
-  return true;
-}
-
 
 CString DELIMITED_STRING::GetAt(int index) const
 {
@@ -296,7 +274,7 @@ BTree::~BTree(void)
 {
   if (m_root != NULL)
   {
-    die ("Not Needed?"); //Not Implemented(0x5dadbc, FALSE);  // Should never happen
+    NotImplemented(0x5dadbc, FALSE);  // Should never happen
   };
 }
 
@@ -499,17 +477,6 @@ void BTree::PushRight(BTreeNode *pTop, BTREE_ENVIRONMENT *pEnv)
     };
   };
 }
-
-struct BTREE_ENVIRONMENT
-{
-  BOOL(*bTreeKeyCompare)(int a);          // Compare bTreeKey to entry a.
-  BOOL(*bTreeEntryCompare)(int a, int b); // Compare entry a to entry b.
-  void(*bTreeDeleteData)(int a);
-  int     bTreeNoData;
-  LPCTSTR bTreeKey;
-  int     bTreeData;
-};
-
 
 int BTree::AddNode(BTreeNode *pTop, BTREE_ENVIRONMENT *pEnv)
 { // *ppTop != NULL
@@ -773,7 +740,6 @@ int BTree::Delete(BTREE_ENVIRONMENT *pEnv)
 #ifdef _DEBUG
 int NodeID = 1;
 #endif
-
 int BTree::Insert(BTREE_ENVIRONMENT *pEnv)
 {
   // Return matching data if matching key already exists; else zero.
@@ -1012,7 +978,7 @@ int BTree::FindNode(BTreeNode *pNode, BTREE_ENVIRONMENT *pEnv) const
     if (pNode->m_cntL != 0) return FindNode(pNode->m_left.pNode, pEnv);
     return pEnv->bTreeNoData;
   };
-  //return pEnv->bTreeNoData;
+  return pEnv->bTreeNoData;
 }
 
 
@@ -1364,7 +1330,7 @@ CArchive& A_ASLENTRY_L::Serialize(CArchive& ar, LPCSTR mapName)
         msg = ar.GetFile()->GetFileName();
         throw 7;
         //   I replaced the AfsThrowArchiveExecption because I could not
-        //   figure out how to catch it properly.  It caused a memory leak.
+        //   figure out how tatch it properly.  It caused a memory leak.
  				//AfxThrowArchiveException(CArchiveException::badIndex,
         //          ar.GetFile()->GetFileName());
 			};
@@ -1372,9 +1338,9 @@ CArchive& A_ASLENTRY_L::Serialize(CArchive& ar, LPCSTR mapName)
       ar >> count;
       for (;count>0; count--)
       {
-        ASLENTRY tempASL("","",0);
-        tempASL.DeSerialize(&ar);
-        Insert(&tempASL);
+        ASLENTRY temp("","",0);
+        temp.DeSerialize(&ar);
+        Insert(&temp);
       };
 		};
 
@@ -1425,9 +1391,9 @@ CAR& A_ASLENTRY_L::Serialize(CAR& ar, LPCSTR mapName)
       ar >> count;
       for (;count>0; count--)
       {
-        ASLENTRY tempASL("","",0);
-        tempASL.DeSerialize(&ar);
-        Insert(&tempASL);
+        ASLENTRY temp("","",0);
+        temp.DeSerialize(&ar);
+        Insert(&temp);
       };
 		};
 
@@ -1536,11 +1502,11 @@ void A_ASLENTRY_L::CommitRestore(const A_ASLENTRY_L *pList)
 	pos=pList->GetStartPosition();
 	while (pos!=NULL) 
 	{
-    const ASLENTRY *pASL;
-		pList->GetNextAssoc(pos,&pASL);
-		if ((pASL->m_flags & ASLF_READONLY)==0)
+    const ASLENTRY *pEntry;
+		pList->GetNextAssoc(pos,&pEntry);
+		if ((pEntry->m_flags & ASLF_READONLY)==0)
 		{
-			Insert(pASL);
+			Insert(pEntry);
 		};
 	};
 }
@@ -1595,6 +1561,7 @@ A_CString_L::~A_CString_L(void)
 
 BOOL A_CString_L::Insert(const CString& key)
 {
+
   CString *pEntry, *foundData;
   pEntry = new CString;
   *pEntry = key;
@@ -1673,13 +1640,6 @@ CStringPAIR& CStringPAIR::operator =(const CStringPAIR& p)
   return *this;
 }
 
-CStringPAIR& CStringPAIR::operator =(const ASLENTRY& p)
-{
-  m_key = p.Key(); m_value = p.Value();
-  return *this;
-}
-
-
 A_CStringPAIR_L::~A_CStringPAIR_L(void)
 {
 
@@ -1708,9 +1668,6 @@ CStringPAIR *A_CStringPAIR_L::Find(LPCTSTR key) const
   };
 	return NULL;
 }
-
-
-
 
 const CString& A_CStringPAIR_L::Lookup(LPCTSTR key) const
 {
@@ -1898,7 +1855,6 @@ void A_CStringPAIR_L::Export(JWriter& jw)
   pos = GetStartPosition();
   while (pos != NULL)
   {
-    jw.NextEntry();
     jw.StartList();
     GetNextAssoc(pos, &pEntry);
     jw.NameAndValue(JKEY_NAME, pEntry->m_key);
@@ -2213,7 +2169,7 @@ void A_SPECABILITY_DEF_L::DeleteString(specialAbilitiesType sa, LPCSTR name)
 
 const CString& A_SPECABILITY_DEF_L::spellAbilitiesText(specialAbilitiesType sa) const
 {
-  die ("Not Needed?"); //Not Implemented(0x991af, FALSE);
+  NotImplemented(0x991af, FALSE);
   return *(CString *)NULL;
 }
 

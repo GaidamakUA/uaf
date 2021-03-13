@@ -20,9 +20,9 @@
 //#include "..\Shared\Version.h"
 
 //#include "afxtempl.h"
-#include "externs.h"
-#include "char.h"
-#include "monster.h"
+#include "Externs.h"
+#include "Char.h"
+#include "Monster.h"
 #include "class.h"
 #include "ConfigFile.h"
 
@@ -511,9 +511,6 @@ CONFIG_ITEM_STATUS CONFIG_FILE::WriteFile(CArchive& ar, CONFIGID *ids)
         switch (pkt.status)
         {
         case CONFIG_STAT_skip:
-          pkt.status = CONFIG_STAT_ok;
-          break;
-        case CONFIG_STAT_next:
           pkt.status = CONFIG_STAT_more;
           break;
         case CONFIG_STAT_ok:
@@ -1298,7 +1295,7 @@ BOOL ParseDicePlusAdjustmentTokenBinary(DPTokenListType &list, int index, ADJUST
     // should be '3*2'          
     if (list[index+1].type == DPT_NONE)
     {
-      ASS ERT(FALSE);
+      ASSERT(FALSE);
       return FALSE;
     }
     else
@@ -2556,8 +2553,7 @@ CONFIG_ITEM_STATUS GetStringUntilComma (
 CONFIG_ITEM_STATUS CONFIG_DECODE_MonsterAttack(
 		  const CString& value,
 		  CString& errorMsg,
-      //MONSTER_ATTACK_DETAILS *data)
-      ATTACK_DETAILS* data)
+      MONSTER_ATTACK_DETAILS *data)
 {
 	CONFIG_ITEM_STATUS status;
 	CString temp;
@@ -3003,8 +2999,7 @@ void CONFIG_ENCODE_enum (
 
 void CONFIG_ENCODE_MonsterAttack(
             CString &result,
-            //const MONSTER_ATTACK_DETAILS *data)
-            const ATTACK_DETAILS* data)
+            const MONSTER_ATTACK_DETAILS *data)
 {
 	// Produce value of form "sides,nbr,bonus,message,spellName"
   SPELL_ID spellID;

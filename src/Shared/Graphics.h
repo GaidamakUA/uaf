@@ -18,7 +18,7 @@
 ******************************************************************************/
 #ifndef __GRAPHICS_H__
 #define __GRAPHICS_H__
-#include "externs.h"
+#include "Externs.h"
 
 #ifdef USE_DIRECTX
 
@@ -27,10 +27,10 @@
 //#endif
 
 #define CDXINCLUDEALL
-#include "..\cdx\cdx.h"
+#include "../cdx/cdx.h"
 
 #ifdef UAFEngine 
-#include "..\UAFWin\CDXBitmapFont.h"
+#include "../UAFWin/CDXBitmapFont.h"
 #endif
 
 #endif // is USE_DIRECTX

@@ -16,26 +16,26 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ******************************************************************************/
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 //#include "..\Shared\Version.h"
 
-#include "externs.h"
+#include "Externs.h"
 
 #ifdef UAFEDITOR
-#include "..\UAFWinEd\UAFWinEd.h"
+#include "../UAFWinEd/UAFWinEd.h"
 #endif
 // #include "externs.h"
 #include <math.h>
 #include "Char.h"
-#include "party.h"
+#include "Party.h"
 #include "GlobalData.h"
-#include "level.h"
+#include "Level.h"
 
 #ifdef UAFEngine
-#include "..\UAFWin\dgngame.h"
-#include "..\UAFWin\disptext.h"
-#include "..\UAFWin\Path.h"
-#include "..\UAFWin\FormattedText.h"
+#include "../UAFWin/Dgngame.h"
+#include "../UAFWin/Disptext.h"
+#include "../UAFWin/path.h"
+#include "../UAFWin/FormattedText.h"
 #endif
 
 
@@ -55,7 +55,6 @@ static char THIS_FILE[] = __FILE__;
 //IMPLEMENT_SERIAL( PARTY, CObject, 1 )
 
 extern const CString Skill_OpenLocks;
-extern CHARACTER FakeCharacter;
 
 PARTY party;
 
@@ -157,7 +156,7 @@ int TEMP_CHARACTERS::CountInPartyMembers()
   {
     for (j=0; j<tempCount; j++)
     {
-      if (party.GetCharacter(i, NULL).characterID == inParty[j].characterID)
+      if (party.GetCharacter(i).characterID == inParty[j].characterID)
       {
         break;
       };
@@ -186,14 +185,14 @@ int TEMP_CHARACTERS::CountInPartyPCs()
   {
     for (j=0; j<tempCount; j++)
     {
-      if (party.GetCharacter(i, NULL).characterID == inParty[j].characterID)
+      if (party.GetCharacter(i).characterID == inParty[j].characterID)
       {
         break;
       };
     };
     if (j == tempCount)
     {
-      if (party.GetCharacter(i, NULL).GetType() == CHAR_TYPE)
+      if (party.GetCharacter(i).GetType() == CHAR_TYPE)
       {
         count++;
       };
@@ -1242,8 +1241,7 @@ BOOL PARTY::PartyIsDetectingMagic()
   pChar = &getActiveChar();
   result = pChar->RunCharacterScripts(CAN_CHARACTER_DETECT_MAGIC,
                                       ScriptCallback_RunAllScripts,
-                                      NULL,
-                                      "Test if party is detecting magic");
+                                      NULL);
   return !result.IsEmpty() && (result[0] == 'Y');
 }
 
@@ -1304,11 +1302,11 @@ BOOL PARTY::PartyHasBaseclass(const BASECLASS_ID& baseclassID) const
     pClass = classData.PeekClass(characters[i].GetAdjClass());
     if (pClass != NULL)
     {
-      int j, n;
+      int i, n;
       n = pClass->GetCount();
-      for (j=0; j<n; j++)
+      for (i=0; i<n; i++)
       {
-        if (*pClass->PeekBaseclassID(j) == baseclassID) return TRUE;
+        if (*pClass->PeekBaseclassID(i) == baseclassID) return TRUE;
       };
     };
   }
@@ -1478,22 +1476,6 @@ void PARTY::incrementClock(int MinuteInc)
        }
      }
    }
-   {
-     HOOK_PARAMETERS hookParameters;
-     SCRIPT_CONTEXT scriptContext;
-     char num[20];
-     itoa((days*24+hours)*60+minutes, num, 10);
-     hookParameters[5] = num;
-     itoa(days, num, 10);
-     hookParameters[6] = num;
-     itoa(hours, num, 10);
-     hookParameters[7] = num;
-     itoa(minutes, num, 10);
-     hookParameters[8] = num;
-     itoa(MinuteInc, num, 10);
-     hookParameters[9] = num;
-     RunGlobalScript(GLOBAL_TIME, TIME_ELAPSED, true);
-   };
 }
 
 
@@ -1635,19 +1617,19 @@ PartyBlockageType PARTY::newForwardPosition(int relativeDirection, int &newX, in
      switch (ActualFacing) 
      {      
      case FACE_NORTH:
-        type = levelData.area[Posy][Posx].blockage[0];
+        type = levelData.area[Posy][Posx].northBlockage;
 //	      dirChar='N';
         break;      
      case FACE_EAST:
-        type = levelData.area[Posy][Posx].blockage[2];
+        type = levelData.area[Posy][Posx].eastBlockage;
 //	      dirChar='E';
         break;      
      case FACE_SOUTH:
-         type = levelData.area[Posy][Posx].blockage[1];
+         type = levelData.area[Posy][Posx].southBlockage;
 //	       dirChar='S';
         break;      
      case FACE_WEST:
-        type = levelData.area[Posy][Posx].blockage[3];
+        type = levelData.area[Posy][Posx].westBlockage;
 //	      dirChar='W';
         break;
      }     
@@ -1750,27 +1732,13 @@ int PARTY::DetermineSpriteDistance(int distance)
   origX = Posx;
   origY = Posy;
   
-  if (levelData.area_width <= 0) return distance;
 
   // check one square away to see if it is obstructed
   if (newForwardPosition(0, newX, newY) != PartyBlock_none)
   {
     // move monsters closer since party is up against
     // an obstruction (a wall?)
-    switch (distance)
-    {
-      case FarAway:
-      case Nearby:
-      case UpClose: 
-      default:
-        result = UpClose;
-        break;
-      case AutoUpClose:
-      case AutoNearby:
-      case AutoFarAway:
-        result = AutoUpClose;
-        break;
-    };
+    result = UpClose;
   }
   else
   {
@@ -1779,40 +1747,13 @@ int PARTY::DetermineSpriteDistance(int distance)
      // check next square
     if (newForwardPosition(0, newX, newY) != PartyBlock_none)
     {
-      switch (distance)
-      {
-        case UpClose:
-          break;
-        case Nearby:
-        case FarAway:
-          result = Nearby;
-          break;
-        case AutoUpClose:
-          break;
-        case AutoNearby:
-        case AutoFarAway:
-          result = AutoNearby;
-          break;
-      };
+      if (result == FarAway) result = Nearby;
     }
 
     Posx = origX;
     Posy = origY;
   };
-  switch(result)
-  {
-    default:
-    case UpClose:
-    case Nearby:
-    case FarAway:
-      return result;
-    case AutoUpClose:
-      return UpClose;
-    case AutoNearby:
-      return Nearby;
-    case AutoFarAway:
-      return FarAway;
-  };
+  return result;
 }
 
 
@@ -1887,10 +1828,10 @@ BOOL PARTY::movePartyBackward(void)
    {
      switch (currFace) 
      {      
-     case FACE_NORTH: type = levelData.area[Posy][Posx].blockage[1]; break;      
-     case FACE_EAST:  type = levelData.area[Posy][Posx].blockage[3];  break;      
-     case FACE_SOUTH: type = levelData.area[Posy][Posx].blockage[0]; break;      
-     case FACE_WEST:  type = levelData.area[Posy][Posx].blockage[2];  break;
+     case FACE_NORTH: type = levelData.area[Posy][Posx].southBlockage; break;      
+     case FACE_EAST:  type = levelData.area[Posy][Posx].westBlockage;  break;      
+     case FACE_SOUTH: type = levelData.area[Posy][Posx].northBlockage; break;      
+     case FACE_WEST:  type = levelData.area[Posy][Posx].eastBlockage;  break;
      }
      CanMove = PartyBlockage(type, currFace);
    }
@@ -2330,13 +2271,13 @@ void PARTY::TakePartyItems(TAKE_PARTY_ITEMS_DATA &data)
         if ((data.StoreItems) && (qty > 0))
         {
           POSITION pos = characters[i].money.Gems.GetHeadPosition();
-          int j=0;
-          while ((j < qty) && (pos != NULL))
+          int i=0;
+          while ((i < qty) && (pos != NULL))
           {
-            GEM_TYPE gem = characters[j].money.Gems.GetAt(pos);
+            GEM_TYPE gem = characters[i].money.Gems.GetAt(pos);
             globalData.vault[data.WhichVault].money.AddGem(gem);
-            characters[j].money.Gems.GetNext(pos);
-            j++;
+            characters[i].money.Gems.GetNext(pos);
+            i++;
           }
         }
         characters[i].money.RemoveMultGems(qty);
@@ -2373,13 +2314,13 @@ void PARTY::TakePartyItems(TAKE_PARTY_ITEMS_DATA &data)
         if ((data.StoreItems) && (qty > 0))
         {
           POSITION pos = characters[i].money.Jewelry.GetHeadPosition();
-          int j=0;
-          while ((j < qty) && (pos != NULL))
+          int i=0;
+          while ((i < qty) && (pos != NULL))
           {
-            GEM_TYPE gem = characters[j].money.Jewelry.GetAt(pos);
+            GEM_TYPE gem = characters[i].money.Jewelry.GetAt(pos);
             globalData.vault[data.WhichVault].money.AddJewelry(gem);
-            characters[j].money.Jewelry.GetNext(pos);
-            j++;
+            characters[i].money.Jewelry.GetNext(pos);
+            i++;
           }
         }
         characters[i].money.RemoveMultJewelry(qty);
@@ -2507,7 +2448,7 @@ int PARTY::GetNextUniquePartyID()
     }
     if (!found) return i;
   }
-  die(0xab529); // should not be possible to reach this
+  ASSERT(FALSE); // should not be possible to reach this
   return numCharacters; // old default behavior
 }
 
@@ -2521,8 +2462,7 @@ void PARTY::RunJoinPartyMemorizeScripts(int charIndex)
   scriptContext.SetCharacterContext(&characters[charIndex]);
   characters[charIndex].RunCharacterScripts(JOIN_PARTY, 
                                             ScriptCallback_RunAllScripts, 
-                                            NULL,
-                                            "Run join party memorize scripts");
+                                            NULL);
 }
 
 CString PARTY::ForEachPartyMember(const CString& SAName, const CString& scriptName)
@@ -2537,7 +2477,6 @@ CString PARTY::ForEachPartyMember(const CString& SAName, const CString& scriptNa
   for (i=numCharacters-1; i>=0; i--)
   {
     scriptContext.SetCharacterContext(&characters[i]);
-    scriptContext.SetSA_Source_Type(ScriptSourceType_ForEachPrtyMember);
     result = RunGlobalScript(SAName, scriptName, true);
   };
   return result;
@@ -2709,8 +2648,7 @@ void PARTY::deductPoolMoney(itemClassType type, int qty)
   default:
     poolSack.Subtract(type , qty);
     break;
-  }
-  moneyPooled = !(poolSack.IsEmpty());
+  }  
 }
 
 
@@ -2773,13 +2711,6 @@ void PARTY::AutoUpConvertPoolMoney()
 // PURPOSE:  
 //*****************************************************************************
 void PARTY::sharePartyGold()
-{
-    //Doing this 10 times just clears up the remainders if there are any
-    for (int i = 0; i < 10; i++)
-        sharePartyGoldOnce();
-}
-
-void PARTY::sharePartyGoldOnce()
 {
    int tot = 0;
    int temp = 0;
@@ -2934,8 +2865,7 @@ void PARTY::sharePartyGoldOnce()
    }
 
    moneyPooled = (poolSack.Total() > 0);
-   moneyPooled = !(poolSack.IsEmpty());
-   //poolSack.Clear();
+  //poolSack.Clear();
 }
 
 
@@ -3090,8 +3020,7 @@ void PARTY::distributeExpPoints(int total)
 //*****************************************************************************
 CHARACTER& PARTY::getActiveChar()
 {
-  if (numCharacters == 0) return FakeCharacter;
-  return GetCharacter(activeCharacter, NULL);
+   return GetCharacter(activeCharacter);
 }
 
 //*****************************************************************************
@@ -3101,21 +3030,20 @@ CHARACTER& PARTY::getActiveChar()
 //
 // RETURNS: None
 //*****************************************************************************
-//#ifdef UAFEngine
-CHARACTER& PARTY::GetCharacter(int activeChar, const char *msg)
+CHARACTER& PARTY::GetCharacter(int activeChar)
 {
   ASSERT(    ((activeChar >= 0) && (activeChar <= numCharacters))
           || (activeChar == -2));
   if (activeChar == -2)
   {
-    if (pScriptContext->GetCreatedCharacterContext(msg) != NULL)
+    if (pScriptContext->GetCreatedCharacterContext() != NULL)
     {
-      return *pScriptContext->GetCreatedCharacterContext(msg);
+      return *pScriptContext->GetCreatedCharacterContext();
     };
   };
   return characters[activeChar];
 }
-//#endif
+
 
 //*****************************************************************************
 // NAME:    GetStrongestCharacter
@@ -3160,7 +3088,7 @@ CHARACTER& PARTY::GetBestLockpicker(int *bestSkillValue)
   SKILL_ID skillOpenLocks;
   int indx;
   skillOpenLocks = Skill_OpenLocks;
-  indx = GetBestSkill(skillOpenLocks, bestSkillValue, false);
+  indx = GetBestSkill(skillOpenLocks, bestSkillValue);
   if (indx < 0) indx = 0;
   return characters[indx];
 }
@@ -3173,7 +3101,7 @@ CHARACTER& PARTY::GetBestLockpicker(int *bestSkillValue)
 // RETURNS: Party index of most skillful character
 //          (or -1 if nobody has such a skill)
 //*****************************************************************************
-int PARTY::GetBestSkill(const SKILL_ID& skillID, int *bestSkillValue, bool minimize)
+int PARTY::GetBestSkill(const SKILL_ID& skillID, int *bestSkillValue)
 {  
   int i, result;
   result = -1;  
@@ -3181,9 +3109,7 @@ int PARTY::GetBestSkill(const SKILL_ID& skillID, int *bestSkillValue, bool minim
   for (i=0; i<numCharacters; i++)
   {
     int skillValue;
-    //if (!GetAdjSkillValue(skillID, &characters[i], NULL, NULL, &skillValue, minimize)) continue;
-    skillValue = characters[i].GetAdjSkillValue(skillID, minimize, true);
-    if (skillValue == NoSkill) continue;
+    if (!GetAdjSkillValue(skillID, &characters[i], NULL, NULL, &skillValue)) continue;
     if (skillValue > *bestSkillValue)
     {
       *bestSkillValue = skillValue;
@@ -3315,8 +3241,7 @@ BYTE PARTY::getPartySpeed()
 
   for (i=0;i<numCharacters;i++)
   {
-    BYTE charmove = characters[i].GetAdjMaxMovement(DEFAULT_SPELL_EFFECT_FLAGS,
-                                                    "Get party speed.  Find slowest character.");
+    BYTE charmove = characters[i].GetAdjMaxMovement();
     if (charmove < pspeed)
       pspeed = charmove;
   }
@@ -3352,7 +3277,7 @@ void PARTY::RemovePooledMoneyFromVault(int WhichVault)
   if ((WhichVault < 0) || (WhichVault >= MAX_GLOBAL_VAULTS))
   {
     TRACE("Bogus vault index in RemovePooledMoneyFromVault()\n");
-    die(0xab52a);    
+    ASSERT(FALSE);    
     return;
   }
 
@@ -3434,7 +3359,7 @@ void PARTY::getCharWeaponText(int index, CString &wpn, CString &dmg)
 //
 // PURPOSE:  
 //*****************************************************************************
-CHARACTER *PARTY::addTempToParty(CHARACTER &luckyDude)
+void PARTY::addTempToParty(CHARACTER &luckyDude)
 {
    // To leave room for future NPC additions to party, 
    // only allow up to GetMaxPartyCharacters() of player
@@ -3443,7 +3368,7 @@ CHARACTER *PARTY::addTempToParty(CHARACTER &luckyDude)
   for (int i=0;i<numCharacters;i++)
   {
     if (characters[i].IsSameCharacter(luckyDude))
-      return &characters[i];
+      return;
   }
 
   //if (numCharacters < GetMaxPartyCharacters())
@@ -3457,9 +3382,7 @@ CHARACTER *PARTY::addTempToParty(CHARACTER &luckyDude)
     characters[numCharacters].UpdateSpellAbility();
     //characters[numCharacters].SortSpells();
     numCharacters++;
-    return &characters[numCharacters-1];
-  };
-  return NULL;
+  }
 }
 #endif
 
@@ -3745,9 +3668,9 @@ void FIX_SPELL_ENTRY::RandomCaster(PARTY *pParty)
     
 
     {
-      int j, n;
+      int i, n;
       n = pChar->GetSpellCount();
-      for (j=0; j<n; j++)
+      for (i=0; i<n; i++)
       //for (p1 = pChar->GetFirstSpellPosition(); p1 != NULL; pChar->GetNextSpell(p1))
       {
         
@@ -3755,10 +3678,10 @@ void FIX_SPELL_ENTRY::RandomCaster(PARTY *pParty)
 
 
         // find memorized spells that match a spell in globalData.fixSpellBook;
-        if (pChar->PeekCharacterSpell(j)->IsMemorized())
+        if (pChar->PeekCharacterSpell(i)->IsMemorized())
         {
           //if (m_pSpell->m_gsID == pChar->GetSpellAt(p1).spell)
-          if (m_pSpell->SpellID() == pChar->PeekCharacterSpell(j)->spellID)
+          if (m_pSpell->SpellID() == pChar->PeekCharacterSpell(i)->spellID)
           {
             m_activeCaster = pChar;
             return;
@@ -3780,7 +3703,7 @@ void FIX_SPELL_ENTRY::RandomTarget(PARTY *pParty, int environment)
     m_targets = new CHARACTER *[pParty->numCharacters];
     for (i=0; i<pParty->numCharacters; i++)
     {
-      m_targets[i] = &pParty->GetCharacter(i, NULL);
+      m_targets[i] = &pParty->GetCharacter(i);
     };
     m_numTarget = pParty->numCharacters;
   };
@@ -3800,8 +3723,7 @@ void FIX_SPELL_ENTRY::RandomTarget(PARTY *pParty, int environment)
       hookParameters[0] = (pChar->GetHitPoints() < pChar->GetMaxHitPoints())?"1":"";
       ans = m_pSpell->RunSpellScripts(FIX_CHARACTER,
                                       ScriptCallback_RunAllScripts,
-                                      "",
-                                      "Looking for random target");
+                                      "");
       if (!ans.IsEmpty() && (ans != "0"))
       {
         m_activeTarget = pChar;
@@ -3900,7 +3822,7 @@ FIX_SPELL_ENTRY *FIX_SPELL_LIST::GetRandom(PARTY *pParty)
 /*
         StartExp =  1+GetMinClericExpForLevel(29);
         StartExp += 1+GetMinMagicUserExpForLevel(29);
-*/ /* Really */ NotImplemented(0xae41bc, false); // StartExp = 0;
+*/ NotImplemented(0xae41bc, false); // StartExp = 0;
 
 
 
@@ -3970,8 +3892,6 @@ void PARTY::FixParty(int environment)
                      fixSpellEntry->m_activeCaster->GetName(),
                      fixSpellEntry->m_activeTarget->GetName());
             fixSpellEntry->m_activeCaster->RemoveAllTargets(); // clear target data
-            fixSpellEntry->m_activeCaster->targets.m_canTargetEnemy = fixSpellEntry->m_pSpell->CanTargetEnemy;
-            fixSpellEntry->m_activeCaster->targets.m_canTargetFriend = fixSpellEntry->m_pSpell->CanTargetFriend;
             fixSpellEntry->m_activeCaster->AddTarget(*fixSpellEntry->m_activeTarget); // add recipient as target
             //fixSpellEntry->m_activeCaster->CastSpell(fixSpellEntry->m_pSpell->m_gsID, false); // invoke spell on target
             fixSpellEntry->m_activeCaster->CastSpell(fixSpellEntry->m_pSpell->SpellID(), false, false); // invoke spell on target
@@ -3998,10 +3918,10 @@ DWORD PARTY::CalcRestTime(void)
   return max;
 }
 
-void PARTY::RemoveSpellEffect(DWORD parent, const SPELL_DATA *pSpell, bool endSpell)
+void PARTY::RemoveSpellEffect(DWORD parent, SPELL_DATA *pSpell)
 {
   for (int i=0;i<numCharacters;i++)
-    characters[i].RemoveSpellEffect(parent, pSpell, endSpell);
+    characters[i].RemoveSpellEffect(parent,pSpell);
 }
 
 
@@ -4027,11 +3947,12 @@ void PARTY::BeginResting(void)
     SCRIPT_CONTEXT scriptContext;
     scriptContext.SetCharacterContext(&characters[i]);
     //currRaceName =  raceData.GetRaceName(dude.race());
-    result = characters[i].RunCharacterScripts(
+    result = characters[i].specAbs.RunScripts(
                                 BEGIN_RESTING,
                                 ScriptCallback_RunAllScripts, 
                                 NULL,
-                                "Character begins resting");
+                                "BeginResting",
+                                characters[i].GetName());
   // If party is resting and characters are unconscious (from battle, traps, etc.)
   // wake that character up.
     iResult = atoi(result);
@@ -4147,7 +4068,7 @@ bool PARTY::ProcessTimeSensitiveData(LONGLONG currTime)
                                     //spellData.GetSpellName(characters[i].GetSpellAt(p).spell));
                                     spellData.GetSpellName(characters[i].PeekCharacterSpell(j)->spellID));
                         FormatPausedText(pausedTextData, tmp);
-                        DisplayPausedText(pausedTextData, whiteColor, 0);
+                        DisplayPausedText(pausedTextData);
                       }
                       //characters[i].GetNextSpell(p);
                     }
@@ -4181,11 +4102,12 @@ bool PARTY::ProcessTimeSensitiveData(LONGLONG currTime)
             SCRIPT_CONTEXT scriptContext;
             scriptContext.SetCharacterContext(&characters[i]);
             //currRaceName =  raceData.GetRaceName(dude.race());
-            result = characters[i].RunCharacterScripts(
+            result = characters[i].specAbs.RunScripts(
                                         BEGIN_RESTING,
                                         ScriptCallback_RunAllScripts, 
                                         NULL,
-                                        "Character begins resting");
+                                        "BeginResting",
+                                        characters[i].GetName());
 		        // If party is resting and characters are unconscious (from battle, traps, etc.)
 		        // wake that character up.
             iResult = atoi(result);

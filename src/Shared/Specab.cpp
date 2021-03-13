@@ -16,27 +16,23 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ******************************************************************************/
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 //#include "..\Shared\Version.h"
 #include "GPDLOpCodes.h"
-#include "specab.h"
+#include "Specab.h"
 #include "GPDLcomp.h"
 #include "GPDLexec.h"
 
 #ifdef UAFEngine
 #include "Char.h"
-#include "..\UAFWin\Combatant.h"
+#include "../UAFWin/Combatant.h"
 extern A_CStringPAIR_L globalSA_debug;
 extern int globalLoggingFlags;
 #endif
 
 #include "class.h"
 #include "GlobalData.h"
-#include "Monster.h"
 
-#ifdef UAFEDITOR1
-#include "..\UAFWinEd\CrossReference.h"
-#endif
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -80,23 +76,12 @@ void SpecialAbilityContext::SetParam(const CString& name, const CString& value)
 }
 */
 
-void SCRIPT_CONTEXT::MsgBoxErrorAlert(const char *pContext) const
+void SCRIPT_CONTEXT::MsgBoxError(const char *context)
 {
   CString msg;
-  char temp[8];
-  strcpy(temp,"MBEA");
-  if (pContext != NULL)
-  {
-    strncpy(temp+4,pContext, 3);
-  };
-  temp[7] = 0;
-  if (!debugStrings.AlreadyNoted(temp))
-  {
-    msg.Format("%s\nType=%s\nName=%s\nSA = %s\nScript=%s",
-                 pContext, GetSourceTypeName(), sourceName, specAb.Key(), scriptName);
-    ::MsgBoxError(msg, "Error", 2);
-    WriteDebugString(msg);
-  };
+  msg.Format("$%sContext not defined\nType=%s\nName=%s\nSA = %s\nScript=%s",
+               context, sourceType, sourceName, specAb.Key(), scriptName);
+  ::MsgBoxError(msg, "Error", 2);
 };
 
 void SCRIPT_CONTEXT::SetParam(const CString& value)
@@ -223,31 +208,7 @@ void SCRIPT_CONTEXT::SetAttackerContext(const CHARACTER *pChar)
 //  return pCharacter->GetCombatant();
 //}
 
-CString SCRIPT_CONTEXT::GetSourceName(void) const
-{
-  return sourceName;
-}
-
-CString SCRIPT_CONTEXT::GetSourceTypeName(void) const
-{
-  switch (scriptSourceType)
-  {
-    case  ScriptSourceType_Class:       return "CLASS";
-    case  ScriptSourceType_Item:        return "ITEM";
-    case  ScriptSourceType_Race:        return "RACE";
-    case  ScriptSourceType_Baseclass:   return "BASECLASS";
-    case  ScriptSourceType_Spell:       return "SPELL";
-    case  ScriptSourceType_Character:   return "CHARACTER";
-    case  ScriptSourceType_Monster:     return "MONSTER";
-    case  ScriptSourceType_Combatant:   return "COMBATANT";
-    case  ScriptSourceType_Aura:        return "AURA";
-    case  ScriptSourceType_Event:       return "EVENT";
-    case ScriptSourceType_EventTrigger: return "EVENT TRIGGER";
-    default: return "Unknown";
-  };
-}
-
-COMBATANT *SCRIPT_CONTEXT::GetCombatant(const char *msg) const
+COMBATANT *SCRIPT_CONTEXT::GetCombatant(void)
 {
   ActorType actor;
   CHARACTER *pCharacter;
@@ -257,16 +218,16 @@ COMBATANT *SCRIPT_CONTEXT::GetCombatant(const char *msg) const
     return NULL;
   };
   actor.FromString(combatantContext);
-  pCharacter = GetCurrentlyActiveContext(&actor, msg);
+  pCharacter = GetCurrentlyActiveContext(&actor);
   return pCharacter->m_pCombatant;
 }
 
-CHARACTER *SCRIPT_CONTEXT::GetCharacter(const char *msg) const
+CHARACTER *SCRIPT_CONTEXT::GetCharacter(void)
 {
   ActorType actor;
   CHARACTER *pCharacter;
   actor.FromString(characterContext);
-  pCharacter = GetCurrentlyActiveContext(&actor, msg);
+  pCharacter = GetCurrentlyActiveContext(&actor);
   return pCharacter;
 }
 
@@ -302,114 +263,56 @@ void SCRIPT_CONTEXT::SetCombatantContext(const COMBATANT *pCombatant)
 #endif
 
 ITEM_DATA bogusItem;
-const ITEM_DATA  *SCRIPT_CONTEXT::GetItemContext(const char *msg) const
+const ITEM_DATA  *SCRIPT_CONTEXT::GetItemContext(void) const
 {
-  if (pItemContext == NULL)
-  {
-    MsgBoxErrorAlert(msg);
-    return &bogusItem;
-  };
+  if (pItemContext == NULL) return &bogusItem;
   return pItemContext;
 };
 RACE_DATA bogusRace;
-const RACE_DATA  *SCRIPT_CONTEXT::GetRaceContext(const char *msg) const     
+const RACE_DATA  *SCRIPT_CONTEXT::GetRaceContext(void)     
 {
-  if (pRaceContext == NULL)
-  {
-    MsgBoxErrorAlert(msg);
-    return &bogusRace;
-  };
+  if (pRaceContext == NULL) return &bogusRace;
   return pRaceContext;
 };
-CString SCRIPT_CONTEXT::GetAttackerContext(const char *msg) const 
+CString SCRIPT_CONTEXT::GetAttackerContext(void) 
 {
-  if (attackerContext.IsEmpty())
-  {
-    MsgBoxErrorAlert(msg);
-  }
   return attackerContext;
 };
-CString  SCRIPT_CONTEXT::GetTargetContext(const char *msg) const   
+CString  SCRIPT_CONTEXT::GetTargetContext(void)   
 {
-  if (targetContext.IsEmpty())
-  {
-    MsgBoxErrorAlert(msg);
-  };
   return targetContext;
 };
-
-extern CHARACTER FakeCharacter;
-extern COMBATANT FakeCombatant;
-//#ifdef UAFEngine
-CHARACTER  *SCRIPT_CONTEXT::GetCreatedCharacterContext(const char *msg) const   
+CHARACTER  *SCRIPT_CONTEXT::GetCreatedCharacterContext(void)   
 {
-  if (pCreatedCharacterContext == NULL)
-  {
-    MsgBoxErrorAlert(msg);
-    return &FakeCharacter;
-  };
   return pCreatedCharacterContext;
 };
-//#endif
-
-CString SCRIPT_CONTEXT::GetCharacterContext(const char *msg) const
+CString SCRIPT_CONTEXT::GetCharacterContext(void)
 {
-  if (characterContext.IsEmpty())
-  {
-    MsgBoxErrorAlert(msg);
-  };
   return characterContext;
 };
-CString SCRIPT_CONTEXT::GetCombatantContext(const char *msg) const
+CString SCRIPT_CONTEXT::GetCombatantContext(void)
 {
-  if (combatantContext.IsEmpty())
-  {
-    MsgBoxErrorAlert(msg);
-  };
   return combatantContext;
 };
 
 CLASS_DATA bogusClass;
-const CLASS_DATA *SCRIPT_CONTEXT::GetClassContext(const char *msg) const   
+const CLASS_DATA *SCRIPT_CONTEXT::GetClassContext(void)    
 {
-  if (pClassContext == NULL) 
-  {
-    MsgBoxErrorAlert(msg);
-    return &bogusClass;
-  };
+  if (pClassContext == NULL) return &bogusClass;
   return pClassContext;
 }
 BASE_CLASS_DATA bogusBaseclass;
-const BASE_CLASS_DATA *SCRIPT_CONTEXT::GetBaseclassContext(const char *msg) const    
+const BASE_CLASS_DATA *SCRIPT_CONTEXT::GetBaseclassContext(void)    
 {
-  if (pBaseclassContext == NULL) 
-  {
-    MsgBoxErrorAlert(msg);
-    return &bogusBaseclass;
-  };
+  if (pBaseclassContext == NULL) return &bogusBaseclass;
   return pBaseclassContext;
 }
-
-#ifdef UAFEngine
-MONSTER_DATA bogusMonster;
-const MONSTER_DATA *SCRIPT_CONTEXT::GetMonstertypeContext(const char *msg) const   
+const MONSTER_DATA *SCRIPT_CONTEXT::GetMonstertypeContext(void) const   
 {
-  if (pMonstertypeContext == NULL)
-  {
-    MsgBoxErrorAlert(msg);
-    return &bogusMonster;
-  };
   return pMonstertypeContext;
 }
-#endif
-ABILITY_DATA bogusAbility;
-ABILITY_DATA *SCRIPT_CONTEXT::GetAbilityContext(const char *msg) const   
+ABILITY_DATA *SCRIPT_CONTEXT::GetAbilityContext(void)    
 {
-  if (pAbilityContext == NULL)
-  {
-    MsgBoxErrorAlert(msg);
-    return &bogusAbility;
-  };
   return pAbilityContext;
 }
 
@@ -423,43 +326,24 @@ TRAIT_DATA *SCRIPT_CONTEXT::GetTraitContext(void)
 
 
 SPELL_DATA bogusSpell;
-const SPELL_DATA *SCRIPT_CONTEXT::GetSpellContext(const char *msg) const   
+const SPELL_DATA *SCRIPT_CONTEXT::GetSpellContext(void) const   
 {
   if (pSpellContext == NULL)
   {
-    MsgBoxErrorAlert(msg);
     return &bogusSpell;
   };
   return pSpellContext;
 }
 
-MONSTER_DATA bogusMonsterType;
-const MONSTER_DATA *SCRIPT_CONTEXT::GetMonsterTypeContext(const char *msg) const   
+SPELLGROUP_DATA *SCRIPT_CONTEXT::GetSpellgroupContext(void)    
 {
-  if (pMonstertypeContext == NULL)
-  {
-    MsgBoxErrorAlert(msg);
-    return &bogusMonsterType;
-  };
-  return pMonstertypeContext;
-}
-
-
-SPELLGROUP_DATA bogusSpellgroup;
-SPELLGROUP_DATA *SCRIPT_CONTEXT::GetSpellgroupContext(const char *msg)  const
-{
-  if (pSpellgroupContext == NULL)
-  {
-    MsgBoxErrorAlert(msg);
-    return &bogusSpellgroup;
-  };
   return pSpellgroupContext;
 }
 
-const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetItemSAContext(const char *msg) const
+const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetItemSAContext(void) const
 {
   const ITEM_DATA *pItem;
-  pItem = GetItemContext(msg);
+  pItem = GetItemContext();
   if (pItem == NULL) return NULL;
   return &pItem->specAbs;
 };
@@ -486,30 +370,29 @@ const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetItemSAContext(const char *msg) const
 //  return NULL;
 //#endif
 //};
-
-#ifdef UAFEngine
-COMBATANT bogusCombatant;
-#endif
-SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetCharacterSAContext(const char *msg) const
+SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetCharacterSAContext(void)
 {
   CHARACTER *pCharacter = NULL;
   if (!characterContext.IsEmpty())
   {
-    pCharacter = GetCharacter(msg);
+    pCharacter = GetCharacter();
+    if (pCharacter == NULL) return NULL;
     return &pCharacter->specAbs;
   };
   if (combatantContext.IsEmpty())
   {
-    pCharacter = GetCharacter(msg); // To provide error message and such.
+    pCharacter = GetCharacter(); // To provide error message and such.
+    if (pCharacter == NULL) return NULL;
     return &pCharacter->specAbs;
   };
 #ifdef UAFEngine
   COMBATANT *pCombatant;
-  pCombatant = GetCombatant(NULL);
-  if (pCombatant == &bogusCombatant)
+  pCombatant = GetCombatant();
+  if (pCombatant == NULL)
 #endif
   {
-    pCharacter = GetCharacter(msg);
+    pCharacter = GetCharacter();
+    if (pCharacter == NULL) return NULL;
     return &pCharacter->specAbs;
   };
 #ifdef UAFEngine
@@ -519,53 +402,53 @@ SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetCharacterSAContext(const char *msg) const
 };
 
 #ifdef UAFEngine
-SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetCombatantSAContext(const char *msg) const
+SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetCombatantSAContext(void)
 {
   COMBATANT *pCombatant;
-  pCombatant = GetCombatant(msg);
+  pCombatant = GetCombatant();
   if (pCombatant == NULL) return NULL;
   return &pCombatant->combatantSA;
 };
 #endif
 
-const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetClassSAContext(const char *msg) const
+const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetClassSAContext(void)
 {
   const CLASS_DATA *pClass;
-  pClass = GetClassContext(msg);
+  pClass = GetClassContext();
   if (pClass == NULL) return NULL;
   return &pClass->m_specialAbilities;
 };
 
-const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetBaseclassSAContext(const char *msg) const
+const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetBaseclassSAContext(void)
 {
   const BASE_CLASS_DATA *pBaseclass;
-  pBaseclass = GetBaseclassContext(msg);
+  pBaseclass = GetBaseclassContext();
   if (pBaseclass == NULL) return NULL;
   return &pBaseclass->m_specAbs;
 };
 
-const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetSpellSAContext(const char *msg) const
+const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetSpellSAContext(void) const
 {
   const SPELL_DATA *pSpell;
-  pSpell = GetSpellContext(msg);
+  pSpell = GetSpellContext();
   if (pSpell == NULL) return NULL;
   return &pSpell->specAbs;
 };
 
-const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetSpellgroupSAContext(const char *msg) const
+const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetSpellgroupSAContext(void)
 {
   SPELLGROUP_DATA *pSpellgroup;
-  pSpellgroup = GetSpellgroupContext(msg);
+  pSpellgroup = GetSpellgroupContext();
   if (pSpellgroup == NULL) return NULL;
   return &pSpellgroup->m_specAbs;
 };
 
-const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetMonstertypeSAContext(const char *msg) const
+const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetMonstertypeSAContext(void) const
 {
 #ifdef UAFEngine
   //MONSTER_DATA *pMonster;
   const MONSTER_DATA *pMonster;
-  pMonster = GetMonstertypeContext(msg);
+  pMonster = GetMonstertypeContext();
   if (pMonster == NULL) return NULL;
   return &pMonster->specAbs;
 #else
@@ -573,18 +456,18 @@ const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetMonstertypeSAContext(const char *msg
 #endif
 };
 
-const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetRaceSAContext(const char *msg) const
+const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetRaceSAContext(void)
 {
   const RACE_DATA *pRace;
-  pRace = GetRaceContext(msg);
+  pRace = GetRaceContext();
   if (pRace == NULL) return NULL;
   return &pRace->m_specAbs;
 };
 
-const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetAbilitySAContext(const char *msg) const
+const SPECIAL_ABILITIES *SCRIPT_CONTEXT::GetAbilitySAContext(void)
 {
   const ABILITY_DATA *pAbility;
-  pAbility = GetAbilityContext(msg);
+  pAbility = GetAbilityContext();
   if (pAbility == NULL) return NULL;
   return &pAbility->m_specAbs;
 };
@@ -630,7 +513,6 @@ void SCRIPT_CONTEXT::ClearAbility(void)
 
 void SCRIPT_CONTEXT::SetAbility(const SPECIAL_ABILITIES *pSpecAb, const CStringPAIR *pAb)
 {
-  contextASL = NULL;
   context = const_cast<SPECIAL_ABILITIES*>(pSpecAb);
   if (pAb != NULL)  specAb = *pAb;
   else
@@ -639,21 +521,10 @@ void SCRIPT_CONTEXT::SetAbility(const SPECIAL_ABILITIES *pSpecAb, const CStringP
   };
 }
 
-void SCRIPT_CONTEXT::SetAbility(const A_ASLENTRY_L *pSpecAb, const ASLENTRY *pAb)
-{
-  context = NULL;
-  contextASL = const_cast<A_ASLENTRY_L*>(pSpecAb);
-  if (pAb != NULL)  specAb = *pAb;
-  else
-  {
-    specAb.Clear();
-  };
-}
 
-
-void SCRIPT_CONTEXT::SetSA_Source_Type(SCRIPT_SOURCE_TYPE source_Type)
+void SCRIPT_CONTEXT::SetSA_Source_Type(LPCSTR source_Type)
 {
-  scriptSourceType = source_Type;
+  sourceType = source_Type;
 }
 
 void SCRIPT_CONTEXT::SetSA_Source_Name(LPCSTR source_Name)
@@ -704,7 +575,7 @@ void SPECIAL_ABILITIES::EnableAllFor(CHARACTER *pChar)
 
   if (GetCount() != 0)
   {
-    /* Really */ NotImplemented(0xc892d, FALSE);
+    NotImplemented(0xc892d, FALSE);
   //for (int i=0; i<NUM_SPECIAL_ABILITIES; i++)
   //  specAbData[i].ExecuteScript();
   };
@@ -723,7 +594,7 @@ void SPECIAL_ABILITIES::DisableAllFor(CHARACTER *pChar)
 
   if (GetCount() != 0)
   {
-    /* Really */ NotImplemented(0xc891a, FALSE);
+    NotImplemented(0xc891a, FALSE);
      //for (int i=0; i<NUM_SPECIAL_ABILITIES; i++)
        //specAbData[i].ExecuteDAScript();
   };
@@ -740,7 +611,7 @@ void SPECIAL_ABILITIES::DisableAllFor(CHARACTER *pChar)
 
 const char *ConvertRuntimeIfTextToSpecAb(const CString& str)
 {
-  /* Really */ NotImplemented(0xa2cf8, FALSE);
+  NotImplemented(0xa2cf8, FALSE);
   return "abc";
 }
 
@@ -748,7 +619,7 @@ const char *ConvertRuntimeIfTextToSpecAb(const CString& str)
 
 CString ConvertSpecAbToRuntimeIfText(const char *txt)
 {
-  /* Really */ NotImplemented(0xf4a9bc, FALSE);
+  NotImplemented(0xf4a9bc, FALSE);
   return "abc";
 }
 
@@ -864,7 +735,7 @@ void SPECABILITY_DEF::Serialize(CAR& car)
   }
   else
   {
-    /* Really */ NotImplemented(0xfda2324, FALSE);
+    NotImplemented(0xfda2324, FALSE);
   };
 }
 
@@ -930,20 +801,20 @@ bool SPECABILITY::operator ==(const SPECABILITY& specAb) const
 
 //const CString& SPECABILITY::Binary(void) const
 //{
-//  Not Implemented(0x4f4d4a, FALSE);
+//  NotImplemented(0x4f4d4a, FALSE);
 //  return emptyString;
 //}
 
 //const CString& SPECABILITY::Script(void) const
 //{
-//  Not Implemented(0x6a3cb7, FALSE);
+//  NotImplemented(0x6a3cb7, FALSE);
 //  return emptyString;
 //}
 
 
 //void ABILITY_DELETE(int a)
 //{
-//  Not Implemented(0x43ea12,FALSE);
+//  NotImplemented(0x43ea12,FALSE);
 //}
 */
 
@@ -956,7 +827,7 @@ SPECIAL_ABILITIES::SPECIAL_ABILITIES(bool readOnly)
 
 SPECIAL_ABILITIES::SPECIAL_ABILITIES(const SPECIAL_ABILITIES& spab)
 {
-  /* Really */ NotImplemented(0x5ffdab, FALSE);
+  NotImplemented(0x5ffdab, FALSE);
 }
 
 
@@ -1013,7 +884,6 @@ CStringPAIR *SPECIAL_ABILITIES::FindAbility(specialAbilitiesType sa) const
 }
 
 
-
 void SPECIAL_ABILITIES::EnableSpecAb(specialAbilitiesType sa, const CString& ascript, const CString& dscript)
 {
   /*
@@ -1064,21 +934,24 @@ CString SPECIAL_ABILITIES::GenerateSpecAbFuncEnd(specialAbilitiesType sa) const
 */
 bool  SPECIAL_ABILITIES::HaveSpecAb(specialAbilitiesType sa) const
 {
-  /* Really */ NotImplemented(0xde1cc, FALSE);
+  NotImplemented(0xde1cc, FALSE);
   return FALSE;
 }
 
 bool SPECIAL_ABILITIES::HaveAtLeastOneSpecAb() const
 {
-  /* Really */ NotImplemented(0xde1cd, FALSE);
+  NotImplemented(0xde1cd, FALSE);
   return FALSE;
 }
 
-
+void SPECIAL_ABILITIES::CrossReference(CR_LIST *pCRList) const
+{
+  NotImplemented(0xde1ce, FALSE);
+}
 
 void SPECIAL_ABILITIES::SetMsgTypes(specialAbilitiesType sa, DWORD types)
 {
-  /* Really */ NotImplemented(0xf63ae, FALSE);
+  NotImplemented(0xf63ae, FALSE);
 }
 
 
@@ -1093,7 +966,7 @@ const CStringPAIR *SPECIAL_ABILITIES::GetNextData(POSITION& pos) const
 
 void SPECIAL_ABILITIES::DisableSpecAb(specialAbilitiesType sa)
 {
-  /* Really */ NotImplemented(0xa4216b, FALSE);
+  NotImplemented(0xa4216b, FALSE);
 }
 
 
@@ -1223,25 +1096,25 @@ void SPECIAL_ABILITIES::Serialize(CArchive& ar, double version, LPCSTR objName, 
             //*******************************
             if (version >= _VERSION_0870_)
             {
-              int cnt;
+              int count;
               CString msg;
               ar >> MsgTypes;
               if (MsgTypes != 0) empty++;
               ar >> DisplayOnce;
-              ar >> cnt;      
-              if (cnt > NUM_SPECAB_MSGS)
+              ar >> count;      
+              if (count > NUM_SPECAB_MSGS)
               {
-                WriteDebugString("Invalid SpecAbMsg count %i in Serialize\n", cnt);
-                die(0xab537);
+                WriteDebugString("Invalid SpecAbMsg count %i in Serialize\n", count);
+                ASSERT(FALSE);
               }
               //*******************************
-              for (int idx=0;idx<cnt;idx++)
+              for (int i=0;i<count;i++)
               {
                 DAS(ar, msg);
                 empty += msg.GetLength();
                 //totalSpecAbMsg++;
-                if (idx < NUM_SPECAB_MSGS)
-                  Msgs[idx] = msg;          
+                if (i < NUM_SPECAB_MSGS)
+                  Msgs[i] = msg;          
               }
             };
             if (empty != 0)
@@ -1347,32 +1220,30 @@ void SPECIAL_ABILITIES::Serialize(CArchive& ar, double version, LPCSTR objName, 
             //*******************************
             if (version >= _VERSION_0870_)
             {
-              int msgCnt;
+              int count;
               CString msg;
               ar >> MsgTypes;
               if (MsgTypes != 0) empty++;
               ar >> DisplayOnce;
-              ar >> msgCnt;
-              if (msgCnt > NUM_SPECAB_MSGS)
+              ar >> count;      
+              if (count > NUM_SPECAB_MSGS)
               {
-                WriteDebugString("Invalid SpecAbMsg count %i in Serialize\n", msgCnt);
-                die(0xab538);
+                WriteDebugString("Invalid SpecAbMsg count %i in Serialize\n", count);
+                ASSERT(FALSE);
               }
               //*******************************
+              for (int i=0;i<count;i++)
               {
-                for (int j = 0; j < msgCnt; j++)
-                {
-                  DAS(ar, msg);
-                  empty += msg.GetLength();
-                  //totalSpecAbMsg++;
-                  if (j < NUM_SPECAB_MSGS)
-                    Msgs[j] = msg;
-                };
-              };
+                DAS(ar, msg);
+                empty += msg.GetLength();
+                //totalSpecAbMsg++;
+                if (i < NUM_SPECAB_MSGS)
+                  Msgs[i] = msg;          
+              }
             };
             if (empty != 0)
             {
-              /* Really */ NotImplemented(0x42ad78,FALSE);
+              NotImplemented(0x42ad78,FALSE);
               /*
               CString abname;
               int j;
@@ -1406,7 +1277,6 @@ void SPECIAL_ABILITIES::Serialize(CArchive& ar, double version, LPCSTR objName, 
         };
       };
     };
-
 #endif
   }
   else
@@ -1488,25 +1358,25 @@ void SPECIAL_ABILITIES::Serialize(CAR& ar, double version, LPCSTR objName, LPCST
             //*******************************
             if (version >= _VERSION_0870_)
             {
-              int cnt;
+              int count;
               CString msg;
               ar >> MsgTypes;
               if (MsgTypes != 0) empty++;
               ar >> DisplayOnce;
-              ar >> cnt;      
-              if (cnt > NUM_SPECAB_MSGS)
+              ar >> count;      
+              if (count > NUM_SPECAB_MSGS)
               {
-                WriteDebugString("Invalid SpecAbMsg count %i in Serialize\n", cnt);
-                die(0xab539);
+                WriteDebugString("Invalid SpecAbMsg count %i in Serialize\n", count);
+                ASSERT(FALSE);
               }
               //*******************************
-              for (int idx=0;idx<cnt;idx++)
+              for (int i=0;i<count;i++)
               {
                 DAS(ar, msg);
                 empty += msg.GetLength();
                 //totalSpecAbMsg++;
-                if (idx < NUM_SPECAB_MSGS)
-                  Msgs[idx] = msg;          
+                if (i < NUM_SPECAB_MSGS)
+                  Msgs[i] = msg;          
               }
             };
             if ((globalData.version < _SPECIAL_ABILITIES_VERSION_) && (empty != 0))
@@ -1546,11 +1416,11 @@ void SPECIAL_ABILITIES::Serialize(CAR& ar, double version, LPCSTR objName, LPCST
 #else
     if (ar.IsStoring())
     {
-      /* Really */ NotImplemented(0x8da3f, FALSE);
+      NotImplemented(0x8da3f, FALSE);
     }
     else
     {
-      /* Really */ NotImplemented(0x54fa23,FALSE);
+      NotImplemented(0x54fa23,FALSE);
     };
 #endif
   }
@@ -1582,7 +1452,7 @@ const CString& SPECIAL_ABILITIES::GetNext(POSITION &pos) const
 
 void SPECIAL_ABILITIES::SetMsgFormat(specialAbilitiesType sa, DWORD type, CString &format)
 {
-  /* Really */ NotImplemented(0x35a901, FALSE);
+  NotImplemented(0x35a901, FALSE);
 }
 
 CString  SPECIAL_ABILITIES::GetMsgFormat(specialAbilitiesType sa, DWORD type) const
@@ -1671,7 +1541,7 @@ CBRESULT ScriptCallback_MinMax(CBFUNC func, CString *scriptResult, void *pkt)
     };
     return CBR_CONTINUE;
   };
-  //return CBR_CONTINUE;
+  return CBR_CONTINUE;
 }
 
 
@@ -1787,98 +1657,11 @@ void ClearHookParameters(void)
   };
 }
 
-CString A_ASLENTRY_L::RunScripts(LPCSTR             scriptName,
-                                 CBRESULT         (*fnc)(CBFUNC func, CString *scriptResult, void *pkt),
-                                 void              *pkt,
-                                 SCRIPT_SOURCE_TYPE SA_Source_Type,
-                                 LPCSTR             SA_Source_Name) const
-{
-  ASLENTRY *scripts[MAX_SPEC_AB];
-  ASLENTRY  saAbility[MAX_SPEC_AB];
-  CString binScript;
-  int numScript = 0;
-  int i;
-  const ASLENTRY *pAbility = NULL;
-  SPECABILITY_DEF  *pSpecAb;
-  ASLENTRY *pSpecString;
-  POSITION pos;
-
-  pos = this->GetStartPosition();
-  while (pos != NULL)
-  {
-    GetNextAssoc(pos, &pAbility);
-    if (pAbility == NULL) break;  // Why would this happen?
-    pSpecAb = specialAbilitiesData.FindAbility(pAbility->Key());
-    if (pSpecAb == NULL) continue;
-    pSpecString = pSpecAb->Find(scriptName);
-    if (pSpecString == NULL) continue;
-    if (numScript >= MAX_SPEC_AB) continue;
-    if (pSpecString->Flags() == SPECAB_SCRIPT)
-    {
-      GPDLCOMP gpdlcomp;
-      binScript = gpdlcomp.CompileScript(frontEnd + pSpecString->Value() + backEnd, SAentries);
-      if (binScript[0] != 0)
-      {
-        WriteDebugString("* * * * Script Error in %s[%s]\n", pAbility->Key(), scriptName);
-        pSpecString->Value(binScript);
-        pSpecString->Flags(SPECAB_SCRIPTERROR);
-        pSpecAb->Insert(scriptName, binScript, SPECAB_SCRIPTERROR);
-        continue;
-      };
-      pSpecString->Value(binScript);
-      pSpecString->Flags(SPECAB_BINARYCODE);
-      pSpecAb->Insert(scriptName, binScript, SPECAB_BINARYCODE);
-    };
-    if (pSpecString->Flags() != SPECAB_BINARYCODE) continue;
-    saAbility[numScript] = *pAbility;
-    scripts[numScript++] = pSpecString;
-  };
-  if (numScript != 0)
-  {
-    CBRESULT callbackResult;
-    for (i = 0; i<numScript; i++)
-    {
-      pSpecString = scripts[i];
-      pScriptContext->SetAbility(this, &saAbility[i]);
-      pScriptContext->SetSA_Source_Type(SA_Source_Type);
-      pScriptContext->SetSA_Source_Name(SA_Source_Name);
-      pScriptContext->SetSA_ScriptName(pSpecString->Key());
-      gpdlStack.Push();
-      (*p_hook_parameters)[0] = gpdlStack.activeGPDL()->ExecuteScript(scripts[i]->Value(), 1, NULL, 0);
-      gpdlStack.Pop();
-      pScriptContext->ClearAbility();
-      callbackResult = (*fnc)(CBF_EXAMINESCRIPT, &(*p_hook_parameters)[0], pkt);
-#ifdef UAFEngine
-      if ((globalLoggingFlags & 1) || (globalSA_debug.Find(saAbility[i].Key()) != NULL))
-      {
-        WriteDebugString("@@SA \"%s\" Script \"%s\": %s%s returned \"%s\"\n",
-          saAbility[i].Key(),
-          scripts[i]->Key(),
-          SA_Source_Type,
-          SA_Source_Name,
-          (*p_hook_parameters)[0]);
-      };
-#endif
-      if (callbackResult == CBR_STOP)
-      {
-        return (*p_hook_parameters)[0];
-      };
-    };
-    (*fnc)(CBF_ENDOFSCRIPTS, &(*p_hook_parameters)[0], pkt);
-  }
-  else
-  {
-    (*fnc)(CBF_DEFAULT, &(*p_hook_parameters)[0], pkt);
-  };
-  return (*p_hook_parameters)[0];
-}
-
-CString SPECIAL_ABILITIES::RunScripts(LPCSTR             scriptName, 
-                                      CBRESULT         (*fnc)(CBFUNC func, CString *scriptResult, void *pkt), 
-                                      void              *pkt,
-                                      LPCSTR             comment,
-                                      SCRIPT_SOURCE_TYPE sourceType, 
-                                      LPCSTR             sourceName) const
+CString SPECIAL_ABILITIES::RunScripts(LPCSTR     scriptName, 
+                                      CBRESULT (*fnc)(CBFUNC func, CString *scriptResult, void *pkt), 
+                                      void      *pkt,
+                                      LPCSTR     SA_Source_Type, 
+                                      LPCSTR     SA_Source_Name) const
 {
   ASLENTRY *scripts[MAX_SPEC_AB];
   CStringPAIR  saAbility[MAX_SPEC_AB];
@@ -1927,8 +1710,8 @@ CString SPECIAL_ABILITIES::RunScripts(LPCSTR             scriptName,
     {
       pSpecString = scripts[i];
       pScriptContext->SetAbility(this, &saAbility[i]);
-      pScriptContext->SetSA_Source_Type(sourceType);
-      pScriptContext->SetSA_Source_Name(sourceName);
+      pScriptContext->SetSA_Source_Type(SA_Source_Type);
+      pScriptContext->SetSA_Source_Name(SA_Source_Name);
       pScriptContext->SetSA_ScriptName(pSpecString->Key());
       gpdlStack.Push();
       (*p_hook_parameters)[0] = gpdlStack.activeGPDL()->ExecuteScript(scripts[i]->Value(),1, NULL, 0); 
@@ -1941,8 +1724,8 @@ CString SPECIAL_ABILITIES::RunScripts(LPCSTR             scriptName,
         WriteDebugString("@@SA \"%s\" Script \"%s\": %s%s returned \"%s\"\n",
                          saAbility[i].Key(), 
                          scripts[i]->Key(), 
-                         pScriptContext->GetSourceTypeName(), 
-                         sourceName, 
+                         SA_Source_Type, 
+                         SA_Source_Name, 
                          (*p_hook_parameters)[0]); 
       };
 #endif
@@ -2029,8 +1812,7 @@ int IntegerTableLookup(const CString& SAname,
         switch (function.GetAt(0))
         {
         case 'I':
-          if (iValue >= numEnt) iValue = numEnt-1;
-          if (iValue >= 0) return pArray[iValue];
+          if ((iValue < numEnt) && (iValue >= 0)) return pArray[iValue];
           return -1;
         case 'E':
           for (i=0; i<numEnt; i++)
@@ -2071,28 +1853,6 @@ int IntegerTableLookup(const CString& SAname,
 }
 #endif
 
-struct DEFAULT_GLOBAL_SCRIPT
-{
-  const char *abilityName;
-  ASLENTRY   specString;
-};
-
-
-DEFAULT_GLOBAL_SCRIPT defaultGlobalScripts[] =
-{
-  {"CombatPlacement", {"PlaceMonsterFar", 
-                                            "$IF($GET_PARTY_FACING() >=#2)"
-                                            "{"
-                                               "$MonsterPlacement(\"17FbPV500E\");"
-                                            "}"
-                                            "$ELSE"
-                                            "{"
-                                               "$MonsterPlacement(\"16FbPV500E\");"
-                                            "};", 
-                                            SPECAB_SCRIPT}
-  }
-};
-const int numDefaultGlobalScripts = sizeof(defaultGlobalScripts)/sizeof(DEFAULT_GLOBAL_SCRIPT);
 
 CString RunGlobalScript(const char *SAname, const char *scriptName, bool nullSA)
 {
@@ -2101,32 +1861,13 @@ CString RunGlobalScript(const char *SAname, const char *scriptName, bool nullSA)
   CString binScript;
 //  const CStringPAIR *pAbility = NULL;
   SPECABILITY_DEF  *pSpecAb;
-  ASLENTRY *pSpecString = NULL;
+  ASLENTRY *pSpecString;
 
 
   pSpecAb = specialAbilitiesData.FindAbility(SAname);
-  if (pSpecAb == NULL)
+  if (pSpecAb != NULL)
   {
-    // Perhaps we can find a default value for this script
-    int i;
-    for (i=0; i<numDefaultGlobalScripts; i++)
-    {
-      if (strcmp(SAname, defaultGlobalScripts[i].abilityName) == 0)
-      {
-        if (defaultGlobalScripts[i].specString.Key() == scriptName)
-        {
-          pSpecString = &defaultGlobalScripts[i].specString;
-          break;
-        }
-      };
-    };
-  };
-  if ( (pSpecAb != NULL) || (pSpecString != NULL))
-  {
-    if (pSpecAb != NULL)
-    {
-      pSpecString = pSpecAb->Find(scriptName);
-    };
+    pSpecString = pSpecAb->Find(scriptName);
     if (pSpecString != NULL)
     {
       if (pSpecString->Flags() == SPECAB_SCRIPT)
@@ -2135,22 +1876,16 @@ CString RunGlobalScript(const char *SAname, const char *scriptName, bool nullSA)
         binScript = gpdlcomp.CompileScript(frontEnd+pSpecString->Value()+backEnd, SAentries);
         if (binScript[0] != 0)
         {
-          WriteDebugString("* * * * Script Error in %s[%s]\n", SAname,scriptName);
+          WriteDebugString("* * * * Script Error in %s[%s]\n", pSpecAb->Name(),scriptName);
           pSpecString->Value(binScript);
           pSpecString->Flags(SPECAB_SCRIPTERROR);
-          if (pSpecAb != NULL)
-          {
-            pSpecAb->Insert(scriptName, binScript, SPECAB_SCRIPTERROR);
-          };
+          pSpecAb->Insert(scriptName, binScript, SPECAB_SCRIPTERROR);
         }
         else
         {
           pSpecString->Value(binScript);
           pSpecString->Flags(SPECAB_BINARYCODE);
-          if (pSpecAb != NULL)
-          {
-            pSpecAb->Insert(scriptName, binScript, SPECAB_BINARYCODE);
-          };
+          pSpecAb->Insert(scriptName, binScript, SPECAB_BINARYCODE);
         };
       };
       if (pSpecString->Flags() == SPECAB_BINARYCODE)

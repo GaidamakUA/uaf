@@ -1,9 +1,9 @@
 // Note......No precompiled headers!
+
 #include <afxtempl.h>
 #include <malloc.h>
 
-#include "..\Shared\GPDLopCodes.h"
-#include "..\Shared\ramfile.h"
+#include "../Shared/GPDLOpCodes.h"
 
 void WriteDebugString(const char *ptext, ... );
 extern int debugSeverity;
@@ -242,8 +242,7 @@ char INPUTFILE::m_nextChar(void) {                            //INPUTFILE
     return temp;                                              //INPUTFILE
   };                                                          //INPUTFILE
   if (m_eof) return 0;                                        //INPUTFILE
-  while (1)                                                   //INPUTFILE
-  {                                                           //INPUTFILE
+  while (1) {                                                 //INPUTFILE
     if (m_line[m_lineIndex]==0) {                             //INPUTFILE
       if (m_file != NULL)                                     //INPUTFILE
       {                                                       //INPUTFILE
@@ -358,7 +357,7 @@ void INPUTFILE::error(CString text, bool printLineNumbers)    //INPUTFILE
     message.Format(                                           //INPUTFILE
                "The last token encountered was \'%s\'\n",m_token);//INPUTFILE
     (*m_ProcessErrorMessage)(message, false);                 //INPUTFILE
-    //TRACE("The line being parsed was \'%s\'\n",m_line);     //INPUTFILE$monsterpl
+    //TRACE("The line being parsed was \'%s\'\n",m_line);     //INPUTFILE
     message.Format("The line being parsed was \'%s\'\n",m_line);//INPUTFILE
     (*m_ProcessErrorMessage)(message, true);                  //INPUTFILE
   };                                                          //INPUTFILE
@@ -770,7 +769,6 @@ public:                                                       //code
   void comma(unsigned int binCode);                           //code
   void comma(BINOPS binCode);                                 //code
   int write(CArchive& ar);                                    //code
-  int write(RAM_FILE& result);                                //code
   int read(CArchive& ar);                                     //code
 };                                                            //code
                                                               //code
@@ -845,16 +843,6 @@ int CODE::write(CArchive& ar) {                               //code
   };                                                          //code
   return 0;                                                   //code
 }                                                             //code
-                                                              //code
-int CODE::write(RAM_FILE& ar) {                               //code
-  unsigned int k;                                             //code
-  ar << here();                                               //code
-  for (k=0; k < here(); k++) {                                //code
-    ar << peek(k);                                            //code
-  };                                                          //code
-  return 0;                                                   //code
-}                                                             //code
-                                                              //code
                                                               //code
 int CODE::read(CArchive& ar) {                                //code
   unsigned int i;                                             //code
@@ -934,7 +922,6 @@ private:                                                      //DICTIONARY
   DEFINITION *m_definitions;                                  //DICTIONARY
   unsigned int m_countFunctions(void);                        //DICTIONARY
   int m_writeFunctionIndex(CString& prefix, CArchive& ar);    //DICTIONARY
-  int m_writeFunctionIndex(CString& prefix, RAM_FILE& ar);    //DICTIONARY
 public:                                                       //DICTIONARY
   DICTIONARY(CString name);                                   //DICTIONARY
   ~DICTIONARY(void);                                          //DICTIONARY
@@ -950,7 +937,6 @@ public:                                                       //DICTIONARY
   void parent(DICTIONARY *parent){m_parent=parent;};          //DICTIONARY
   CString findUserFunc(unsigned int address); // function starting at address
   int write(CArchive& ar);                                    //DICTIONARY
-  int write(RAM_FILE& result);                                //DICTIONARY
   unsigned int GetPublicValue(int n);                         //DICTIONARY
   CString GetPublicName(const CString& prefix, int n);        //DICTIONARY
   int CountPublic(void);                                      //DICTIONARY
@@ -986,7 +972,6 @@ public:                                                       //DICTIONARY
   CString getValue(unsigned int index);                       //DICTIONARY
   char getType(unsigned int index);                           //DICTIONARY
   int write(CArchive& ar);                                    //DICTIONARY
-  int write(RAM_FILE& result);                                //DICTIONARY
 };                                                            //DICTIONARY
                                                               //DICTIONARY
                                                               //DICTIONARY
@@ -1003,8 +988,7 @@ DEFINITION::DEFINITION (void) {                               //DICTIONARY
   m_FLG_Public=false;                                         //DICTIONARY
   m_intValue=0xffffffff;                                      //DICTIONARY
   m_requiredContexts=0;                                       //DICTIONARY
-  strcpy_s(m_id,4,"def");                                         //DICTIONARY
-
+  strcpy(m_id,"def");                                         //DICTIONARY
   for (i=0; i<MAX_FUNC_PARAMETERS+1; i++) m_types[i] = 0;     //DICTIONARY
 }                                                             //DICTIONARY
                                                               //DICTIONARY
@@ -1036,8 +1020,7 @@ DICTIONARY::DICTIONARY(CString name) {                        //DICTIONARY
   m_offspring=NULL;                                           //DICTIONARY
   m_definitions=NULL;                                         //DICTIONARY
   m_next=NULL;                                                //DICTIONARY
-  strcpy_s(m_id,4,"dic");                                         //DICTIONARY
-
+  strcpy(m_id,"dic");                                         //DICTIONARY
 }                                                             //DICTIONARY
                                                               //DICTIONARY
 DICTIONARY::~DICTIONARY(void) {                               //DICTIONARY
@@ -1191,23 +1174,6 @@ int DICTIONARY::m_writeFunctionIndex(CString& prefix, CArchive& ar) {
   return 0;                                                   //DICTIONARY
 }                                                             //DICTIONARY
                                                               //DICTIONARY
-int DICTIONARY::m_writeFunctionIndex(CString& prefix, RAM_FILE& ar) {
-  DICTIONARY *dict;                                           //DICTIONARY
-  DEFINITION *def;                                            //DICTIONARY
-  CString newprefix;                                          //DICTIONARY
-  for (def=m_definitions; def!=NULL; def=def->m_next) {       //DICTIONARY
-    if (def->publicUserFunc()) {                              //DICTIONARY
-      ar << prefix + def->m_name;                             //DICTIONARY
-      ar << def->m_intValue;                                  //DICTIONARY
-    };                                                        //DICTIONARY
-  };                                                          //DICTIONARY
-  for (dict=m_offspring; dict!=NULL; dict=dict->m_next) {     //DICTIONARY
-    newprefix=prefix+dict->m_name+'@';                        //DICTIONARY
-    dict->m_writeFunctionIndex(newprefix, ar);                //DICTIONARY
-  };                                                          //DICTIONARY
-  return 0;                                                   //DICTIONARY
-}                                                             //DICTIONARY
-                                                              //DICTIONARY
 int DICTIONARY::m_findPublicFunction(CString& prefix,         //DICTIONARY
                                      CString& name)   {       //DICTIONARY
   DICTIONARY *dict;                                           //DICTIONARY
@@ -1227,15 +1193,6 @@ int DICTIONARY::m_findPublicFunction(CString& prefix,         //DICTIONARY
 }                                                             //DICTIONARY
                                                               //DICTIONARY
 int DICTIONARY::write(CArchive& ar) {                         //DICTIONARY
-  unsigned int numdef;                                        //DICTIONARY
-  CString prefix="";                                          //DICTIONARY
-  numdef=m_countFunctions();                                  //DICTIONARY
-  ar << numdef;                                               //DICTIONARY
-  m_writeFunctionIndex(prefix,ar);                            //DICTIONARY
-  return 0;                                                   //DICTIONARY
-}                                                             //DICTIONARY
-                                                              //DICTIONARY
-int DICTIONARY::write(RAM_FILE& ar) {                         //DICTIONARY
   unsigned int numdef;                                        //DICTIONARY
   CString prefix="";                                          //DICTIONARY
   numdef=m_countFunctions();                                  //DICTIONARY
@@ -1314,8 +1271,6 @@ SYSTEMFUNCTION systemfunctions[] =
   {"$PARTYSIZE"                ,0,SUBOP_PARTYSIZE               ,ALL_USAGE,0},
   {"$GET_CHAR_SEX"             ,1,SUBOP_GET_CHAR_SEX            ,ALL_USAGE,0,0},
   {"$SET_CHAR_SEX"             ,2,SUBOP_SET_CHAR_SEX            ,ALL_USAGE,STRING,STRING},
-  {"$GET_CHAR_ICON_INDEX"      ,1,SUBOP_GET_CHAR_ICON_INDEX     ,ALL_USAGE,STRING},
-  {"$SET_CHAR_ICON_INDEX"      ,2,SUBOP_SET_CHAR_ICON_INDEX     ,ALL_USAGE,STRING,STRING},
   {"$GET_CHAR_ASL"             ,2,SUBOP_GET_CHAR_ASL            ,ALL_USAGE,0,0,0},
   {"$IF_CHAR_ASL"              ,2,SUBOP_IF_CHAR_ASL             ,ALL_USAGE,0,0,0},
   {"$GET_CHAR_NAME"            ,1,SUBOP_GET_CHAR_NAME           ,ALL_USAGE,0,0},
@@ -1372,33 +1327,26 @@ SYSTEMFUNCTION systemfunctions[] =
   {"$GET_CHAR_MAXMOVE"         ,1,SUBOP_GET_CHAR_MAXMOVE        ,ALL_USAGE,0,0},
   {"$SET_CHAR_MAXMOVE"         ,2,SUBOP_SET_CHAR_MAXMOVE        ,ALL_USAGE,0,0,0},
   {"$GET_CHAR_LIMITED_STR"     ,1,SUBOP_GET_CHAR_LIMITED_STR    ,ALL_USAGE,0,0},
-  {"$GET_CHAR_ADJ_STR"         ,1,SUBOP_GET_CHAR_ADJ_STR        ,ALL_USAGE,0,0},
   {"$GET_CHAR_PERM_STR"        ,1,SUBOP_GET_CHAR_PERM_STR       ,ALL_USAGE,0,0},
   {"$SET_CHAR_PERM_STR"        ,2,SUBOP_SET_CHAR_PERM_STR       ,ALL_USAGE,0,0,0},
   {"$MODIFY_CHAR_ATTRIBUTE"    ,7,SUBOP_MODIFY_CHAR_ATTRIBUTE   ,ALL_USAGE,0,0,0,0,0,0,0,0},
   {"$REMOVE_CHAR_MODIFICATION" ,2,SUBOP_REMOVE_CHAR_MODIFICATION,ALL_USAGE,0,0,0},
   {"$GET_CHAR_LIMITED_STRMOD"  ,1,SUBOP_GET_CHAR_LIMITED_STRMOD ,ALL_USAGE,0,0},
-  {"$GET_CHAR_ADJ_STRMOD"      ,1,SUBOP_GET_CHAR_ADJ_STRMOD     ,ALL_USAGE,0,0},
   {"$GET_CHAR_PERM_STRMOD"     ,1,SUBOP_GET_CHAR_PERM_STRMOD    ,ALL_USAGE,0,0},
   {"$SET_CHAR_PERM_STRMOD"     ,2,SUBOP_SET_CHAR_PERM_STRMOD    ,ALL_USAGE,0,0,0},
   {"$GET_CHAR_LIMITED_INT"     ,1,SUBOP_GET_CHAR_LIMITED_INT    ,ALL_USAGE,0,0},
-  {"$GET_CHAR_ADJ_INT"         ,1,SUBOP_GET_CHAR_ADJ_INT        ,ALL_USAGE,0,0},
   {"$GET_CHAR_PERM_INT"        ,1,SUBOP_GET_CHAR_PERM_INT       ,ALL_USAGE,0,0},
   {"$SET_CHAR_PERM_INT"        ,2,SUBOP_SET_CHAR_PERM_INT       ,ALL_USAGE,0,0,0},
   {"$GET_CHAR_LIMITED_WIS"     ,1,SUBOP_GET_CHAR_LIMITED_WIS    ,ALL_USAGE,0,0},
-  {"$GET_CHAR_ADJ_WIS"         ,1,SUBOP_GET_CHAR_ADJ_WIS        ,ALL_USAGE,0,0},
   {"$GET_CHAR_PERM_WIS"        ,1,SUBOP_GET_CHAR_PERM_WIS       ,ALL_USAGE,0,0},
   {"$SET_CHAR_PERM_WIS"        ,2,SUBOP_SET_CHAR_PERM_WIS       ,ALL_USAGE,0,0,0},
   {"$GET_CHAR_LIMITED_DEX"     ,1,SUBOP_GET_CHAR_LIMITED_DEX    ,ALL_USAGE,0,0},
-  {"$GET_CHAR_ADJ_DEX"         ,1,SUBOP_GET_CHAR_ADJ_DEX        ,ALL_USAGE,0,0},
   {"$GET_CHAR_PERM_DEX"        ,1,SUBOP_GET_CHAR_PERM_DEX       ,ALL_USAGE,0,0},
   {"$SET_CHAR_PERM_DEX"        ,2,SUBOP_SET_CHAR_PERM_DEX       ,ALL_USAGE,0,0,0},
   {"$GET_CHAR_LIMITED_CON"     ,1,SUBOP_GET_CHAR_LIMITED_CON    ,ALL_USAGE,0,0},
-  {"$GET_CHAR_ADJ_CON"         ,1,SUBOP_GET_CHAR_ADJ_CON        ,ALL_USAGE,0,0},
   {"$GET_CHAR_PERM_CON"        ,1,SUBOP_GET_CHAR_PERM_CON       ,ALL_USAGE,0,0},
   {"$SET_CHAR_PERM_CON"        ,2,SUBOP_SET_CHAR_PERM_CON       ,ALL_USAGE,0,0,0},
   {"$GET_CHAR_LIMITED_CHA"     ,1,SUBOP_GET_CHAR_LIMITED_CHA    ,ALL_USAGE,0,0},
-  {"$GET_CHAR_ADJ_CHA"         ,1,SUBOP_GET_CHAR_ADJ_CHA        ,ALL_USAGE,0,0},
   {"$GET_CHAR_PERM_CHA"        ,1,SUBOP_GET_CHAR_PERM_CHA       ,ALL_USAGE,0,0},
   {"$SET_CHAR_PERM_CHA"        ,2,SUBOP_SET_CHAR_PERM_CHA       ,ALL_USAGE,0,0,0},
   {"$GET_CHAR_MAXENC"          ,1,SUBOP_GET_CHAR_MAXENC         ,ALL_USAGE,0,0},
@@ -1418,14 +1366,76 @@ SYSTEMFUNCTION systemfunctions[] =
   {"$SET_CHAR_SIZE"            ,2,SUBOP_SET_CHAR_SIZE           ,ALL_USAGE,0,0,0},
   {"$GET_CHAR_MAGICRESIST"     ,1,SUBOP_GET_CHAR_MAGICRESIST    ,ALL_USAGE,0,0},
   {"$SET_CHAR_MAGICRESIST"     ,2,SUBOP_SET_CHAR_MAGICRESIST    ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_SAVEVSPPDM"      ,1,SUBOP_GET_CHAR_SAVEVSPPDM     ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_SAVEVSPPDM"      ,2,SUBOP_SET_CHAR_SAVEVSPPDM     ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_SAVEVSPP"        ,1,SUBOP_GET_CHAR_SAVEVSPP       ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_SAVEVSPP"        ,2,SUBOP_SET_CHAR_SAVEVSPP       ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_SAVEVSRSW"       ,1,SUBOP_GET_CHAR_SAVEVSRSW      ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_SAVEVSRSW"       ,2,SUBOP_SET_CHAR_SAVEVSRSW      ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_SAVEVSBR"        ,1,SUBOP_GET_CHAR_SAVEVSBR       ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_SAVEVSBR"        ,2,SUBOP_SET_CHAR_SAVEVSBR       ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_SAVEVSSP"        ,1,SUBOP_GET_CHAR_SAVEVSSP       ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_SAVEVSSP"        ,2,SUBOP_SET_CHAR_SAVEVSSP       ,ALL_USAGE,0,0,0},
   {"$GET_CHAR_Lvl"             ,2,SUBOP_GET_CHAR_Lvl            ,ALL_USAGE,0,0,0},
   {"$SET_CHAR_Lvl"             ,3,SUBOP_SET_CHAR_Lvl            ,ALL_USAGE,0,0,0,0},
 
+  //Begin Deprecated
+  //{"$GET_CHAR_CLERICLVL"       ,1,SUBOP_GET_CHAR_CLERICLVL      ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_FIGHTERLVL"      ,1,SUBOP_GET_CHAR_FIGHTERLVL     ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_RANGERLVL"       ,1,SUBOP_GET_CHAR_RANGERLVL      ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_DRUIDLVL"        ,1,SUBOP_GET_CHAR_DRUIDLVL       ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_PALADINLVL"      ,1,SUBOP_GET_CHAR_PALADINLVL     ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_THIEFLVL"        ,1,SUBOP_GET_CHAR_THIEFLVL       ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_MAGICUSERLVL"    ,1,SUBOP_GET_CHAR_MAGICUSERLVL   ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_CLERICLVL"       ,2,SUBOP_SET_CHAR_CLERICLVL      ,ALL_USAGE,0,0,0},
+  //{"$SET_CHAR_FIGHTERLVL"      ,2,SUBOP_SET_CHAR_FIGHTERLVL     ,ALL_USAGE,0,0,0},
+  //{"$SET_CHAR_RANGERLVL"       ,2,SUBOP_SET_CHAR_RANGERLVL      ,ALL_USAGE,0,0,0},
+  //{"$SET_CHAR_DRUIDLVL"        ,2,SUBOP_SET_CHAR_DRUIDLVL       ,ALL_USAGE,0,0,0},
+  //{"$SET_CHAR_PALADINLVL"      ,2,SUBOP_SET_CHAR_PALADINLVL     ,ALL_USAGE,0,0,0},
+  //{"$SET_CHAR_THIEFLVL"        ,2,SUBOP_SET_CHAR_THIEFLVL       ,ALL_USAGE,0,0,0},
+  //{"$SET_CHAR_MAGICUSERLVL"    ,2,SUBOP_SET_CHAR_MAGICUSERLVL   ,ALL_USAGE,0,0,0},
+  //{"$SET_CHAR_CLERICPREVLVL"   ,1,SUBOP_GET_CHAR_CLERICPREVLVL  ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_FIGHTERPREVLVL"  ,1,SUBOP_GET_CHAR_FIGHTERPREVLVL ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_RANGERPREVLVL"   ,1,SUBOP_GET_CHAR_RANGERPREVLVL  ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_DRUIDPREVLVL"    ,1,SUBOP_GET_CHAR_DRUIDPREVLVL   ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_PALADINPREVLVL"  ,1,SUBOP_GET_CHAR_PALADINPREVLVL ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_THIEFPREVLVL"    ,1,SUBOP_GET_CHAR_THIEFPREVLVL   ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_MAGUSERPREVLVL"  ,1,SUBOP_GET_CHAR_MAGUSERPREVLVL ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_CLERICPDLVL"     ,1,SUBOP_GET_CHAR_CLERICPDLVL    ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_FIGHTERPDLVL"    ,1,SUBOP_GET_CHAR_FIGHTERPDLVL   ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_RANGERPDLVL"     ,1,SUBOP_GET_CHAR_RANGERPDLVL    ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_DRUIDPDLVL"      ,1,SUBOP_GET_CHAR_DRUIDPDLVL     ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_PALADINPDLVL"    ,1,SUBOP_GET_CHAR_PALADINPDLVL   ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_THIEFPDLVL"      ,1,SUBOP_GET_CHAR_THIEFPDLVL     ,ALL_USAGE,0,0},
+  //{"$GET_CHAR_MAGUSERPDLVL"    ,1,SUBOP_GET_CHAR_MAGUSERPDLVL   ,ALL_USAGE,0,0},
+  //End Deprecated
 
   {"$GET_CHAR_NBRHITDICE"      ,1,SUBOP_GET_CHAR_NBRHITDICE     ,ALL_USAGE,0,0},
   {"$GET_CHAR_NBRATTACKS"      ,1,SUBOP_GET_CHAR_NBRATTACKS     ,ALL_USAGE,0,0},
   {"$GET_CHAR_MORALE"          ,1,SUBOP_GET_CHAR_MORALE         ,ALL_USAGE,0,0},
   {"$SET_CHAR_MORALE"          ,2,SUBOP_SET_CHAR_MORALE         ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_OPENDOORS"       ,1,SUBOP_GET_CHAR_OPENDOORS      ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_OPENDOORS"       ,2,SUBOP_SET_CHAR_OPENDOORS      ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_OPENMAGICDOORS"  ,1,SUBOP_GET_CHAR_OPENMAGICDOORS ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_OPENMAGICDOORS"  ,2,SUBOP_SET_CHAR_OPENMAGICDOORS ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_BENDLIFT"        ,1,SUBOP_GET_CHAR_BENDLIFT       ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_BENDLIFT"        ,2,SUBOP_SET_CHAR_BENDLIFT       ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_PICKPOCKETS"     ,1,SUBOP_GET_CHAR_PICKPOCKETS    ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_PICKPOCKETS"     ,2,SUBOP_SET_CHAR_PICKPOCKETS    ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_OPENLOCKS"       ,1,SUBOP_GET_CHAR_OPENLOCKS      ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_OPENLOCKS"       ,2,SUBOP_SET_CHAR_OPENLOCKS      ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_FINDTRAPS"       ,1,SUBOP_GET_CHAR_FINDTRAPS      ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_FINDTRAPS"       ,2,SUBOP_SET_CHAR_FINDTRAPS      ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_MOVESILENT"      ,1,SUBOP_GET_CHAR_MOVESILENT     ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_MOVESILENT"      ,2,SUBOP_SET_CHAR_MOVESILENT     ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_HIDESHADOWS"     ,1,SUBOP_GET_CHAR_HIDESHADOWS    ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_HIDESHADOWS"     ,2,SUBOP_SET_CHAR_HIDESHADOWS    ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_HEARNOISE"       ,1,SUBOP_GET_CHAR_HEARNOISE      ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_HEARNOISE"       ,2,SUBOP_SET_CHAR_HEARNOISE      ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_CLIMBWALLS"      ,1,SUBOP_GET_CHAR_CLIMBWALLS     ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_CLIMBWALLS"      ,2,SUBOP_SET_CHAR_CLIMBWALLS     ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_READLANG"        ,1,SUBOP_GET_CHAR_READLANG       ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_READLANG"        ,2,SUBOP_SET_CHAR_READLANG       ,ALL_USAGE,0,0,0},
   {"$GET_PARTY_FACING"         ,0,SUBOP_GET_PARTY_FACING        ,ALL_USAGE,0},
   {"$GET_PARTY_LOCATION"       ,0,SUBOP_GET_PARTY_LOCATION      ,ALL_USAGE,0},
   {"$SET_PARTY_FACING"         ,1,SUBOP_SET_PARTY_FACING        ,ALL_USAGE,0,0},
@@ -1467,11 +1477,59 @@ SYSTEMFUNCTION systemfunctions[] =
   {"$AlignmentChaotic"         ,1,SUBOP_AlignmentChaotic        ,ALL_USAGE,0,ACTOR},
   {"$HitPoints"                ,1,SUBOP_HitPoints               ,ALL_USAGE,0,ACTOR}, // int HitPoints(Actor)
   {"$InParty"                  ,1,SUBOP_InParty                 ,ALL_USAGE,0,ACTOR}, // BOOL InParty(Actor)
+  //{"$SaveVsSpell"              ,1,SUBOP_SaveVsSpell             ,ALL_USAGE,0,ACTOR}, // BOOL SaveVsSpell(Actor)
+  //{"$SaveVsBreathWeapon"       ,1,SUBOP_SaveVsBreathWeapon      ,ALL_USAGE,0,ACTOR},
+  //{"$SaveVsRodStaffWand"       ,1,SUBOP_SaveVsRodStaffWand      ,ALL_USAGE,0,ACTOR},
+  //{"$SaveVsPetPoly"            ,1,SUBOP_SaveVsPetPoly           ,ALL_USAGE,0,ACTOR},
+  //{"$SaveVsParPoiDM"           ,1,SUBOP_SaveVsParPoiDM          ,ALL_USAGE,0,ACTOR},
   {"$IsUndead"                 ,1,SUBOP_IsUndead                ,ALL_USAGE,0,ACTOR}, // BOOL IsUndead(Actor)
   {"$MIDDLE"                   ,3,SUBOP_MIDDLE                  ,ALL_USAGE,0,0,0,0},
+  //{"$GET_CHAR_BLESS"           ,1,SUBOP_GET_CHAR_BLESS          ,ALL_USAGE,0,0},     // int GET_CHAR_BLESS( party_index_for_char )
+  //{"$SET_CHAR_BLESS"           ,2,SUBOP_SET_CHAR_BLESS          ,ALL_USAGE,0,0,0},   // void SET_CHAR_BLESS( party_index_for_char, new_value)
+  //{"$GET_CHAR_CURSE"           ,1,SUBOP_GET_CHAR_CURSE          ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_CURSE"           ,2,SUBOP_SET_CHAR_CURSE          ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_UNDEADFEAR"      ,1,SUBOP_GET_CHAR_UNDEADFEAR     ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_UNDEADFEAR"      ,2,SUBOP_SET_CHAR_UNDEADFEAR     ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_ENLARGE"         ,1,SUBOP_GET_CHAR_ENLARGE        ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_ENLARGE"         ,2,SUBOP_SET_CHAR_ENLARGE        ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_REDUCE"          ,1,SUBOP_GET_CHAR_REDUCE         ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_REDUCE"          ,2,SUBOP_SET_CHAR_REDUCE         ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_CHARMPERSON"     ,1,SUBOP_GET_CHAR_CHARMPERSON    ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_CHARMPERSON"     ,2,SUBOP_SET_CHAR_CHARMPERSON    ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_REFLECTGAZEATTACK" ,1,SUBOP_GET_CHAR_REFLECTGAZEATTACK ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_REFLECTGAZEATTACK" ,2,SUBOP_SET_CHAR_REFLECTGAZEATTACK ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_PROTFROMEVIL"    ,1,SUBOP_GET_CHAR_PROTFROMEVIL   ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_PROTFROMEVIL"    ,2,SUBOP_SET_CHAR_PROTFROMEVIL   ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_PROTFROMGOOD"    ,1,SUBOP_GET_CHAR_PROTFROMGOOD   ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_PROTFROMGOOD"    ,2,SUBOP_SET_CHAR_PROTFROMGOOD   ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_SHIELD"          ,1,SUBOP_GET_CHAR_SHIELD         ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_SHIELD"          ,2,SUBOP_SET_CHAR_SHIELD         ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_SLEEP"           ,1,SUBOP_GET_CHAR_SLEEP          ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_SLEEP"           ,2,SUBOP_SET_CHAR_SLEEP          ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_FOG"             ,1,SUBOP_GET_CHAR_FOG            ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_FOG"             ,2,SUBOP_SET_CHAR_FOG            ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_ENTANGLE"        ,1,SUBOP_GET_CHAR_ENTANGLE       ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_ENTANGLE"        ,2,SUBOP_SET_CHAR_ENTANGLE       ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_INVISIBLETOANIMALS" ,1,SUBOP_GET_CHAR_INVISIBLETOANIMALS ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_INVISIBLETOANIMALS" ,2,SUBOP_SET_CHAR_INVISIBLETOANIMALS ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_NONUNDEADFEAR"   ,1,SUBOP_GET_CHAR_NONUNDEADFEAR  ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_NONUNDEADFEAR"   ,2,SUBOP_SET_CHAR_NONUNDEADFEAR  ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_SANCTUARY"       ,1,SUBOP_GET_CHAR_SANCTUARY      ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_SANCTUARY"       ,2,SUBOP_SET_CHAR_SANCTUARY      ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_SHILLELAGH"      ,1,SUBOP_GET_CHAR_SHILLELAGH     ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_SHILLELAGH"      ,2,SUBOP_SET_CHAR_SHILLELAGH     ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_DISPLACEMENT"    ,1,SUBOP_GET_CHAR_DISPLACEMENT   ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_DISPLACEMENT"    ,2,SUBOP_SET_CHAR_DISPLACEMENT   ,ALL_USAGE,0,0,0},
+  //{"$GET_CHAR_WIZARDRY"        ,1,SUBOP_GET_CHAR_WIZARDRY       ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_WIZARDRY"        ,2,SUBOP_SET_CHAR_WIZARDRY       ,ALL_USAGE,0,0,0},  
+  //{"$GET_CHAR_DETECTMAGIC"     ,1,SUBOP_GET_CHAR_DETECTMAGIC    ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_DETECTMAGIC"     ,2,SUBOP_SET_CHAR_DETECTMAGIC    ,ALL_USAGE,0,0,0},
   {"$IndexOf"                  ,1,SUBOP_IndexOf                 ,ALL_USAGE,0,ACTOR}, // int IndexOf(Actor)
-  {"$IndexToActor"             ,1,SUBOP_IndexToActor            ,ALL_USAGE,ACTOR,STRING}, // Actor IndexToActor(index)
+  //{"$GET_CHAR_INVISIBLETOUNDEAD",1,SUBOP_GET_CHAR_INVISIBLETOUNDEAD ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_INVISIBLETOUNDEAD",2,SUBOP_SET_CHAR_INVISIBLETOUNDEAD ,ALL_USAGE,0,0,0},
   {"$GET_CHAR_TYPE"            ,1,SUBOP_GET_CHAR_TYPE             ,ALL_USAGE,0,0},     // int GET_CHAR_TYPE( party_index_for_char )
+  //{"$GET_CHAR_VORPALATTACK"     ,1,SUBOP_GET_CHAR_VORPALATTACK    ,ALL_USAGE,0,0},
+  //{"$SET_CHAR_VORPALATTACK"     ,2,SUBOP_SET_CHAR_VORPALATTACK    ,ALL_USAGE,0,0,0},
   {"$COINNAME"                  ,1,SUBOP_COINNAME                 ,ALL_USAGE,0,0},   // CString COINNAME( coin_ordinal )
   {"$COINCOUNT"                 ,2,SUBOP_COINCOUNT                ,ALL_USAGE,0,0,0}, // int COINCOUNT(coin_ordinal, party_index_for_char);
   {"$COINRATE"                  ,1,SUBOP_COINRATE                 ,ALL_USAGE,STRING,STRING},   // double COINRATE(coin_ordinal)
@@ -1489,6 +1547,10 @@ SYSTEMFUNCTION systemfunctions[] =
   {"$IS_AFFECTED_BY_SPELL"      ,2,SUBOP_IS_AFFECTED_BY_SPELL     ,ALL_USAGE,STRING,ACTOR,STRING}, // String IS_AFFECTED_BY_SPELL(Actor, spell_name)        
   {"$IS_AFFECTED_BY_SPELL_ATTR" ,2,SUBOP_IS_AFFECTED_BY_SPELL_ATTR,ALL_USAGE,STRING,ACTOR,STRING}, // String IS_AFFECTED_BY_SPELL_ATTR(Actor, spell_attrib_name)
   {"$CURR_CHANGE_BY_VAL"        ,0,SUBOP_CURR_CHANGE_BY_VAL       ,SPELL_USAGE,STRING},
+  //{"$GET_CHAR_HOLDPERSON"       ,1,SUBOP_GET_CHAR_HOLDPERSON      ,ALL_USAGE,STRING,STRING},
+  //{"$SET_CHAR_HOLDPERSON"       ,2,SUBOP_SET_CHAR_HOLDPERSON      ,ALL_USAGE,STRING,STRING,STRING},  
+  //{"$GET_CHAR_SILENCE"          ,1,SUBOP_GET_CHAR_SILENCE         ,ALL_USAGE,STRING,STRING},
+  //{"$SET_CHAR_SILENCE"          ,2,SUBOP_SET_CHAR_SILENCE         ,ALL_USAGE,STRING,STRING,STRING},
   {"$GET_ISMAMMAL"              ,1,SUBOP_GET_ISMAMMAL             ,ALL_USAGE,STRING,ACTOR},
   {"$GET_ISANIMAL"              ,1,SUBOP_GET_ISANIMAL             ,ALL_USAGE,STRING,ACTOR},
   {"$GET_ISSNAKE"               ,1,SUBOP_GET_ISSNAKE              ,ALL_USAGE,STRING,ACTOR},
@@ -1506,18 +1568,34 @@ SYSTEMFUNCTION systemfunctions[] =
   {"$GET_CANBEHELDORCHARMED"    ,1,SUBOP_GET_CANBEHELDORCHARMED   ,ALL_USAGE,STRING,ACTOR},
   {"$GET_AFFECTEDBYDISPELEVIL"  ,1,SUBOP_GET_AFFECTEDBYDISPELEVIL ,ALL_USAGE,STRING,ACTOR},
   {"$SET_AFFECTEDBYDISPELEVIL"  ,2,SUBOP_SET_AFFECTEDBYDISPELEVIL ,ALL_USAGE,STRING,ACTOR,STRING},
+  //{"$GET_CHAR_POISONED"         ,1,SUBOP_GET_CHAR_POISONED        ,ALL_USAGE,STRING,STRING},
+  //{"$SET_CHAR_POISONED"         ,2,SUBOP_SET_CHAR_POISONED        ,ALL_USAGE,STRING,STRING,STRING},  
+  //{"$GET_CHAR_SLOWPOISON"       ,1,SUBOP_GET_CHAR_SLOWPOISON      ,ALL_USAGE,STRING,STRING},
+  //{"$SET_CHAR_SLOWPOISON"       ,2,SUBOP_SET_CHAR_SLOWPOISON      ,ALL_USAGE,STRING,STRING,STRING},
   {"$GIVE_CHAR_ITEM"            ,2,SUBOP_GIVE_CHAR_ITEM           ,ALL_USAGE,STRING,ACTOR,STRING},
   {"$TAKE_CHAR_ITEM"            ,2,SUBOP_TAKE_CHAR_ITEM           ,ALL_USAGE,STRING,ACTOR,STRING},
+  //{"$GET_CHAR_MIRRORIMAGE"      ,1,SUBOP_GET_CHAR_MIRRORIMAGE     ,ALL_USAGE,STRING,STRING},
+  //{"$SET_CHAR_MIRRORIMAGE"      ,2,SUBOP_SET_CHAR_MIRRORIMAGE     ,ALL_USAGE,STRING,STRING,STRING},
+  //{"$GET_CHAR_INVISIBLE"        ,1,SUBOP_GET_CHAR_INVISIBLE       ,ALL_USAGE,STRING,STRING},
+  //{"$SET_CHAR_INVISIBLE"        ,2,SUBOP_SET_CHAR_INVISIBLE       ,ALL_USAGE,STRING,STRING,STRING},
+  //{"$GET_CHAR_ENFEEBLED"        ,1,SUBOP_GET_CHAR_ENFEEBLED       ,ALL_USAGE,STRING,STRING},
+  //{"$SET_CHAR_ENFEEBLED"        ,2,SUBOP_SET_CHAR_ENFEEBLED       ,ALL_USAGE,STRING,STRING,STRING},
   {"$LOGIC_BLOCK_VALUE"         ,1,SUBOP_LOGIC_BLOCK_VALUE        ,ALL_USAGE,STRING},
   {"$GET_CHAR_DAMAGEBONUS"      ,1,SUBOP_GET_CHAR_DAMAGEBONUS     ,ALL_USAGE,STRING,STRING},
   {"$SET_CHAR_DAMAGEBONUS"      ,2,SUBOP_SET_CHAR_DAMAGEBONUS     ,ALL_USAGE,STRING,STRING,STRING},  
   {"$GET_CHAR_HITBONUS"         ,1,SUBOP_GET_CHAR_HITBONUS        ,ALL_USAGE,STRING,STRING},
   {"$SET_CHAR_HITBONUS"         ,2,SUBOP_SET_CHAR_HITBONUS        ,ALL_USAGE,STRING,STRING,STRING},
+  //{"$GET_CHAR_BLINDNESS"        ,1,SUBOP_GET_CHAR_BLINDNESS       ,ALL_USAGE,STRING,STRING},
+  //{"$SET_CHAR_BLINDNESS"        ,2,SUBOP_SET_CHAR_BLINDNESS       ,ALL_USAGE,STRING,STRING,STRING},
+  //{"$GET_CHAR_DISEASED"         ,1,SUBOP_GET_CHAR_DISEASED        ,ALL_USAGE,STRING,STRING},
+  //{"$SET_CHAR_DISEASED"         ,2,SUBOP_SET_CHAR_DISEASED        ,ALL_USAGE,STRING,STRING,STRING},
   {"$CHAR_REMOVEALLSPELLS"      ,2,SUBOP_CHAR_REMOVEALLSPELLS     ,ALL_USAGE,STRING,ACTOR,STRING},
+//  {"$TargetIndex"               ,0,SUBOP_TARGETINDEX              ,ALL_USAGE,STRING},
   {"$MyIndex"                   ,0,SUBOP_MYINDEX                  ,ALL_USAGE,STRING},
   {"$CastSpellOnTarget"         ,2,SUBOP_CASTSPELLONTARGET        ,ALL_USAGE,STRING,ACTOR,STRING},
   {"$CastSpellOnTargetAs"       ,3,SUBOP_CASTSPELLONTARGETAS      ,ALL_USAGE,STRING,ACTOR,STRING,ACTOR},
   {"$AddCombatant"              ,2,SUBOP_AddCombatant             ,COMBAT_USAGE,STRING,STRING,STRING},
+//  {"$CHAR_REMOVESPELL"          ,2,SUBOP_CHAR_REMOVESPELL         ,ALL_USAGE,STRING,ACTOR,STRING},
   {"$CHAR_DISPELMAGIC"          ,2,SUBOP_CHAR_DISPELMAGIC         ,ALL_USAGE,STRING,ACTOR,STRING},
   {"$CHAR_REMOVEALLITEMCURSE"   ,1,SUBOP_CHAR_REMOVEALLITEMCURSE  ,ALL_USAGE,STRING,ACTOR},
 
@@ -1529,28 +1607,47 @@ SYSTEMFUNCTION systemfunctions[] =
   {"$GET_COMBATANT_SA"          ,2,SUBOP_GET_COMBATANT_SA         ,COMBAT_USAGE,0,ACTOR,0},
   {"$SET_COMBATANT_SA"          ,3,SUBOP_SET_COMBATANT_SA         ,COMBAT_USAGE,0,ACTOR,0,0},
   {"$DELETE_COMBATANT_SA"       ,2,SUBOP_DELETE_COMBATANT_SA      ,ALL_USAGE,0,ACTOR,STRING},
-  {"$DUMP_CHARACTER_SAS"        ,1,SUBOP_DUMP_CHARACTER_SAS       ,ALL_USAGE,0,ACTOR},
   {"$SA_COMBATANT_GET"          ,1,SUBOP_SA_COMBATANT_GET         ,COMBAT_USAGE,STRING,STRING},
 
   {"$GET_ITEM_SA"               ,2,SUBOP_GET_ITEM_SA              ,ALL_USAGE,STRING,STRING,STRING},
+  //{"$SET_ITEM_SA"               ,3,SUBOP_SET_ITEM_SA              ,ALL_USAGE,STRING,STRING,STRING,STRING},
+  //{"$DELETE_ITEM_SA"            ,2,SUBOP_DELETE_ITEM_SA           ,ALL_USAGE,0,STRING,STRING},
   {"$SA_ITEM_GET"               ,1,SUBOP_SA_ITEM_GET              ,ALL_USAGE,STRING,STRING},
 
   {"$GET_SPELL_SA"              ,2,SUBOP_GET_SPELL_SA             ,ALL_USAGE,STRING,STRING,STRING},
+  //{"$SET_SPELL_SA"              ,3,SUBOP_SET_SPELL_SA             ,ALL_USAGE,STRING,STRING,STRING,STRING},
+  //{"$DELETE_SPELL_SA"           ,2,SUBOP_DELETE_SPELL_SA          ,ALL_USAGE,0,STRING,STRING},
   {"$SA_SPELL_GET"              ,1,SUBOP_SA_SPELL_GET             ,ALL_USAGE,STRING,STRING},
 
+//  {"$GET_SPELLGROUP_SA"         ,2,SUBOP_GET_SPELLGROUP_SA        ,ALL_USAGE,STRING,STRING,STRING},
+  //{"$SET_SPELLGROUP_SA"         ,3,SUBOP_SET_SPELLGROUP_SA        ,ALL_USAGE,STRING,STRING,STRING,STRING},
+  //{"$DELETE_SPELLGROUP_SA"      ,2,SUBOP_DELETE_SPELLGROUP_SA     ,ALL_USAGE,0,STRING,STRING},
+  //{"$SA_SPELLGROUP_GET"         ,1,SUBOP_SA_SPELLGROUP_GET        ,ALL_USAGE,STRING,STRING},
 
   {"$GET_MONSTERTYPE_SA"        ,2,SUBOP_GET_MONSTERTYPE_SA       ,ALL_USAGE,STRING,STRING,STRING},
+  //{"$SET_MONSTERTYPE_SA"        ,3,SUBOP_SET_MONSTERTYPE_SA       ,ALL_USAGE,STRING,STRING,STRING,STRING},
+  //{"$DELETE_MONSTERTYPE_SA"     ,2,SUBOP_DELETE_MONSTERTYPE_SA    ,ALL_USAGE,0,STRING,STRING},
   {"$SA_MONSTERTYPE_GET"        ,1,SUBOP_SA_MONSTERTYPE_GET       ,ALL_USAGE,STRING,STRING},
 
   {"$GET_RACE_SA"               ,2,SUBOP_GET_RACE_SA              ,ALL_USAGE,STRING,STRING,STRING},
+  //{"$SET_RACE_SA"               ,3,SUBOP_SET_RACE_SA              ,ALL_USAGE,STRING,STRING,STRING,STRING},
+  //{"$DELETE_RACE_SA"            ,2,SUBOP_DELETE_RACE_SA           ,ALL_USAGE,0,STRING,STRING},
   {"$SA_RACE_GET"               ,1,SUBOP_SA_RACE_GET              ,ALL_USAGE,STRING,STRING},
 
   {"$GET_ABILITY_SA"            ,2,SUBOP_GET_ABILITY_SA           ,ALL_USAGE,STRING,STRING,STRING},
+  //{"$SET_ABILITY_SA"            ,3,SUBOP_SET_ABILITY_SA           ,ALL_USAGE,STRING,STRING,STRING,STRING},
+  //{"$DELETE_ABILITY_SA"         ,2,SUBOP_DELETE_ABILITY_SA        ,ALL_USAGE,0,STRING,STRING},
   {"$SA_ABILITY_GET"            ,1,SUBOP_SA_ABILITY_GET           ,ALL_USAGE,STRING,STRING},
 
+  //{"$GET_TRAIT_SA"              ,2,SUBOP_GET_TRAIT_SA             ,ALL_USAGE,STRING,STRING,STRING},
+  //{"$SET_TRAIT_SA"              ,3,SUBOP_SET_TRAIT_SA             ,ALL_USAGE,STRING,STRING,STRING,STRING},
+  //{"$DELETE_TRAIT_SA"           ,2,SUBOP_DELETE_TRAIT_SA          ,ALL_USAGE,0,STRING,STRING},
+  //{"$SA_TRAIT_GET"              ,1,SUBOP_SA_TRAIT_GET             ,ALL_USAGE,STRING,STRING},
 
   {"$GET_CLASS_SA"              ,2,SUBOP_GET_CLASS_SA             ,ALL_USAGE,STRING,STRING,STRING},
   {"$GET_BASECLASS_SA"          ,2,SUBOP_GET_BASECLASS_SA         ,ALL_USAGE,STRING,STRING,STRING},
+  //{"$SET_CLASS_SA"              ,3,SUBOP_SET_CLASS_SA             ,ALL_USAGE,STRING,STRING,STRING,STRING},
+  //{"$DELETE_CLASS_SA"           ,2,SUBOP_DELETE_CLASS_SA          ,ALL_USAGE,0,STRING,STRING},
   {"$SA_CLASS_GET"              ,1,SUBOP_SA_CLASS_GET             ,ALL_USAGE,STRING,STRING},
   {"$SA_BASECLASS_GET"          ,1,SUBOP_SA_BASECLASS_GET         ,ALL_USAGE,STRING,STRING},
 
@@ -1573,6 +1670,10 @@ SYSTEMFUNCTION systemfunctions[] =
   {"$TeleportCombatant"         ,3,SUBOP_TeleportCombatant        ,COMBAT_USAGE,STRING,STRING,STRING,STRING},
   {"$CombatantLocation"         ,2,SUBOP_CombatantLocation        ,COMBAT_USAGE,STRING,STRING,STRING},
   {"$IsLineOfSight"             ,5,SUBOP_IsLineOfSight            ,COMBAT_USAGE,STRING,STRING,STRING,STRING,STRING,STRING},
+  //{"$DialogSelect"              ,1,SUBOP_DialogSelect             ,ALL_USAGE,STRING,STRING},
+  //{"$DialogSet"                 ,2,SUBOP_DialogSet                ,ALL_USAGE,STRING,STRING,STRING},
+  //{"$DialogDisplay"             ,0,SUBOP_DialogDisplay            ,ALL_USAGE,STRING},
+  //{"$DialogGet"                 ,1,SUBOP_DialogGet                ,ALL_USAGE,STRING,STRING},
   {"$SetFriendly"               ,2,SUBOP_SetFriendly              ,COMBAT_USAGE,STRING,STRING,STRING},
   {"$GetFriendly"               ,2,SUBOP_GetFriendly              ,COMBAT_USAGE,STRING,STRING,STRING},
   {"$GetCombatRound"            ,0,SUBOP_GetCombatRound           ,COMBAT_USAGE,STRING},
@@ -1597,10 +1698,9 @@ SYSTEMFUNCTION systemfunctions[] =
   {"$UpCase"                    ,1,SUBOP_UpCase                   ,ALL_USAGE,STRING,STRING},
   {"$Capitalize"                ,1,SUBOP_Capitalize               ,ALL_USAGE,STRING,STRING},
   {"$DownCase"                  ,1,SUBOP_DownCase                 ,ALL_USAGE,STRING,STRING},
-  {"$GET_SPELLBOOK"             ,2,SUBOP_GetSpellbook             ,ALL_USAGE,STRING,ACTOR,STRING},
+  //Deprecated {"$GET_SPELLBOOK"             ,2,SUBOP_GetSpellbook             ,ALL_USAGE,STRING,ACTOR,STRING},
   {"$SelectSpell"               ,2,SUBOP_SelectSpell              ,ALL_USAGE,STRING,ACTOR,STRING},
   {"$Memorize"                  ,1,SUBOP_Memorize                 ,ALL_USAGE,STRING,ACTOR},
-  {"$KNOW_SPELL"                ,3,SUBOP_KNOW_SPELL               ,ALL_USAGE,STRING,ACTOR,STRING,STRING},
   {"$MonsterPlacement"          ,1,SUBOP_MonsterPlacement         ,COMBAT_USAGE,STRING,STRING},
   {"$SetWall"                   ,5,SUBOP_SetWall                  ,ALL_USAGE,STRING,STRING,STRING,STRING,STRING,STRING},
   {"$SetBackground"             ,5,SUBOP_SetBackground            ,ALL_USAGE,STRING,STRING,STRING,STRING,STRING,STRING},
@@ -1639,8 +1739,6 @@ SYSTEMFUNCTION systemfunctions[] =
   {"$AURA_Spell"                ,1,SUBOP_AURA_Spell               ,COMBAT_USAGE,STRING,STRING},
   {"$AURA_Combatant"            ,1,SUBOP_AURA_Combatant           ,COMBAT_USAGE,STRING,STRING},
   {"$AURA_Wavelength"           ,1,SUBOP_AURA_Wavelength          ,COMBAT_USAGE,STRING,STRING},
-  {"$AURA_GetData"              ,1,SUBOP_AURA_GetData             ,COMBAT_USAGE,STRING,STRING},
-  {"$AURA_SetData"              ,2,SUBOP_AURA_SetData             ,COMBAT_USAGE,STRING,STRING,STRING},
   {"$GrSet"                     ,3,SUBOP_GrSet                    ,GRAPHICS_USAGE,STRING,STRING,STRING,STRING},
   {"$GrSetLinefeed"             ,1,SUBOP_GrSetLinefeed            ,GRAPHICS_USAGE,STRING,STRING},
   {"$GrMoveTo"                  ,1,SUBOP_GrMoveTo                 ,GRAPHICS_USAGE,STRING,STRING},
@@ -1653,9 +1751,6 @@ SYSTEMFUNCTION systemfunctions[] =
   {"$GrTab"                     ,1,SUBOP_GrTab                    ,GRAPHICS_USAGE,STRING,STRING},
   {"$GrPic"                     ,1,SUBOP_GrPic                    ,GRAPHICS_USAGE,STRING,STRING},
   {"$ToHitComputation_Roll"     ,0,SUBOP_ToHitComputation_Roll    ,ALL_USAGE,STRING},
-  {"$GET_EVENT_Attribute"       ,2,SUBOP_GET_EVENT_Attribute      ,ALL_USAGE,STRING,STRING,STRING},
-  {"$SLEEP"                     ,1,SUBOP_SLEEP                    ,ALL_USAGE,STRING,STRING},
-  {"$DrawAdventureScreen"       ,0,SUBOP_DRAWADVENTURESCREEN      ,ALL_USAGE,STRING },
 };
 
 static const unsigned int numSysFunc = sizeof systemfunctions/sizeof systemfunctions[0];
@@ -1791,7 +1886,7 @@ GLOBALS::GLOBALS(void) {                                      //DICTIONARY
   m_used=1;  // We don't use the zeroth entry.                //DICTIONARY
   m_values=new GLOBAL[m_allocatedSize];                       //DICTIONARY
   for (i=1; i<m_allocatedSize; i++) m_values[i].m_iIndex=i;   //DICTIONARY
-  strcpy_s(m_id,4,"con");                                         //DICTIONARY
+  strcpy(m_id,"con");                                         //DICTIONARY
 }                                                             //DICTIONARY
                                                               //DICTIONARY
 GLOBALS::~GLOBALS(void) {                                     //DICTIONARY
@@ -1918,23 +2013,6 @@ int GLOBALS::write(CArchive& ar) {                            //DICTIONARY
   return 0;                                                   //DICTIONARY
 }                                                             //DICTIONARY
                                                               //DICTIONARY
-int GLOBALS::write(RAM_FILE& ar) {                            //DICTIONARY
-  unsigned int i;                                             //DICTIONARY
-  ar << m_used;                                               //DICTIONARY
-  for (i=0; i<m_used; i++) {                                  //DICTIONARY
-    if (m_values[i].m_type == 'V')                            //DICTIONARY
-    {                                                         //DICTIONARY
-      ar << CString("");                                      //DICTIONARY
-    }                                                         //DICTIONARY
-    else                                                      //DICTIONARY
-    {                                                         //DICTIONARY
-      ar << m_values[i].m_value;                              //DICTIONARY
-    };                                                        //DICTIONARY
-  };                                                          //DICTIONARY
-  return 0;                                                   //DICTIONARY
-}                                                             //DICTIONARY
-                                                              //DICTIONARY
-                                                              //DICTIONARY
 unsigned int DICTIONARY::GetPublicValue(int n)                //DICTIONARY
 {                                                             //DICTIONARY
   DICTIONARY *dict;                                           //DICTIONARY
@@ -1951,9 +2029,7 @@ unsigned int DICTIONARY::GetPublicValue(int n)                //DICTIONARY
       n--;                                                    //DICTIONARY
     };                                                        //DICTIONARY
   };                                                          //DICTIONARY
-  //for (dict=m_offspring; dict!=NULL; dict=dict->m_next)     //DICTIONARY
-  for (dict=m_offspring; dict!=NULL; )                        //DICTIONARY
-  {                                                           //DICTIONARY
+  for (dict=m_offspring; dict!=NULL; dict=dict->m_next) {     //DICTIONARY
     return dict->GetPublicValue(n);                           //DICTIONARY
   };                                                          //DICTIONARY
   return 0;                                                   //DICTIONARY
@@ -1976,9 +2052,7 @@ CString  DICTIONARY::GetPublicName(const CString& prefix,     //DICTIONARY
       n--;                                                    //DICTIONARY
     };                                                        //DICTIONARY
   };                                                          //DICTIONARY
-  //for (dict=m_offspring; dict!=NULL; dict=dict->m_next)     //DICTIONARY
-  for (dict = m_offspring; dict != NULL;)                     //DICTIONARY
-  {                                                           //DICTIONARY
+  for (dict=m_offspring; dict!=NULL; dict=dict->m_next) {     //DICTIONARY
     newprefix=prefix+dict->m_name+'@';                        //DICTIONARY
     return dict->GetPublicName(newprefix, n);                 //DICTIONARY
   };                                                          //DICTIONARY
@@ -2694,7 +2768,6 @@ int GPDLCOMP::compileExpression(void)
     };
     if (j == sizeof(operDef)/sizeof(operDef[0]))
     {
-      CString msg;
       infile.error("Unknown operator symbol", true);
       return 1;
     };
@@ -3148,7 +3221,7 @@ int GPDLCOMP::compileSwitch(void)
         // Test and jump to next case if this one fails.
         if (token=="$CASE") {
           prevCaseJump=switchCompileJNE();
-        } else  { // Must be a $GCASE
+        } else  { // Must ge a $GCASE
           prevCaseJump=switchCompileJumpGREP();
         };
 
@@ -3710,9 +3783,7 @@ CString GPDLCOMP::CompileScript(const CString& script, const char *entryPoints[]
     };
     if (j == sizeof (builtinLit)/sizeof (BUILTINLIT))
     {
-      strcpy_s(binaryCode + codeOffset + pGlobal, 
-		      binaryCodeSize-codeOffset-pGlobal,
-		      LPCTSTR(globalVar));
+      strcpy(binaryCode + codeOffset + pGlobal, LPCTSTR(globalVar));
       ((int *)(binaryCode))[i] = pGlobal;
       pGlobal += globalVar.GetLength() + 1;
     }
@@ -3753,141 +3824,15 @@ CString GPDLCOMP::CompileScript(const CString& script, const char *entryPoints[]
                  12 + 4*(codeLen+numEntry) + totalSizeOfGlobalVars);
 }
 
-class PROGRAM_TEXT
-{
-public:
-  PROGRAM_TEXT(void)
-  {
-    Clear();
-  };
-  void Clear(void)
-  {
-    m_lines.SetSize(0, 20);
-    m_lineNum = 0;
-  };
-  void Initialize(const char *text);
-  const char *GetNextLine();
-  CArray<CString, CString&> m_lines;
-  int m_lineNum;
-};
-
-void PROGRAM_TEXT::Initialize(const char *text)
-{
-  int  j, k;
-  CString line;
-  char *temp;
-  temp = (char *)malloc(strlen(text)+1);
-  Clear();
-  // Work our way through the text and break it into lines.
-  j = 0;
-  while (text[j] != 0)
-  {
-    for (k=0; ; j++)
-    {
-      if (text[j] == 0)
-      {
-        break;
-      };
-      if (text[j] == '\r') 
-      {
-        continue;
-      };
-      if (text[j] == '\n') 
-      {
-        temp[k++] = text[j];
-        j = j+1;
-        break;
-      };
-      temp[k++] = text[j];
-    };
-    temp[k] = 0;
-    line = temp;
-    m_lines.Add(line);
-  };
-  free(temp);
-}
-
-const char *PROGRAM_TEXT::GetNextLine()
-{
-  if (m_lineNum >= m_lines.GetCount()) return NULL;
-  return m_lines.GetAt(m_lineNum++);
-}
-
-PROGRAM_TEXT programText;
-
-CString programErrorMessage;
-
-int ProcessProgramError(const CString& errorMessage, bool wait)
-{
-  programErrorMessage += errorMessage;
-  if (!wait) return 0;
-  MessageBox(NULL,programErrorMessage,"Error compiling GPDL program", MB_OK);
-  programErrorMessage.Empty();
-  return 0;
-}
-
-const char *GetProgramLine(int /*n*/)
-{
-  return programText.GetNextLine();
-}
-
-CString GPDLCOMP::CompileProgram(const char *text)
-{
-  int result;
-  //bool listing;
-  programText.Initialize(text);
-  result = CompileProgram(GetProgramLine,ProcessProgramError, false);
-  if (result == 0)
-  {
-    RAM_FILE binary;
-	  WriteCode(binary);
-	  WriteConstants(binary);
-    WriteDictionary(binary);
-	  //if (listing)
-    //{
-    //  ASSERT(listfile != NULL);
-    //  list(listfile);
-    //};
-    return binary.ConvertToCString();
-  };
-  return "Error";
-}
-
-CString GPDLCOMP::CompileProgram(FILE *f)
-{
-  int len;
-  char *data;
-  fseek(f, 0, SEEK_END);
-  len = ftell(f);
-  fseek(f,0,SEEK_SET);
-  data = (char *)malloc(len+1);
-  fread(data,1,len,f);
-  data[len] = 0;
-  fclose(f);
-  return CompileProgram(data);
-}
-
 void GPDLCOMP::WriteDictionary(CArchive& outarchive)
 {
   m_root->write(outarchive);
 }
 
-void GPDLCOMP::WriteDictionary(RAM_FILE& result)
-{
-  m_root->write(result);
-}
-
-
 void GPDLCOMP::WriteConstants(CArchive& outarchive)
 {
   m_globals->write(outarchive);
 }
-
-void GPDLCOMP::WriteConstants(RAM_FILE& outarchive)
-{
-  m_globals->write(outarchive);
-}
-
 
 void GPDLCOMP::WriteCode(CArchive& outarchive)
 {
@@ -3899,18 +3844,6 @@ void GPDLCOMP::WriteCode(CArchive& outarchive)
   };
   code.write(outarchive);
 }
-
-void GPDLCOMP::WriteCode(RAM_FILE& outarchive)
-{
-  if (code.peek(0)!=((SHIFTED_BINOP)|SUBOP_NOOP)) 
-  {
-    infile.error("Internal error.  Address zero has been tampered with.");
-    //Sleep(3000);
-    exit(1);
-  };
-  code.write(outarchive);
-}
-
 
 unsigned int GPDLCOMP::GetCodeSize(void)
 {
@@ -4018,7 +3951,7 @@ void GPDLCOMP::list(FILE *file) {                             //LIST
   for (k=0; k<code.here(); k++) {                             //LIST
     funcName=m_root->findUserFunc(k);                         //LIST
     if (funcName!="") {                                       //LIST
-      fprintf(file,"%s\n",(LPCSTR)funcName);                          //LIST
+      fprintf(file,"%s\n",funcName);                          //LIST
     };                                                        //LIST
     bincode=code.peek(k);                                     //LIST
     fprintf(file,"        %06x %02x %06x ",                   //LIST
@@ -4081,7 +4014,7 @@ void GPDLCOMP::list(FILE *file) {                             //LIST
       default:                                                //LIST
         operand="?????";                                      //LIST
       };                                                      //LIST
-      fprintf(file,"%s %s\n",mneumonic, (LPCSTR)operand);     //LIST
+      fprintf(file,"%s %s\n",mneumonic, operand);             //LIST
     };                                                        //LIST
   };                                                          //LIST
 }                                                             //LIST

@@ -21,11 +21,11 @@
 #include <math.h>
 
 #ifdef UAFEDITOR
-#include "..\UAFWinEd\UAFWinEd.h"
+#include "../UAFWinEd/UAFWinEd.h"
 #include "class.h"
 #elif UAFEngine
-#include "externs.h"
-#include "..\UAFWin\Dungeon.h"
+#include "Externs.h"
+#include "../UAFWin/Dungeon.h"
 #include "class.h"
 #endif
 
@@ -421,7 +421,7 @@ int MONEY_DATA_TYPE::GetIndex(itemClassType type)
   case CoinType9: return 8;
   case CoinType10: return 9;
   }
-  die(0xab526);
+  ASSERT(FALSE);
   return 0;
 }
 
@@ -446,7 +446,7 @@ itemClassType MONEY_DATA_TYPE::GetItemClass(int index)
   case 8: return CoinType9;
   case 9: return CoinType10;
   }
-  die(0xab527);
+  ASSERT(FALSE);
   return PlatinumType;
 }
 
@@ -1355,8 +1355,6 @@ BOOL MONEY_SACK::IsEmpty()
 {
   for (int i=0;i<NumCoinTypes();i++)
     if (Coins[i] > 0) return FALSE;
-  if (!(Gems.IsEmpty())) return FALSE;
-  if (!(Jewelry.IsEmpty())) return FALSE;
   return TRUE;
 }
 
@@ -1721,16 +1719,14 @@ void MONEY_SACK::Serialize(CArchive &ar, double version)
 //*****************************************************************************
 void MONEY_SACK::Serialize(CAR &ar, double version)
 {
+  int i;
+  for (i=0;i<NumCoinTypes();i++)
   {
-    int i;
-    for (i = 0; i < NumCoinTypes(); i++)
-    {
-      if (ar.IsStoring())
-        ar << Coins[i];
-      else
-        ar >> Coins[i];
-    };
-  };
+    if (ar.IsStoring())
+      ar << Coins[i];
+    else
+      ar >> Coins[i];
+  }
   //Gems.Serialize(ar);
   //Jewelry.Serialize(ar);
 
@@ -1755,8 +1751,7 @@ void MONEY_SACK::Serialize(CAR &ar, double version)
       CArray<GEM_TYPE, GEM_TYPE&> tempGEMS;
       //tempGEMS.Serialize(ar);
       int i, n;
-      //ar >> n;
-      n = ar.ar.ReadCount();
+      ar >> n;
       tempGEMS.SetSize(n);
       for (i=0; i<n; i++)
       {
@@ -1768,9 +1763,8 @@ void MONEY_SACK::Serialize(CAR &ar, double version)
       
       // now load the jewelry
       tempGEMS.RemoveAll();
-      //tempGEMS.Serialize(ar.ar);
-      //ar >> n; 
-      n = ar.ar.ReadCount();  // Two-byte count
+      //tempGEMS.Serialize(ar);
+      ar >> n;
       tempGEMS.SetSize(n);
       for (i=0; i<n; i++)
       {
@@ -1782,7 +1776,7 @@ void MONEY_SACK::Serialize(CAR &ar, double version)
     else
     {
       GEM_TYPE data;
-      int temp, i;
+      int temp;
       ar >> temp;
       ASSERT( temp < MAX_GEMS );
       

@@ -20,15 +20,15 @@
 #define __DNGN_H__
 
 #ifdef UAFEDITOR
-#include "..\UAFWinEd\Resource.h"
+#include "../UAFWinEd/resource.h"
 #else
-#include "..\UAFWin\Resource.h"
+#include "../UAFWin/resource.h"
 #endif
 
 #include "items.h"
 #include "char.h"
 #include "spell.h"
-#include "Timer.h"
+#include "timer.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CDungeonApp:

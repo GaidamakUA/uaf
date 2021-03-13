@@ -31,7 +31,6 @@
 // I replaced this #include with a declaration  PRS
 //
 enum SurfaceType;
-enum FONT_COLOR_NUM;
 //
 /////////////////////////////////////////////////////////
 
@@ -171,11 +170,6 @@ enum FONT_COLOR_NUM;
 #define _VERSION_0916     0.916
 #define _VERSION_0920_000 0.920000
 #define _VERSION_0930     0.930
-#define _VERSION_524      5.24
-#define _VERSION_525      5.25
-#define _VERSION_526      5.26
-#define _VERSION_527      5.27
-#define _VERSION_528      5.28
 
 
 
@@ -187,7 +181,6 @@ enum FONT_COLOR_NUM;
 #define _SPELL_DB_VERSION_            _VERSION_0560_
 #define _MONSTER_DB_VERSION_          _VERSION_0500_
 #define _SPECIAL_ABILITIES_VERSION_   _VERSION_0930
-#define _CELL_CONTENTS_VERSION        5.0
 
 
 
@@ -268,44 +261,128 @@ enum IF_KEYWORD_INDEX
   CHAR_UNDEAD=25,
   CHAR_SIZE=26,
   CHAR_MAGICRESIST=27,
+  //CHAR_SAVEVSPPDM=32,
+  //CHAR_SAVEVSPP=33,
+  //CHAR_SAVEVSRSW=34,
+  //CHAR_SAVEVSBR=35,
+  //CHAR_SAVEVSSP=36,
+  //CHAR_CLERICLVL=37,
+  //CHAR_FIGHTERLVL=38,
+  //CHAR_RANGERLVL=39,
+  //CHAR_DRUIDLVL=40,
+  //CHAR_PALADINLVL=41,
+  //CHAR_THIEFLVL=42,
+  //CHAR_MAGICUSERLVL=43,
+  //CHAR_CLERICPREVLVL=44,
+  //CHAR_FIGHTERPREVLVL=45,
+  //CHAR_RANGERPREVLVL=46,
+  //CHAR_DRUIDPREVLVL=47,
+  //CHAR_PALADINPREVLVL=48,
+  //CHAR_THIEFPREVLVL=49,
+  //CHAR_MAGUSERPREVLVL=50,
+  //CHAR_CLERICPDLVL=51,
+  //CHAR_FIGHTERPDLVL=52,
+  //CHAR_RANGERPDLVL=53,
+  //CHAR_DRUIDPDLVL=54,
+  //CHAR_PALADINPDLVL=55,
+  //CHAR_THIEFPDLVL=56,
+  //CHAR_MAGUSERPDLVL=57,
   CHAR_NBRHITDICE=28,
   CHAR_NBRATTACKS=29,
   CHAR_MORALE=30,
+  //CHAR_OPENDOORS=61,
+  //CHAR_OPENMAGICDOORS=62,
+  //CHAR_BENDLIFT=63,
+  //CHAR_PICKPOCKETS=64,
+  //CHAR_OPENLOCKS=65,
+  //CHAR_FINDTRAPS=66,
+  //CHAR_MOVESILENT=67,
+  //CHAR_HIDESHADOWS=68,
+  //CHAR_HEARNOISE=69,
+  //CHAR_CLIMBWALLS=70,
+  //CHAR_READLANG=71,
   CHAR_ALLOWPLAYERCONTROL=31,
-  CHAR_DETECTINVISIBLE=32,
-  CHAR_DETECTTRAPS=33,
-  CHAR_DAMAGEBONUS=34,
-  CHAR_CHARTYPE=35,
-  CHAR_COINAMOUNT1=36,
-  CHAR_COINAMOUNT2=37,
-  CHAR_COINAMOUNT3=38,
-  CHAR_COINAMOUNT4=39,
-  CHAR_COINAMOUNT5=40,
-  CHAR_COINAMOUNT6=41,
-  CHAR_COINAMOUNT7=42,
-  CHAR_COINAMOUNT8=43,
-  CHAR_COINAMOUNT9=44,
-  CHAR_COINAMOUNT10=45,
-  CHAR_GEMAMOUNT=46,
-  CHAR_JEWELRYAMOUNT=47,
-  CHAR_ISMAMMAL=48,
-  CHAR_ISANIMAL=49,
-  CHAR_ISSNAKE=50,
-  CHAR_ISGIANT=51,
-  CHAR_ISALWAYSLARGE=52,
-  CHAR_HASDWARFACPENALTY=53,
-  CHAR_HASGNOMEACPENALTY=54,
-  CHAR_HASDWARFTHAC0PENALTY=55,
-  CHAR_HASGNOMETHAC0PENALTY=56,
-  CHAR_HASRANGERDMGPENALTY=57,
-  CHAR_HASPOISONIMMUNITY=58,
-  CHAR_HASDEATHIMMUNITY=59,
-  CHAR_HASCONFUSIONIMMUNITY=60,
-  CHAR_HASVORPALIMMUNITY=61,
-  CHAR_CANBEHELDORCHARMED=62,
-  CHAR_AFFECTEDBYDISPELEVIL=63,
-  CHAR_HITBONUS=64,
-  CHAR_MIRRORIMAGE=65,
+  CHAR_DETECTMAGIC=32,
+  CHAR_DETECTINVISIBLE=33,
+  CHAR_DETECTTRAPS=34,
+  CHAR_DAMAGEBONUS=35,
+  //CHAR_BLESS=77,
+  //CHAR_CURSE=78,
+  //CHAR_UNDEADFEAR=79,
+  //CHAR_ENLARGE=80,
+  //CHAR_REDUCE=81,
+  //CHAR_CHARMPERSON=82,
+  //CHAR_REFLECTGAZEATTACK=83,
+  //CHAR_PROTFROMEVIL=84,
+  //CHAR_PROTFROMGOOD=85,
+  //CHAR_SHIELD=86,
+  //CHAR_SLEEP=87,
+  //CHAR_FOG=88,
+  //CHAR_ENTANGLE=89,
+  //CHAR_INVISIBLETOANIMALS=90,
+  //CHAR_INVISIBLETOUNDEAD=91,
+  //CHAR_NONUNDEADFEAR=92,
+  //CHAR_SANCTUARY=93,
+  //CHAR_SHILLELAGH=94,
+  //CHAR_DISPLACEMENT=95,
+  //CHAR_WIZARDRY=96,
+  CHAR_CHARTYPE=36,
+  //CHAR_VORPALATTACK=98,
+  CHAR_COINAMOUNT1=37,
+  CHAR_COINAMOUNT2=38,
+  CHAR_COINAMOUNT3=39,
+  CHAR_COINAMOUNT4=40,
+  CHAR_COINAMOUNT5=41,
+  CHAR_COINAMOUNT6=42,
+  CHAR_COINAMOUNT7=43,
+  CHAR_COINAMOUNT8=44,
+  CHAR_COINAMOUNT9=45,
+  CHAR_COINAMOUNT10=46,
+  CHAR_GEMAMOUNT=47,
+  CHAR_JEWELRYAMOUNT=48,
+  //CHAR_HOLDPERSON=111,
+  //CHAR_SILENCE=112,
+  CHAR_ISMAMMAL=49,
+  CHAR_ISANIMAL=50,
+  CHAR_ISSNAKE=51,
+  CHAR_ISGIANT=52,
+  CHAR_ISALWAYSLARGE=53,
+  CHAR_HASDWARFACPENALTY=54,
+  CHAR_HASGNOMEACPENALTY=55,
+  CHAR_HASDWARFTHAC0PENALTY=56,
+  CHAR_HASGNOMETHAC0PENALTY=57,
+  CHAR_HASRANGERDMGPENALTY=58,
+  CHAR_HASPOISONIMMUNITY=59,
+  CHAR_HASDEATHIMMUNITY=60,
+  CHAR_HASCONFUSIONIMMUNITY=61,
+  CHAR_HASVORPALIMMUNITY=62,
+  CHAR_CANBEHELDORCHARMED=63,
+  CHAR_AFFECTEDBYDISPELEVIL=64,
+  //CHAR_POISONED=129,
+  //CHAR_SLOWPOISON=130,
+  //CHAR_MIRRORIMAGE=131,
+  //CHAR_INVISIBLE=132,
+  //CHAR_ENFEEBLED=133,
+  CHAR_HITBONUS=65,
+  //CHAR_BLINDNESS=135,
+  //CHAR_DISEASED=136,
+/*
+  CHAR_xLIMITED_STR=66,
+  CHAR_xLIMITED_STRMOD=67,
+  CHAR_xLIMITED_INT=68,
+  CHAR_xLIMITED_WIS=69,
+  CHAR_xLIMITED_DEX=70,
+  CHAR_xLIMITED_CON=71,
+  CHAR_xLIMITED_CHA=72,
+  CHAR_xPERM_STR=73,
+  CHAR_xPERM_STRMOD=74,
+  CHAR_xPERM_INT=75,
+  CHAR_xPERM_WIS=76,
+  CHAR_xPERM_DEX=77,
+  CHAR_xPERM_CON=78,
+  CHAR_xPERM_CHA=79,
+  */
+  CHAR_MIRRORIMAGE=66,
         
   /* party values */
   PARTY_BASE=512,
@@ -447,7 +524,6 @@ int GetAreaBlockages(LEVEL& data, int x, int y, int dir);
 
 class GLOBAL_STATS;
 extern GLOBAL_STATS globalData;
-#define GLOBAL_CONFIG_NAME "GlobalData.txt"
 // Names of the keys used rto open doors and such.  "" if unnamed
 void GetKeyNames(GLOBAL_STATS& data, CString (*names)[8]);
 long int GetKeyboardFont(GLOBAL_STATS& data);
@@ -611,7 +687,6 @@ int  loadData(A_SPECABILITY_DEF_L& data, LPCSTR fullpath);
 //void loadUADefaults(TRAIT_DATA_TYPE& data);
 //int  GetDataSize(TRAIT_DATA_TYPE& data);
 
-#define MESSAGEMAP_FILE_NAME "messageMap.txt"
 
 #ifdef USE_TRAITS
 void Clear(TRAIT_DATA_TYPE& data);
@@ -730,8 +805,7 @@ enum CONFIG_ITEM_STATUS
   CONFIG_STAT_intError,  // Internal program error
   CONFIG_STAT_more,      // Possible return from user encoding functions.  It means
                          // to add key/value and return for more key/value pairs.
-  CONFIG_STAT_skip ,     // Skip this line and pretend that status is CONFIG_STAT_ok 
-  CONFIG_STAT_next,      // Skip this line and pretend that status is CONFIG_STAT_more
+  CONFIG_STAT_skip ,     // Skip this line and go to the next as if it were CONFIG_STAT_more 
 };
  
 #ifdef UAFEDITOR
@@ -772,7 +846,6 @@ public:
   CString TemplateSpriteArtDir(void)    {return m_templateArtDir;   };
   CString TemplateDataDir(void)         {return m_templateDataDir;  };
   CString TemplateWindowArtDir(void)    {return m_templateArtDir;   };
-  CString TemplateConfigDir(void)       {return m_templateDataDir;  };
 };
 
 extern EDITOR_ENVIRONMENT ede;
@@ -855,8 +928,8 @@ const int MAX_SPECIAL_KEYS = 8;
 const int MAX_SPECIAL_ITEMS = 0x0FFFFFFF;
 const int MAX_QUESTS = 0x0FFFFFFF;
 const int MAX_ZONES = 16;
-const int MAX_STEP_EVENTS = 255; // per level
-const int MAX_TIME_EVENTS = 255; // per level
+const int MAX_STEP_EVENTS = 8; // per level
+const int MAX_TIME_EVENTS = 8; // per level
 
 // must be a multiple of 16!
 const int MAX_WALLSETS = 192;				//manikus
@@ -917,10 +990,6 @@ extern int MAX_TERRAIN_HEIGHT;
 
 // width of stats box on combat screen
 extern int COMBAT_STAT_BOX_WIDTH;
-extern int TILES_HORZ;
-extern int TILES_VERT;
-extern int CombatScreenX;
-extern int CombatScreenY;
 
 // max player-created characters in party
 const int MAX_PARTY_PCS = 12;
@@ -1002,7 +1071,7 @@ inline BYTE IndexToFlag(BYTE index)
   case 5: return RangerFlag;
   case 6: return DruidFlag;
   case 7: return AllClasses;
-  default: ASS ERT(FALSE); return 0;
+  default: ASSERT(FALSE); return 0;
   }
 }
 */
@@ -1020,7 +1089,7 @@ inline BYTE FlagToIndex(BYTE flag)
   case RangerFlag:    return 5;
   case DruidFlag:     return 6;
   case AllClasses:    return 7;
-  default: ASS ERT(FALSE); return 0;
+  default: ASSERT(FALSE); return 0;
   }
 }
 */
@@ -1073,6 +1142,8 @@ class INTEGER
 {
   int integer;
 };
+
+
 
 /*
 #define DEFINE_CARRAY_ACCESS_FUNCTIONS(name,ID,id,array,data,container) \
@@ -1422,35 +1493,6 @@ public:
   const   CString& UniqueName(void) const {const CString *p = this; return *p;};
 };
 
-class CLASS_DATA;
-class BASECLASS_ID;
-class BASE_CLASS_DATA;
-class RACE_DATA;
-
-struct SKILL_COMPUTATION
-{
-  const  CHARACTER       *pChar;
-         SKILL_ID         skillID;
-  const  RACE_DATA       *pRace;
-  const  CLASS_DATA      *pClass;
-         BASECLASS_ID     baseclassID;  // or ""
-  //const  BASE_CLASS_DATA *pBaseclass; // or NULL
-  const  BASE_CLASS_DATA **ppBestBaseclass; // or NULL
-         int              baseclassLevel;
-         int              baseclassValue;
-         int              raceValue;
-         int              baseVal;   // Best of races and baseclasses
-         double           bestRaceAdj;
-         double           bestBaseclassAdj;
-         double           abilityAdj;
-         double           tempAdj;
-         double           finalAdjustedValue;
-         bool             minimize;
-         bool             includeTempAdj;
-
-  SKILL_COMPUTATION(const CHARACTER *pCH, const CString& skid, bool minimize, bool includeTempAdj);
-};
-
 class SUBSTRINGS:public CString
 {
 public:
@@ -1464,30 +1506,11 @@ class ToHitComputation;
 class BASE_CLASS_DATA;
 class RACE_DATA;
 
-//BOOL GetSkillBaseValue(const SKILL_ID& skillID,
-//                       const CHARACTER *pChar,
-//                       const BASE_CLASS_DATA **ppBestBaseclass,
-//                             int             *pBestBaseVAlue,
-//                             int             *value,
-//                             bool             minimize);
-void GetSkillBaseValue(SKILL_COMPUTATION& SC);
-
-//BOOL GetSkillAdjustment(const SKILL_ID& skillID,
-//                       const CHARACTER *pChar,
-//                       const BASE_CLASS_DATA **ppBestBaseclass,
-//                             int             *pBestBaseVAlue,
-//                             int             *value,
-//                             bool             minimize);
-BOOL GetSkillAdjustment(SKILL_COMPUTATION& SC);
-
-
-//BOOL GetAdjSkillValue(const SKILL_ID&        skillID,
-//                     const CHARACTER       *pChar,
-//                     const BASE_CLASS_DATA **pBestBaseclass,
-//                           int             *pBestBaseValue,
-//                           int             *adjValue,
-//                           bool             minimize);
-void GetAdjSkillValue(SKILL_COMPUTATION& SC);
+BOOL GetAdjSkillValue(const SKILL_ID&        skillID,
+                     const CHARACTER       *pChar,
+                     const BASE_CLASS_DATA **pBestBaseclass,
+                           int             *pBestBaseValue,
+                           int             *adjValue);
 
 
 class SOUND_BYTE:public CString
@@ -1536,9 +1559,6 @@ enum ActorInstanceType
   InstanceType_CombatantIndex    = 4,
   InstanceType_GlobalDataIndex   = 5,
   InstanceType_NewCombatant      = 6,
-#ifdef SpellInitiationScript
-  InstanceType_NullActor         = 7,  // And any other flags are meaningless
-#endif
 };
 
 enum ActorInstanceOffsets
@@ -1612,9 +1632,6 @@ enum ActorInstanceOffsets
     unsigned long GetInstance() const;
     unsigned long GetSrc() const; 
     BOOL IsValidSrc() const;
-#ifdef SpellInitiationScript
-    void ExitCombat(void);
-#endif
 
     unsigned long EnemyAlly;
     //unsigned long Race;
@@ -1637,13 +1654,12 @@ enum ActorInstanceOffsets
   extern const ActorType INVALID_ACTOR;
 
   // de-reference context data and return indicated CHARACTER data
-  CHARACTER &GetCharacterContext(ActorType X, const char *msg);
+  CHARACTER &GetCharacterContext(ActorType X);
   // de-reference context data and return indicated COMBATANT data
   COMBATANT &GetCombatCharacterContext(const ActorType& X);
   // de-reference context data and return indicated target CHARACTER data
   CHARACTER &GetTargetCharacterContext(/*ActorType X*/);
-  CHARACTER *GetCurrentlyActiveContext(const ActorType *pActor, const char *msg);
-
+  CHARACTER *GetCurrentlyActiveContext(ActorType *pActor);
 
   // access to global character context data
   extern void ClearCharContextStack(void);           // pop all
@@ -1760,8 +1776,7 @@ CString GetDesignFolderRoot(char *path=NULL); // design folder root only: 'my_de
 CString GetSavePath(char *path=NULL); // saved game path: 'c:\uaf\my_design\save'
 CString GetCommonCharPath(void);
 CString GetEventDescription(DWORD type);
-class GameEventList;
-CString GetEventIdDescription(DWORD EventId, EventSourceType type, GameEventList *pEventList=NULL);
+CString GetEventIdDescription(DWORD EventId, EventSourceType type);
 CString GetGlobalEventIdDescription(DWORD EventId);
 CString GetCopyEventIdDescription(DWORD EventId);
 
@@ -1769,26 +1784,11 @@ void EditorStatusMsg(LPCSTR text);
 void SetMiscError(int error);
 unsigned int GetSystemTextCharWidth();
 void displayMiscError(miscErrorType error);
-void DisplayText(int x, int y, 
-                 int fontNumber,
-                 LPCSTR text, 
-                 // prs 20191220COLORREF color=White, 
-                 FONT_COLOR_NUM colorNum,
-                 BOOL customColor,
+void displayText(int x, int y, LPCSTR text, 
+                 COLORREF color=White, 
                  BOOL highlight=FALSE, 
                  BOOL slowText=FALSE, 
                  BOOL UseBackBuffer=TRUE);
-// prs 20191220  COLORREF ASCII_TO_COLOR(const CString& asc, COLORREF default);
-FONT_COLOR_NUM ASCII_TO_COLOR(const CString& asc, FONT_COLOR_NUM default);
-void DisplayColoredText(int x, int y, 
-                        int fontNumber,
-                        LPCSTR text,
-                        // prs 20191220  COLORREF color = White,
-                        FONT_COLOR_NUM colorNum,
-                        BOOL customColor,
-                        BOOL highlight,
-                        BOOL slowText,
-                        BOOL UseBackBuffer);
 int GetEntryPtX(int ep);
 int GetEntryPtY(int ep);
 DWORD ApplyCostFactor(costFactorType type, DWORD price);
@@ -1886,21 +1886,17 @@ public:
   CUAFCommandLineInfo() : CCommandLineInfo() 
   { 
     m_forceAV=FALSE;
-    m_initializeGame = FALSE;
     m_ConfigFilename=""; 
     m_level=-1;
     m_sx=-1;m_sy=-1;m_facing=-1; 
     m_Party.RemoveAll();
   }
   CString m_ConfigFilename;
-  CString m_ScriptFilename;
   int m_level;
   int m_sx;
   int m_sy;
   int m_facing;
   BOOL m_forceAV;
-  BOOL m_initializeGame;
-  BOOL m_fruaConvert;
   CList<CString, CString&> m_Party;
   // virtual callback
   void ParseParam( LPCTSTR lpszParam, BOOL bFlag, BOOL bLast );

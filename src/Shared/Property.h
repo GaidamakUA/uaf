@@ -1,7 +1,7 @@
 #ifndef __PROPERTY_H__
 #define __PROPERTY_H__
 
-#include "..\shared\stdafx.h"
+#include "../Shared/stdafx.h"
 #include "class.h"
 
 enum PropModifier 
@@ -192,7 +192,7 @@ void CBaseProperty<T>::AddMod(double ModVal, PropModifier ModType, int SrcKey)
     m_ModList.AddTail(mod);
     break;
   default:
-    die(0xab52d);
+    ASSERT(FALSE);
     break;
   }
 }
@@ -557,7 +557,7 @@ void CPropertyContainer<T>::Serialize(CArchive &ar, double version)
     if (hdr.Compare("CPropertyContainer") != 0)
     {
       // not in sync with file format!
-      die(0xab52e);
+      ASSERT(FALSE);
 
       CString msg;
       msg.Format("Encountered unexpected data in file while reading CPropertyContainer data");                  
@@ -608,7 +608,7 @@ void CPropertyContainer<T>::Serialize(CAR &ar, double version)
     if (hdr.Compare("CPropertyContainer") != 0)
     {
       // not in sync with file format!
-      die(0xab52f);
+      ASSERT(FALSE);
       CString msg;
       msg.Format("Encountered unexpected data in file while reading CPropertyContainer data");                  
       WriteDebugString(msg);

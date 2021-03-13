@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "externs.h"
+#include "Externs.h"
 
 
 #include "Property.h"
@@ -203,7 +203,7 @@ void CBaseProperty::AddMod(double ModVal, PropModifier ModType, int SrcKey)
     AddMod(mod);
     break;
   default:
-    ASS ERT(FALSE);
+    ASSERT(FALSE);
     break;
   }
 }
@@ -521,7 +521,7 @@ void CPropertyContainer::Serialize(CArchive &ar, double version)
     if (hdr.Compare("CPropertyContainer") != 0)
     {
       // not in sync with file format!
-      ASS ERT(FALSE);
+      ASSERT(FALSE);
 
       CString msg;
       msg.Format("Encountered unexpected data in file while reading CPropertyContainer data");                  
@@ -571,7 +571,7 @@ void CPropertyContainer::Serialize(CAR &ar, double version)
     if (hdr.Compare("CPropertyContainer") != 0)
     {
       // not in sync with file format!
-      ASS ERT(FALSE);
+      ASSERT(FALSE);
       CString msg;
       msg.Format("Encountered unexpected data in file while reading CPropertyContainer data");                  
       WriteDebugString(msg);

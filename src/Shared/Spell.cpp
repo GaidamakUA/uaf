@@ -16,14 +16,9 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ******************************************************************************/
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 //#include "..\Shared\ProjectVersion.h"
-#ifdef UAFEDITOR
-#include "..\UAFwinEd\resource.h"
-#else
-#include "..\UAFWin\Resource.h"
-#endif
-
+#include "../UAFWinEd/resource.h"
 
 //#ifdef UAFEDITOR
 //#include "..\UAFWinEd\UAFWinEd.h"
@@ -37,21 +32,21 @@
 #include "PicData.h"
 #include "PicSlot.h"
 #include "SoundMgr.h"
-#include "spell.h"
+#include "Spell.h"
 #include "GlobalData.h"
 #ifdef UAFEDITOR
-#include "..\UAFwinEd\CrossReference.h"
+#include "../UAFWinEd/CrossReference.h"
 #endif
 #ifdef UAFEngine
-#include "..\UAFWin\combatants.h"
-#include "..\UAFWin\DrawTile.h"
+#include "../UAFWin/Combatants.h"
+#include "../UAFWin/Drawtile.h"
 #endif
-#include "party.h"
+#include "Party.h"
 
 #include "GPDLOpCodes.h"
 #include "GPDLcomp.h"
 #include "GPDLexec.h"
-#include "..\UAFWin\FormattedText.h"
+#include "../UAFWin/FormattedText.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -61,7 +56,6 @@ static char THIS_FILE[] = __FILE__;
 
 extern CString ActivationScriptName;
 extern CString DeActivationScriptName;
-extern BOOL logDebuggingInfo;
 
 extern const double VersionSpellNames;
 extern const double VersionSpellIDs;
@@ -143,12 +137,12 @@ void GLOBAL_SPELL_ID::Serialize(CAR& car, double version)
       {
 
     };
-  Not Implemented(0xc1a3ac, true);
+  NotImplemented(0xc1a3ac, true);
 };
 
 void GLOBAL_SPELL_ID::Serialize(CArchive& ar, double version)
 {
-  Not Implemented(0xc1a3ad, true);
+  NotImplemented(0xc1a3ad, true);
 };
 */
 
@@ -352,7 +346,7 @@ void SPELL_EFFECTS_DATA::Serialize(CArchive &ar, double version)
 #ifdef UAFEDITOR
 void SPELL_EFFECTS_DATA::Export(JWriter& jw)
 {
-  /* Really */ NotImplemented(0xa098, false);
+  NotImplemented(0xa098, false);
   /*
     AS(ar,affectedAttr);
     ar << flags;
@@ -376,7 +370,7 @@ void SPELL_EFFECTS_DATA::Export(JWriter& jw)
 }
 void SPELL_EFFECTS_DATA::Import(JReader& jr)
 {
-  /* Really */ NotImplemented(0xa099, false);
+  NotImplemented(0xa099, false);
   /*
     AS(ar,affectedAttr);
     ar << flags;
@@ -499,8 +493,8 @@ double SPELL_EFFECTS_DATA::ApplyChange(double src) const
   double amount=0.0;
   if (changeResult==-1234567890123456789.0) // not rolled yet
   {
-    die(0xab53a); // GetChange() should be called at least once before this
-    /* Really */ NotImplemented(0x075186432, false); // should have been done long ago!
+    ASSERT(FALSE); // GetChange() should be called at least once before this
+    NotImplemented(0x075186432, false); // should have been done long ago!
     //GetChange();
   }
   // This spell effect is a temporary effect that causes
@@ -552,12 +546,6 @@ AttributeScriptContexts::AttributeScriptContexts(SPELL_EFFECTS_DATA *pSpellEffec
 {
   m_scriptContexts.SetAttackerContext(pSpellEffectsData->m_pCaster);
   m_scriptContexts.SetTargetContext(pSpellEffectsData->m_pTarget);
-}
-
-AttributeScriptContexts::AttributeScriptContexts(SAVING_THROW_DATA *pSavingThrowData)
-{
-  m_scriptContexts.SetAttackerContext(pSavingThrowData->pCaster);
-  m_scriptContexts.SetTargetContext(pSavingThrowData->pTarget);
 }
 
 AttributeScriptContexts::~AttributeScriptContexts(void)
@@ -643,7 +631,6 @@ double SPELL_EFFECTS_DATA::ExecuteModificationScript()
   return dresult;
 }
 
-/*  Saving throws are moved to the spell
 //*****************************************************************************
 //    NAME: SPELL_EFFECTS_DATA::ExecuteSavingThrowScript
 //
@@ -711,7 +698,7 @@ void SPELL_EFFECTS_DATA::ExecuteSavingThrowSucceededScript()
     }
   }  
 }
-*/
+
 //*****************************************************************************
 //    NAME: SPELL_EFFECTS_DATA::CompileScripts
 //
@@ -724,9 +711,9 @@ bool SPELL_EFFECTS_DATA::CompileScripts(const CString &basename)
 #ifdef UAFEDITOR
   ActivationBinary("");  
   ModificationBinary("");
-  //SavingThrowBinary("");
-  //SavingThrowFailedBinary("");
-  //SavingThrowSucceededBinary("");
+  SavingThrowBinary("");
+  SavingThrowFailedBinary("");
+  SavingThrowSucceededBinary("");
   const char *allowedEntry[2];
   
 
@@ -789,7 +776,7 @@ bool SPELL_EFFECTS_DATA::CompileScripts(const CString &basename)
       };
     };
   };
-/*
+
   if (SavingThrowBinary().IsEmpty())
   {
     if (!SavingThrowScript().IsEmpty()) 
@@ -877,15 +864,13 @@ bool SPELL_EFFECTS_DATA::CompileScripts(const CString &basename)
 
     };
   };
-
-*/
   if (!success)
   {
     ActivationBinary("");
     ModificationBinary("");
-    //SavingThrowBinary("");
-    //SavingThrowFailedBinary("");
-    //SavingThrowSucceededBinary("");
+    SavingThrowBinary("");
+    SavingThrowFailedBinary("");
+    SavingThrowSucceededBinary("");
   }
 #endif
   return success;
@@ -973,7 +958,7 @@ BOOL SPELL_EFFECTS_DATA::IsReadyToExpire() const
   {
     if ((flags & EFFECT_SCRIPT) == 0)
     {
-      die(0xab53b);
+      ASSERT(FALSE);
       return TRUE;
     };
     TIME_UNITS tu = (TIME_UNITS)data;
@@ -983,7 +968,7 @@ BOOL SPELL_EFFECTS_DATA::IsReadyToExpire() const
       return party.getElapsedMinutes() >= StopTime;
       break;
     default:
-      /* Really */ NotImplemented(0x551, false);
+      NotImplemented(0x551, false);
       break;
     };
     return TRUE;
@@ -993,7 +978,7 @@ BOOL SPELL_EFFECTS_DATA::IsReadyToExpire() const
   {
   case byNbrAttacks:
   case byDamageTaken: 
-    die(0xab53c);
+    ASSERT(FALSE);
     return TRUE;
     
   default:
@@ -1096,9 +1081,9 @@ void CHARACTER_SPELL::Serialize(CArchive &ar, double version)
 #ifdef UAFEDITOR
     if (version < VersionSpellNames)
     {
-      int preVersionSpellNames_ID;
-      ar >> preVersionSpellNames_ID;
-      spellID = spellData.FindPreVersionSpellNamesSpellID(preVersionSpellNames_ID);
+      int preVersionSpellNames_gsID;
+      ar >> preVersionSpellNames_gsID;
+      spellID = spellData.FindPreVersionSpellNamesSpellID(preVersionSpellNames_gsID);
     }
     else
 #endif
@@ -1519,7 +1504,7 @@ CHARACTER_SPELL& SPELL_LIST::GetAtPos(POSITION pos)
   }
   else
   {
-    ASS ERT(FALSE);
+    ASSERT(FALSE);
     WriteDebugString("Failed to find CHAR_SPELL in SPELL_LIST::GetAt()\n");
     return spells.GetHead();
   }  
@@ -1544,7 +1529,7 @@ const CHARACTER_SPELL& SPELL_LIST::PeekAtPos(POSITION pos) const
   }
   else
   {
-    ASS ERT(FALSE);
+    ASSERT(FALSE);
     WriteDebugString("Failed to find CHAR_SPELL in SPELL_LIST::GetAt()\n");
     //return spells.PeekHead();
     return PeekHead();
@@ -1571,7 +1556,7 @@ CHARACTER_SPELL& SPELL_LIST::GetNext(POSITION &pos)
   }
   else
   {
-    ASS ERT(FALSE);
+    ASSERT(FALSE);
     WriteDebugString("Failed to find CHAR_SPELL in SPELL_LIST::GetNext()\n");
     return spells.GetHead();
   }  
@@ -1597,7 +1582,7 @@ const CHARACTER_SPELL& SPELL_LIST::PeekNext(POSITION &pos) const
   }
   else
   {
-    ASS ERT(FALSE);
+    ASSERT(FALSE);
     WriteDebugString("Failed to find CHAR_SPELL in SPELL_LIST::GetNext()\n");
     //return spells.PeekHead();
     return PeekHead();
@@ -2279,7 +2264,7 @@ DWORD SPELL_LIST::GetRestTime(const SPELL_ID& spellID) const
     if (sdata != NULL)
       return (GetSpellMemorizeTime(sdata->Level));
   }
-  ASS ERT(FALSE);
+  ASSERT(FALSE);
   return 0;
 */
   return GetRestTime(LocateCharacterSpell(spellID));
@@ -2311,7 +2296,7 @@ DWORD SPELL_LIST::GetRestTime(int index) const
 //
 //*****************************************************************************
 void spellBookType::Serialize(CArchive &ar, double version)
-{  // 0xda2
+{
   spellLimits.Serialize(ar, version);
   list.Serialize(ar, version);
 }
@@ -2531,7 +2516,7 @@ BOOL spellBookType::CanKnowSpell(//const CLASS_DATA *pClass,
   //return spellLimits.CanKnowSpell(CasterClassFlag, SpellClassFlag, CastMask, SpellLevel); 
 //  return spellLimits.CanKnowSpell(schoolID, SpellLevel); 
 
-  Not Implemented(0xe3b812, false);
+  NotImplemented(0xe3b812, false);
   return false;
 }
 */
@@ -2556,7 +2541,7 @@ BOOL spellBookType::CanKnowSpell(//const CLASS_DATA *pClass,
 //                              const SPELL_ID& spellID, 
 //                              int SpellLevel, 
 //                              BOOL known)
-BOOL spellBookType::KnowSpellxxx(const SPELL_DATA *pSpell, BOOL known)
+BOOL spellBookType::KnowSpell(const SPELL_DATA *pSpell, BOOL known)
 {
   if (pSpell == NULL) return FALSE;
   if (known)
@@ -2575,8 +2560,6 @@ BOOL spellBookType::KnowSpellxxx(const SPELL_DATA *pSpell, BOOL known)
     //if (spellLimits.AddSpell(CasterClassFlag, SpellClassFlag, CastMask, SpellLevel))
     //if (spellLimits.KnowSpell(baseclassID, pSpell))
     n = pBaseclassList->GetBaseclassIDCount();
-	  i = 0;
-	/* Unreachable
     for (i=0; i<n; i++)
     {
 //      if (spellLimits.KnowSpell(*pBaseclassList->PeekBaseclassID(i), pSpell))
@@ -2584,7 +2567,6 @@ BOOL spellBookType::KnowSpellxxx(const SPELL_DATA *pSpell, BOOL known)
         break;
       };
     };
-	*/
     if (i < n)
     {
       CHARACTER_SPELL data;
@@ -2626,7 +2608,7 @@ BOOL spellBookType::KnowSpellxxx(const SPELL_DATA *pSpell, BOOL known)
     }
     return FALSE;
   }
-  //return TRUE;
+  return TRUE;
 }
 
 
@@ -3088,21 +3070,10 @@ SPELL_DATA::SPELL_DATA() :
   Targeting = Self;
   Cast_Cost = 0;
   Cast_Priority = 500;
-  SpellBeginSource.Empty();
-  SpellBeginBinary.Empty();
-  SpellEndSource.Empty();
-  SpellEndBinary.Empty();
-  SavingThrowSource.Empty();           // 1.0303
-  SavingThrowBinary.Empty();           // 1.0303
-  SavingThrowSucceededSource.Empty();  // 1.0303
-  SavingThrowSucceededBinary.Empty();  // 1.0303
-  SavingThrowFailedSource.Empty();     // 1.0303
-  SavingThrowFailedBinary.Empty();     // 1.0303
-  //
-  SpellInitiationSource.Empty();       // 2.60
-  SpellInitiationBinary.Empty();       // 2.60
-  SpellTerminationSource.Empty();      // 2.60
-  SpellTerminationBinary.Empty();       // 2.60
+  SpellBeginSource="";
+  SpellBeginBinary="";
+  SpellEndSource="";
+  SpellEndBinary="";
 }
 //*****************************************************************************
 //    NAME: SPELL_DATA::SetSpellAnimDefaults
@@ -3121,7 +3092,11 @@ void SPELL_DATA::SetSpellAnimDefaults(PIC_DATA &art, const char *file)
   if (art.filename.CompareNoCase("DEFAULT") == 0)
   {
 #ifdef UAFEDITOR
+#ifdef SIMPLE_STRUCTURE
     art.filename = ede.TemplateSpellArtDir() + file;
+#else
+    art.filename.Format("%s%s",EditorArt, file);
+#endif
 #else
     art.filename = file;
 #endif
@@ -3203,20 +3178,10 @@ void SPELL_DATA::Clear(BOOL ctor)
   Cast_Cost = 0;
   Cast_Priority = 500;
   spell_asl.Clear();
-  SpellBeginSource.Empty();
-  SpellBeginBinary.Empty();
-  SpellEndSource.Empty();
-  SpellEndBinary.Empty();
-  SavingThrowSource.Empty();
-  SavingThrowBinary.Empty();
-  SavingThrowSucceededSource.Empty();
-  SavingThrowSucceededBinary.Empty();
-  SavingThrowFailedSource.Empty();
-  SavingThrowFailedBinary.Empty();
-  SpellInitiationSource.Empty();
-  SpellInitiationBinary.Empty();
-  SpellTerminationSource.Empty();
-  SpellTerminationBinary.Empty();
+  SpellBeginSource="";
+  SpellBeginBinary="";
+  SpellEndSource="";
+  SpellEndBinary="";
 }
 
 //*****************************************************************************
@@ -3302,22 +3267,10 @@ SPELL_DATA &SPELL_DATA::operator=(const SPELL_DATA &src)
     SPELL_EFFECTS_DATA tmp=*src.m_EffectedAttributes.PeekNext(pos);
     m_EffectedAttributes.AddTail(tmp);
   }
-  SpellBeginSource           = src.SpellBeginSource;
-  SpellBeginBinary           = src.SpellBeginBinary;
-  SpellEndSource             = src.SpellEndSource;
-  SpellEndBinary             = src.SpellEndBinary;
-  SavingThrowSource          = src.SavingThrowSource;
-  SavingThrowBinary          = src.SavingThrowBinary;
-  SavingThrowSucceededSource = src.SavingThrowSucceededSource;
-  SavingThrowSucceededBinary = src.SavingThrowSucceededBinary;
-  SavingThrowFailedSource    = src.SavingThrowFailedSource;
-  SavingThrowFailedBinary    = src.SavingThrowFailedBinary;
-  SavingThrowFailedSource    = src.SavingThrowFailedSource;
-  SavingThrowFailedBinary    = src.SavingThrowFailedBinary;
-  SpellInitiationSource      = src.SpellInitiationSource;
-  SpellInitiationBinary      = src.SpellInitiationBinary;
-  SpellTerminationSource     = src.SpellTerminationSource;
-  SpellTerminationBinary     = src.SpellTerminationBinary;
+  SpellBeginSource=src.SpellBeginSource;
+  SpellBeginBinary=src.SpellBeginBinary;
+  SpellEndSource=src.SpellEndSource;
+  SpellEndBinary=src.SpellEndBinary;
   return *this;
 }
 
@@ -3392,20 +3345,8 @@ bool SPELL_DATA::operator==(const SPELL_DATA &src) const
   if (!(P3                   == src.P3)                   ) return false;
   if (!(P4                   == src.P4)                   ) return false;
   if (!(P5                   == src.P5)                   ) return false;
-  if (SpellBeginSource           != src.SpellBeginSource          ) return false;
-  if (SpellBeginBinary           != src.SpellBeginBinary          ) return false;
-  if (SpellEndSource             != src.SpellEndSource            ) return false;
-  if (SpellEndBinary             != src.SpellEndBinary            ) return false;
-  if (SpellInitiationSource      != src.SpellInitiationSource          ) return false;
-  if (SpellInitiationBinary      != src.SpellInitiationBinary          ) return false;
-  if (SpellTerminationSource     != src.SpellTerminationSource            ) return false;
-  if (SpellTerminationBinary     != src.SpellTerminationBinary            ) return false;
-  if (SavingThrowSource          != src.SavingThrowSource         ) return false;
-  if (SavingThrowBinary          != src.SavingThrowBinary         ) return false;
-  if (SavingThrowSucceededSource != src.SavingThrowSucceededSource) return false;
-  if (SavingThrowSucceededBinary != src.SavingThrowSucceededBinary) return false;
-  if (SavingThrowFailedSource    != src.SavingThrowFailedSource   ) return false;
-  if (SavingThrowFailedBinary    != src.SavingThrowFailedBinary   ) return false;
+  if (SpellBeginSource.CompareNoCase(src.SpellBeginSource)!=0) return false;
+  if (SpellEndSource.CompareNoCase(src.SpellEndSource)!=0) return false;
   if (!(spell_asl            == src.spell_asl)            ) return false;
   if (!(temp_asl             == src.temp_asl)             ) return false;
   if (m_EffectedAttributes.GetCount() != src.m_EffectedAttributes.GetCount()) return false;
@@ -3461,7 +3402,6 @@ void SPELL_DATA::Serialize(CArchive &ar, double ver)
   static long Heal_Bonus_Level;
   static long Heal_Max;
 
-
   if (ar.IsStoring())
   {
     die("We should not be serializing spellData with CArchive");
@@ -3490,43 +3430,14 @@ void SPELL_DATA::Serialize(CArchive &ar, double ver)
 
     DAS(ar,CastSound);
     //ar >> schoolMask;
+    ar >> schoolID;
+    
+    //if (ver >= _VERSION_0910_)
+    //  ar >> CastMask;
+    //else
+    //  CastMask = 0;
+    allowedBaseclasses.Serialize(ar);
 
-
-
-/* *********** PRS 20191207  The following 'if' is
-               an attempt to read an old version 0.5751 game
-               named "The Last Days of Autumn".
-               I am totally guessing at the version number for the
-               'if' statement.  I know that the game "Fury" was version 0.831
-               and it worked OK with the later code.  So something changed
-               between these two versions.  ***** */
-    if (ver < 0.576)
-#ifdef UAFEDITOR
-    {
-      WORD classMask;
-      BASECLASS_ID baseclass;
-      ar >> classMask;
-      if (classMask & ClericFlag)
-      {
-        baseclass = "cleric";
-      }
-      else
-      {
-        baseclass = "magicUser";
-      };
-      allowedBaseclasses.Add(baseclass);
-    }
-    else
-#endif
-    {
-      ar >> schoolID;
-
-      //if (ver >= _VERSION_0910_)
-      //  ar >> CastMask;
-      //else
-      //  CastMask = 0;
-      allowedBaseclasses.Serialize(ar);
-    };
     // this new flag is certainly not going
     // to be correct for older designs
     //
@@ -3550,15 +3461,7 @@ void SPELL_DATA::Serialize(CArchive &ar, double ver)
         CastMask = ClericFlag;
     }
     */
-    /* *********** PRS 20191207  The following 'if' is
-                   an attempt to read an old version 0.5751 game
-                   named "The Last Days of Autumn".
-                   I am totally guessing at the version number for the
-                   'if' statement.  I know that the game "Fury" was version 0.831
-                   and it worked OK with the later code.  So something changed
-                   between these two versions.  ***** */
-    if (ver >= 0.576)
-    /* Really */ NotImplemented(0xcc759cb, false);
+    NotImplemented(0xcc759cb, false);
 
     ar >> Level;
     ar >> Casting_Time;
@@ -3617,7 +3520,7 @@ void SPELL_DATA::Serialize(CArchive &ar, double ver)
     }
     
     ar >> temp;
-    Save_Vs = (spellSaveVersusType)temp;
+    Save_Vs = (spellSaveVsType)temp;
 
     ar >> temp;
     Save_Result = (spellSaveEffectType)temp;
@@ -3703,14 +3606,6 @@ void SPELL_DATA::Serialize(CArchive &ar, double ver)
       DAS(ar,SpellEndSource);
       DAS(ar,SpellEndBinary);
     }
-    if (ver >= 2.60)
-    {
-      DAS(ar,SpellInitiationSource);
-      DAS(ar,SpellInitiationBinary);
-      DAS(ar,SpellTerminationSource);
-      DAS(ar,SpellTerminationBinary);
-    }
-    
     
   }
 
@@ -3857,16 +3752,6 @@ void SPELL_DATA::Serialize(CAR &ar, double ver)
     AS(ar,SpellBeginBinary);
     AS(ar,SpellEndSource);
     AS(ar,SpellEndBinary); 
-    AS(ar,SpellInitiationSource);
-    AS(ar,SpellInitiationBinary);
-    AS(ar,SpellTerminationSource);
-    AS(ar,SpellTerminationBinary); 
-    AS(ar,SavingThrowSource); 
-    AS(ar,SavingThrowBinary); 
-    AS(ar,SavingThrowSucceededSource); 
-    AS(ar,SavingThrowSucceededBinary); 
-    AS(ar,SavingThrowFailedSource); 
-    AS(ar,SavingThrowFailedBinary); 
     EffectDuration.Serialize(ar);
   }
   else
@@ -3948,13 +3833,13 @@ void SPELL_DATA::Serialize(CAR &ar, double ver)
               castMask = ClericFlag;
           };
         };
-        AddBaseclass(castMask, MagicUserFlag, "magicUser");
-        AddBaseclass(castMask, ClericFlag,    "cleric");
-        AddBaseclass(castMask, ThiefFlag,     "thief");
-        AddBaseclass(castMask, FighterFlag,   "fighter");
-        AddBaseclass(castMask, PaladinFlag,   "paladin");
-        AddBaseclass(castMask, RangerFlag,    "ranger");
-        AddBaseclass(castMask, DruidFlag,     "druid");
+        AddBaseclass(castMask, MagicUserFlag, "Magic User");
+        AddBaseclass(castMask, ClericFlag,    "Cleric");
+        AddBaseclass(castMask, ThiefFlag,     "Thief");
+        AddBaseclass(castMask, FighterFlag,   "Fighter");
+        AddBaseclass(castMask, PaladinFlag,   "Paladin");
+        AddBaseclass(castMask, RangerFlag,    "Ranger");
+        AddBaseclass(castMask, DruidFlag,     "Druid");
 
       }
       else
@@ -4022,7 +3907,7 @@ void SPELL_DATA::Serialize(CAR &ar, double ver)
     }
 
     ar >> temp;
-    Save_Vs = (spellSaveVersusType)temp;
+    Save_Vs = (spellSaveVsType)temp;
 
     ar >> temp;
     Save_Result = (spellSaveEffectType)temp;
@@ -4224,32 +4109,8 @@ void SPELL_DATA::Serialize(CAR &ar, double ver)
     {
       DAS(ar,SpellBeginSource);
       DAS(ar,SpellBeginBinary);
-      SpellBeginBinary.Empty();
       DAS(ar,SpellEndSource);
       DAS(ar,SpellEndBinary);      
-      SpellEndBinary.Empty();
-
-      if (ver >= 2.6)
-      {
-        DAS(ar,SpellInitiationSource);
-        DAS(ar,SpellInitiationBinary);
-        SpellInitiationBinary.Empty();
-        DAS(ar,SpellTerminationSource);
-        DAS(ar,SpellTerminationBinary);      
-        SpellTerminationBinary.Empty();
-      };
-      if (ver >= 1.0303)
-      {
-        DAS(ar,SavingThrowSource);
-        DAS(ar,SavingThrowBinary);      
-        SavingThrowBinary.Empty();
-        DAS(ar,SavingThrowSucceededSource);
-        DAS(ar,SavingThrowSucceededBinary);      
-        SavingThrowSucceededBinary.Empty();
-        DAS(ar,SavingThrowFailedSource);
-        DAS(ar,SavingThrowFailedBinary);      
-        SavingThrowFailedBinary.Empty();
-      };
     }
 
     if (ver >= _VERSION_0906_)
@@ -4335,69 +4196,6 @@ void SPELL_DATA::PostSerialize(BOOL IsStoring, double version)
       spell_asl.Delete("TargLingerArt");
     };
 #endif
-    if (version < 1.0303)
-    {
-      SPELL_EFFECTS_DATA *sed;
-      POSITION pos;
-      pos = m_EffectedAttributes.GetHeadPosition();
-      while (pos != NULL)
-      {
-
-
-        // Move these three scripts from the effects to the spell proper.
-        sed = m_EffectedAttributes.GetNext(pos);
-        //if (!sed->SavingThrowScript().IsEmpty())
-        //{
-        //  if (SavingThrowSource.IsEmpty())
-        //  {
-        //    SavingThrowSource = sed->SavingThrowScript();
-        //  };
-        //};
-        //sed->SavingThrowScript("");
-        //sed->SavingThrowBinary("");
-        if (!sed->m_string6.IsEmpty())
-        {
-          if (SavingThrowSource.IsEmpty())
-          {
-            SavingThrowSource = sed->m_string6;
-            SavingThrowBinary = sed->m_string7;
-          };
-        };
-        SavingThrowBinary.Empty();
-        sed->m_string6.Empty();
-        sed->m_string7.Empty();
-
-
-
-        if (!sed->m_string10.IsEmpty())
-        {
-          if (SavingThrowSucceededSource.IsEmpty())
-          {
-            SavingThrowSucceededSource = sed->m_string10;
-            SavingThrowSucceededBinary = sed->m_string11;
-          };
-        };
-        sed->m_string10.Empty();
-        sed->m_string11.Empty();
-        SavingThrowSucceededBinary.Empty();
-
-
-
-
-
-        if (!sed->m_string8.IsEmpty())
-        {
-          if (SavingThrowFailedSource.IsEmpty())
-          {
-            SavingThrowFailedSource = sed->m_string8;
-            SavingThrowFailedBinary = sed->m_string9;
-          };
-        };
-        SavingThrowFailedBinary.Empty();
-        sed->m_string8.Empty();
-        sed->m_string8.Empty();
-      };
-    };
   }
 
   //AddFolderToPath(CastSound,     rte.SoundDir());
@@ -4438,200 +4236,6 @@ void SPELL_DATA::PreCARSerialize(BOOL IsStoring)
   }
 }
 
-bool SPELL_DATA::CompileSavingThrowScript(void)
-{
-  if (SavingThrowSource.IsEmpty()) return false;
-  if (SavingThrowBinary.IsEmpty())
-  {
-    SavingThrowBinary = CompileScript(SavingThrowSource, "Save");
-    /*
-    CString basename(Name); // start with spell name
-    basename.Remove(' '); // but remove spaces from name
-    basename += "_";
-    const char *allowedEntry[2];
-
-    CString func(basename);
-    func.Replace('|','_');
-    func.Replace('-','_');
-    //func += GetEffectSavingThrowFuncName();
-    func += "Save";
-    CString mscript;
-    CString scriptbegin;
-    CString scriptend;
-    
-    scriptbegin.Format("$PUBLIC $FUNC %s() { ", func);
-    scriptend.Format(" } %s;", func);
-    mscript = scriptbegin + SavingThrowSource + scriptend;
-    
-    allowedEntry[0] = (LPCSTR)func;
-    allowedEntry[1] = NULL;     
-    SavingThrowBinary(gpdlComp.CompileScript(mscript, allowedEntry));
-    */
-    if (SavingThrowBinary[0]!=0)
-    {
-      WriteDebugString("Error compiling Saving Throw Script for spell %s\n", Name);
-      WriteDebugString("Error message = %s\n", SavingThrowBinary);
-      return false;
-    }
-    else
-    {
-      return true;
-    };
-  }
-  else
-  {
-    return SavingThrowBinary[0] == 0;
-  };
-}
-
-bool SPELL_DATA::CompileBeginScript(void)
-{
-  if (SpellBeginSource.IsEmpty()) return false;
-  if (SpellBeginBinary.IsEmpty())
-  {
-    SpellBeginBinary = CompileScript(SpellBeginSource, "Begin");
-    if (SpellBeginBinary[0]!=0)
-    {
-      WriteDebugString("Error compiling Spell Begin Script for spell %s\n", Name);
-      WriteDebugString("Error message = %s\n", SpellBeginBinary);
-      return false;
-    }
-    else
-    {
-      return true;
-    };
-  }
-  else
-  {
-    return SpellBeginBinary[0] == 0;
-  };
-}
-
-bool SPELL_DATA::CompileEndScript(void) const
-{
-  if (SpellEndSource.IsEmpty()) return false;
-  if (SpellEndBinary.IsEmpty())
-  {
-    const_cast<SPELL_DATA *>(this)->SpellEndBinary = CompileScript(SpellEndSource, "End");
-    if (SpellEndBinary[0]!=0)
-    {
-      WriteDebugString("Error compiling Spell End Script for spell %s\n", Name);
-      WriteDebugString("Error message = %s\n", SpellEndBinary);
-      return false;
-    }
-    else
-    {
-      return true;
-    };
-  }
-  else
-  {
-    return SpellEndBinary[0] == 0;
-  };
-}
-
-bool SPELL_DATA::CompileInitiationScript(void) const
-{
-  if (SpellInitiationSource.IsEmpty()) return false;
-  if (SpellInitiationBinary.IsEmpty())
-  {
-    const_cast<SPELL_DATA *>(this)->SpellInitiationBinary = CompileScript(SpellInitiationSource, "Initiation");
-    if (SpellInitiationBinary[0]!=0)
-    {
-      WriteDebugString("Error compiling Spell Initiation Script for spell %s\n", Name);
-      WriteDebugString("Error message = %s\n", SpellInitiationBinary);
-      return false;
-    }
-    else
-    {
-      return true;
-    };
-  }
-  else
-  {
-    return SpellInitiationBinary[0] == 0;
-  };
-}
-
-bool SPELL_DATA::CompileTerminationScript(void) const
-{
-  if (SpellTerminationSource.IsEmpty()) return false;
-  if (SpellTerminationBinary.IsEmpty())
-  {
-    const_cast<SPELL_DATA *>(this)->SpellTerminationBinary = CompileScript(SpellTerminationSource, "Termination");
-    if (SpellTerminationBinary[0]!=0)
-    {
-      WriteDebugString("Error compiling Spell Termination Script for spell %s\n", Name);
-      WriteDebugString("Error message = %s\n", SpellTerminationBinary);
-      return false;
-    }
-    else
-    {
-      return true;
-    };
-  }
-  else
-  {
-    return SpellTerminationBinary[0] == 0;
-  };
-}
-
-
-
-
-
-bool SPELL_DATA::CompileSavingThrowSucceededScript(void)
-{
-  if (SavingThrowSucceededSource.IsEmpty()) return false;
-  if (SavingThrowSucceededBinary.IsEmpty())
-  {
-    SavingThrowSucceededBinary = CompileScript(SavingThrowSucceededSource, "Save");
-    if (SavingThrowSucceededBinary[0]!=0)
-    {
-      WriteDebugString("Error compiling Saving Throw Succeeded Script for spell %s\n", Name);
-      WriteDebugString("Error message = %s\n", SavingThrowSucceededBinary);
-      return false;
-    }
-    else
-    {
-      return true;
-    };
-  }
-  else
-  {
-    return SavingThrowSucceededBinary[0] == 0;
-  };
-}
-
-
-bool SPELL_DATA::CompileSavingThrowFailedScript(void)
-{
-  if (SavingThrowFailedSource.IsEmpty()) return false;
-  if (SavingThrowFailedBinary.IsEmpty())
-  {
-    SavingThrowFailedBinary = CompileScript(SavingThrowFailedSource, "Save");
-    if (SavingThrowFailedBinary[0]!=0)
-    {
-      WriteDebugString("Error compiling Saving Throw Failed Script for spell %s\n", Name);
-      WriteDebugString("Error message = %s\n", SavingThrowFailedBinary);
-      return false;
-    }
-    else
-    {
-      return true;
-    };
-  }
-  else
-  {
-    return SavingThrowFailedBinary[0] == 0;
-  };
-}
-
-
-
-
-
-
 //*****************************************************************************
 //    NAME: SPELL_DATA::PostCARSerialize
 //
@@ -4651,61 +4255,6 @@ void SPELL_DATA::PostCARSerialize(BOOL IsStoring, double version)
   TargCoverageArt.PostSerialize(IsStoring, version);
   TargHitArt.PostSerialize(IsStoring, version);
   TargLingerArt.PostSerialize(IsStoring, version);
-  if (version < 1.0303)
-  {
-    SPELL_EFFECTS_DATA *sed;
-    POSITION pos;
-    pos = m_EffectedAttributes.GetHeadPosition();
-    while (pos != NULL)
-    {
-      sed = m_EffectedAttributes.GetNext(pos);
-
-      // Move these three scripts from the effect to the spell
-      //if (!sed->SavingThrowScript().IsEmpty())
-      //{
-      //  if (SavingThrowSource.IsEmpty())
-      //  {
-      //    SavingThrowSource = sed->SavingThrowScript();
-      //  };
-      //};
-      //sed->SavingThrowScript("");
-      //sed->SavingThrowBinary("");
-      if (!sed->m_string6.IsEmpty())
-      {
-        if (SavingThrowSource.IsEmpty())
-        {
-          SavingThrowSource = sed->m_string6;
-          SavingThrowBinary = sed->m_string7;
-        };
-      };
-      sed->m_string6.Empty();
-      sed->m_string7.Empty();
-
-
-
-
-      if (!sed->m_string10.IsEmpty())
-      {
-        if (SavingThrowSucceededSource.IsEmpty())
-        {
-          SavingThrowSucceededSource = sed->m_string10;
-          SavingThrowSucceededBinary = sed->m_string11;
-        };
-      };
-      sed->m_string10;
-      sed->m_string11;
-      if (!sed->m_string8.IsEmpty())
-      {
-        if (SavingThrowFailedSource.IsEmpty())
-        {
-          SavingThrowFailedSource = sed->m_string8;
-          SavingThrowFailedBinary = sed->m_string9;
-        };
-      };
-      sed->m_string8.Empty();
-      sed->m_string9.Empty();
-    };
-  };
 }
 
 //*****************************************************************************
@@ -4809,7 +4358,7 @@ DICEPLUS& SPELL_DATA::TargetHeight(void)
   case AreaLinePickEnd:
     return P2;
   default:
-    /* Really */ NotImplemented(0x9c959, false);
+    NotImplemented(0x9c959, false);
     return P1;
   };
 }
@@ -4839,12 +4388,10 @@ DICEPLUS& SPELL_DATA::TargetWidth(void)
   case AreaLinePickEnd:
     return P1;
   default:
-    /* Really */ NotImplemented(0x9c95c, false);
+    NotImplemented(0x9c95c, false);
     return P1;
   };
 }
-
-DICEPLUS RollOne("0d0+1");
 
 DICEPLUS& SPELL_DATA::TargetRange(void)
 {
@@ -4863,7 +4410,7 @@ DICEPLUS& SPELL_DATA::TargetRange(void)
   case WholeParty:
     return infinity;
   case TouchedTargets:
-    return RollOne;
+    return infinity;
   case AreaCircle:
     return P3;
   case SelectByHitDice:
@@ -4871,7 +4418,7 @@ DICEPLUS& SPELL_DATA::TargetRange(void)
   case AreaLinePickEnd:
     return P3;
   default:
-    /* Really */ NotImplemented(0x9c95a, false);
+    NotImplemented(0x9c95a, false);
     return P1;
   };
 }
@@ -4900,7 +4447,7 @@ DICEPLUS& SPELL_DATA::TargetQuantity(void)
   case AreaLinePickEnd:
     return infinity;
   default:
-    /* Really */ NotImplemented(0x9c95b, false);
+    NotImplemented(0x9c95b, false);
     return P1;
   };
 }
@@ -5054,7 +4601,7 @@ POSITION SPELL_DATA::AddEffect(SPELL_EFFECTS_DATA &src)
 {
   if (HaveEffectAttr(src)) return NULL; 
 #ifdef UAFEDITOR
-  //CompileScript(src);
+  CompileScript(src);
 #endif
   POSITION pos = m_EffectedAttributes.AddTail(src);  
   return pos;
@@ -5129,11 +4676,12 @@ bool SPELL_DATA::CompileScript(SPELL_EFFECTS_DATA &src)
 {
   CString name(""); 
 
+  /*
   POSITION pos = m_EffectedAttributes.GetHeadPosition();
   int count=0;
   while (pos != NULL)
   {
-    if (*m_EffectedAttributes.GetAt(pos) == src) 
+    if (m_EffectedAttributes.GetAt(pos) == src) 
     {
       // all gpdl function names must be unique, so 
       // we create a unique name by using the spell name,
@@ -5144,6 +4692,7 @@ bool SPELL_DATA::CompileScript(SPELL_EFFECTS_DATA &src)
     count++;
     m_EffectedAttributes.GetNext(pos);
   }
+  */
   {
     int i, j;
     int nameLen = Name.GetLength();
@@ -5168,39 +4717,6 @@ bool SPELL_DATA::CompileScript(SPELL_EFFECTS_DATA &src)
   return (src.CompileScripts(name));  
 }
 
-
-CString SPELL_DATA::CompileScript(const CString& script, const char *namePostfix) const
-{
-  
-  const_cast<SPELL_DATA *>(this)->SpellBeginBinary="";  
-  const_cast<SPELL_DATA *>(this)->SpellEndBinary="";
-  
-  const char *allowedEntry[2];
-  
-  
-  if (script.IsEmpty()) return "";
-  {
-    GPDLCOMP gpdlComp;
-    CString sname(Name); // start with spell name
-    sname.Remove(' '); // but remove spaces from name
-    sname.Replace('|', '_');
-    sname.Replace('-', '_');
-    CString func("");  
-    func.Format("%s_b_%u", sname, GetTickCount());
-    CString ascript;
-    CString scriptbegin;
-    CString scriptend;
-    
-    scriptbegin.Format("$PUBLIC $FUNC %s() { ", func);
-    scriptend.Format(" } %s;", func);
-    ascript = scriptbegin + script + scriptend;
-    
-    allowedEntry[0] = (LPCSTR)func;
-    allowedEntry[1] = NULL;     
-    return gpdlComp.CompileScript(ascript, allowedEntry);    
-  }
-};  
-
 //*****************************************************************************
 //    NAME: SPELL_DATA::CompileScripts
 //
@@ -5223,52 +4739,12 @@ bool SPELL_DATA::CompileScripts()
   SpellBeginBinary="";  
   SpellEndBinary="";
   
-  //const char *allowedEntry[2];
+  const char *allowedEntry[2];
   
   GPDLCOMP gpdlComp;
   
-  //if (!SpellBeginSource.IsEmpty()) 
+  if (!SpellBeginSource.IsEmpty()) 
   {
-    //func.Format("%s_b_%u", sname, GetTickCount());
-    //CString ascript;
-    //CString scriptbegin;
-    //CString scriptend;
-    
-    //scriptbegin.Format("$PUBLIC $FUNC %s() { ", func);
-    //scriptend.Format(" } %s;", func);
-    //ascript = scriptbegin + SpellBeginSource + scriptend;
-    
-    //allowedEntry[0] = (LPCSTR)func;
-    //allowedEntry[1] = NULL;     
-    //SpellBeginBinary = gpdlComp.CompileScript(ascript, allowedEntry);
-    SpellBeginBinary.Empty();
-    //if (SpellBeginBinary[0]!=0) success = false;
-    // Let the engine compile on as-needed basis
-  }
-  
-  //if (!SpellEndSource.IsEmpty()) 
-  {
-    //func.Format("%s_e_%u", sname, GetTickCount());
-    //CString mscript;
-    //CString scriptbegin;
-    //CString scriptend;
-    
-    //scriptbegin.Format("$PUBLIC $FUNC %s() { ", func);
-    //scriptend.Format(" } %s;", func);
-    //mscript = scriptbegin + SpellEndSource + scriptend;
-    
-    //allowedEntry[0] = (LPCSTR)func;
-    //allowedEntry[1] = NULL;     
-    //SpellEndBinary = gpdlComp.CompileScript(mscript, allowedEntry);
-    SpellEndBinary.Empty();
-    //if (SpellEndBinary[0]!=0) success = false;
-    // Let the engine compile on as-needed basis
-  }
-  
-
-  //if (!SavingThrowSource.IsEmpty()) 
-  {
-    /*
     func.Format("%s_b_%u", sname, GetTickCount());
     CString ascript;
     CString scriptbegin;
@@ -5276,64 +4752,34 @@ bool SPELL_DATA::CompileScripts()
     
     scriptbegin.Format("$PUBLIC $FUNC %s() { ", func);
     scriptend.Format(" } %s;", func);
-    ascript = scriptbegin + SavingThrowSource + scriptend;
+    ascript = scriptbegin + SpellBeginSource + scriptend;
     
     allowedEntry[0] = (LPCSTR)func;
     allowedEntry[1] = NULL;     
-    SavingThrowBinary = gpdlComp.CompileScript(ascript, allowedEntry);
+    SpellBeginBinary = gpdlComp.CompileScript(ascript, allowedEntry);
     
-    if (SavingThrowBinary[0]!=0) success = false;
-    */
-    SavingThrowBinary.Empty();
-    //success = CompileSavingThrowScript();
-    // Let the engine compile on as-needed basis
-  }
-  //if (!SavingThrowSucceededSource.IsEmpty()) 
-  {
-    /*
-    func.Format("%s_b_%u", sname, GetTickCount());
-    CString ascript;
-    CString scriptbegin;
-    CString scriptend;
-    
-    scriptbegin.Format("$PUBLIC $FUNC %s() { ", func);
-    scriptend.Format(" } %s;", func);
-    ascript = scriptbegin + SavingThrowSucceededSource + scriptend;
-    
-    allowedEntry[0] = (LPCSTR)func;
-    allowedEntry[1] = NULL;     
-    SavingThrowSucceededBinary = gpdlComp.CompileScript(ascript, allowedEntry);
-    
-    if (SavingThrowSucceededBinary[0]!=0) success = false;
-    */
-    SavingThrowSucceededBinary.Empty();
-    //success = CompileSavingThrowSucceededScript();
-    // Let the engine compile on as-needed basis
+    if (SpellBeginBinary[0]!=0) success = false;
   }
   
-  //if (!SavingThrowFailedSource.IsEmpty()) 
+  if (!SpellEndSource.IsEmpty()) 
   {
-    /*
-    func.Format("%s_b_%u", sname, GetTickCount());
-    CString ascript;
+    func.Format("%s_e_%u", sname, GetTickCount());
+    CString mscript;
     CString scriptbegin;
     CString scriptend;
     
     scriptbegin.Format("$PUBLIC $FUNC %s() { ", func);
     scriptend.Format(" } %s;", func);
-    ascript = scriptbegin + SavingThrowFailedSource + scriptend;
+    mscript = scriptbegin + SpellEndSource + scriptend;
     
     allowedEntry[0] = (LPCSTR)func;
     allowedEntry[1] = NULL;     
-    SavingThrowFailedBinary = gpdlComp.CompileScript(ascript, allowedEntry);
+    SpellEndBinary = gpdlComp.CompileScript(mscript, allowedEntry);
     
-    if (SavingThrowFailedBinary[0]!=0) success = false;
-    */
-    SavingThrowFailedBinary.Empty();
-    //success = CompileSavingThrowFailedScript();
-    // Let the engine compile on as-needed basis
+    if (SpellEndBinary[0]!=0) success = false;
   }
     
+  
    // scripts with each spell effect
    POSITION pos = m_EffectedAttributes.GetHeadPosition();
    while (pos != NULL)
@@ -5379,22 +4825,9 @@ int SPELL_DATA::ExecuteModificationScript(SPELL_EFFECTS_DATA &src)
 // PURPOSE: 
 //
 //*****************************************************************************
-int SPELL_DATA::ExecuteSavingThrowScript(SAVING_THROW_DATA &src)
+int SPELL_DATA::ExecuteSavingThrowScript(SPELL_EFFECTS_DATA &src)
 {
-  // The saving throw script returns a value that is treated as a
-  // bonus (plus or minus) to the saving throw rolled by a character
-  //
-  // This script is optional.
-  // Assumes that $AttackerContext() and $TargetContext() are already set up.
-  int result = 0;
-
-  if (CompileSavingThrowScript())
-  {
-    AttributeScriptContexts asc(&src);
-    CString sresult = spellGPDL.ExecuteScript(SavingThrowBinary,1);
-    result = atoi(sresult);
-  }  
-  return result;
+  return (src.ExecuteSavingThrowScript());
 }
 
 //*****************************************************************************
@@ -5403,17 +4836,9 @@ int SPELL_DATA::ExecuteSavingThrowScript(SAVING_THROW_DATA &src)
 // PURPOSE: 
 //
 //*****************************************************************************
-void SPELL_DATA::ExecuteSavingThrowFailedScript(SAVING_THROW_DATA &src, CString *displayText)
+void SPELL_DATA::ExecuteSavingThrowFailedScript(SPELL_EFFECTS_DATA &src)
 {
-  // This script is optional.
-    
-  if (CompileSavingThrowFailedScript())
-  {
-    HOOK_PARAMETERS hookParameters;
-    AttributeScriptContexts asc(&src);
-    spellGPDL.ExecuteScript(SavingThrowFailedBinary,1);
-    if (displayText != NULL) *displayText += hookParameters[5];
-  }  
+  src.ExecuteSavingThrowFailedScript();
 }
 
 //*****************************************************************************
@@ -5422,17 +4847,9 @@ void SPELL_DATA::ExecuteSavingThrowFailedScript(SAVING_THROW_DATA &src, CString 
 // PURPOSE: 
 //
 //*****************************************************************************
-void SPELL_DATA::ExecuteSavingThrowSucceededScript(SAVING_THROW_DATA &src, CString *displayText)
+void SPELL_DATA::ExecuteSavingThrowSucceededScript(SPELL_EFFECTS_DATA &src)
 {
-  // This script is optional.
-
-  if (CompileSavingThrowSucceededScript())
-  {
-    HOOK_PARAMETERS hookParameters;
-    AttributeScriptContexts asc(&src);
-    spellGPDL.ExecuteScript(SavingThrowSucceededBinary,1);
-    if (displayText != NULL) *displayText += hookParameters[5];
-  };
+  src.ExecuteSavingThrowSucceededScript();
 }
 
 //*****************************************************************************
@@ -5443,12 +4860,12 @@ void SPELL_DATA::ExecuteSavingThrowSucceededScript(SAVING_THROW_DATA &src, CStri
 //*****************************************************************************
 bool SPELL_DATA::ExecuteSpellBeginScript(CHARACTER *pAttacker,
                                          CHARACTER *pTarget,
-                                         ToHitComputation *pToHitComputation)
+                                         ToHitComputation *pToHitComputation) const
 { 
   bool result = true;
   if (!SpellBeginSource.IsEmpty())
   {
-    if (CompileBeginScript())
+    if (SpellBeginBinary.GetLength() > 0)
     {
       SCRIPT_CONTEXT scriptContext;
       scriptContext.SetAttackerContext(pAttacker);
@@ -5459,10 +4876,7 @@ bool SPELL_DATA::ExecuteSpellBeginScript(CHARACTER *pAttacker,
       {
         result = false;
 #ifdef UAFEngine
-        if (pToHitComputation != NULL)
-        {
-          pToHitComputation->BeginSpellScriptFailure(1);
-        };
+        pToHitComputation->BeginSpellScriptFailure(1);
 #endif
       }
     }
@@ -5480,64 +4894,13 @@ void SPELL_DATA::ExecuteSpellEndScript(CHARACTER *pAttacker, CHARACTER *pTarget)
 { 
   if (!SpellEndSource.IsEmpty())
   {
-    if (CompileEndScript())
-    {
-      SCRIPT_CONTEXT scriptContext;
-      scriptContext.SetAttackerContext(pAttacker);
-      scriptContext.SetTargetContext(pTarget);
-        spellGPDL.ExecuteScript(SpellEndBinary,1); // don't care about result
-    };
+    SCRIPT_CONTEXT scriptContext;
+    scriptContext.SetAttackerContext(pAttacker);
+    scriptContext.SetTargetContext(pTarget);
+    if (SpellEndBinary.GetLength() > 0)
+      spellGPDL.ExecuteScript(SpellEndBinary,1); // don't care about result
   }  
 }
-
-#ifdef SpellInitiationScript
-//*****************************************************************************
-//    NAME: SPELL_DATA::ExecuteSpellInitiationScript
-//
-// PURPOSE: 
-//
-//*****************************************************************************
-bool SPELL_DATA::ExecuteSpellInitiationScript(CHARACTER *pAttacker) const
-{ 
-  bool result = true;
-  if (!SpellInitiationSource.IsEmpty())
-  {
-    if (CompileInitiationScript())
-    {
-      SCRIPT_CONTEXT scriptContext;
-      scriptContext.SetAttackerContext(pAttacker);
-      scriptContext.SetSpellContext(this);
-      if (spellGPDL.ExecuteScript(SpellInitiationBinary,1)!="1")
-      {
-        result = false;
-      };
-    };
-  }; 
-  return result;
-}
-
-//*****************************************************************************
-//    NAME: SPELL_DATA::ExecuteSpellTerminationScript
-//
-// PURPOSE: 
-//
-//*****************************************************************************
-void SPELL_DATA::ExecuteSpellTerminationScript(CHARACTER *pAttacker) const
-{ 
-  if (!SpellTerminationSource.IsEmpty())
-  {
-    if (CompileTerminationScript())
-    {
-      SCRIPT_CONTEXT scriptContext;
-      scriptContext.SetAttackerContext(pAttacker);
-      spellGPDL.ExecuteScript(SpellTerminationBinary,1); // don't care about result
-    };
-  };  
-}
-#endif
-
-
-
 
 //*****************************************************************************
 //    NAME: SPELL_DATA::CanPerformSpecAb
@@ -5663,7 +5026,7 @@ void SPELL_DATA_TYPE::PreSerialize(BOOL IsStoring)
 // PURPOSE: 
 //
 //*****************************************************************************
-void SPELL_DATA_TYPE::PostSerialize(BOOL IsStoring, double Version)
+void SPELL_DATA_TYPE::PostSerialize(BOOL IsStoring, double version)
 {
   // after loading, make sure data that is set to "DEFAULT"
   // is converted to proper filename
@@ -5674,9 +5037,9 @@ void SPELL_DATA_TYPE::PostSerialize(BOOL IsStoring, double Version)
   int i, n;
   n = GetCount();
   for (i=0; i<n; i++)
-    //SpellData.GetNext(p).PostSerialize(IsStoring, Version);
-    GetSpell(i)->PostSerialize(IsStoring, Version);
-    //SpellData[i].PostSerialize(IsStoring, Version);
+    //SpellData.GetNext(p).PostSerialize(IsStoring, version);
+    GetSpell(i)->PostSerialize(IsStoring, version);
+    //SpellData[i].PostSerialize(IsStoring, version);
 }
 
 //*****************************************************************************
@@ -5707,7 +5070,7 @@ void SPELL_DATA_TYPE::PreCARSerialize(BOOL IsStoring)
 // PURPOSE: 
 //
 //*****************************************************************************
-void SPELL_DATA_TYPE::PostCARSerialize(BOOL IsStoring, double Version)
+void SPELL_DATA_TYPE::PostCARSerialize(BOOL IsStoring, double version)
 {
   // after loading, make sure data that is set to "DEFAULT"
   // is converted to proper filename
@@ -5718,9 +5081,9 @@ void SPELL_DATA_TYPE::PostCARSerialize(BOOL IsStoring, double Version)
   int i, n;
   n = GetCount();
   for (i=0; i<n; i++)
-    //SpellData.GetNext(p).PostCARSerialize(IsStoring, Version);
-    GetSpell(i)->PostCARSerialize(IsStoring, Version);
-    //SpellData[i].PostCARSerialize(IsStoring, Version);
+    //SpellData.GetNext(p).PostCARSerialize(IsStoring, version);
+    GetSpell(i)->PostCARSerialize(IsStoring, version);
+    //SpellData[i].PostCARSerialize(IsStoring, version);
 }
 
 //*****************************************************************************
@@ -5747,7 +5110,11 @@ void SPELL_DATA_TYPE::ExpandDefaultFilenames()
     if (data.CastSound.CompareNoCase("DEFAULT")==0)
     {
 #ifdef UAFEDITOR
+#ifdef SIMPLE_STRUCTURE
       data.CastSound = ede.TemplateSoundDir() + DEF_CAST_SOUND;
+#else
+      data.CastSound.Format("%s%s",EditorArt, DEF_CAST_SOUND);
+#endif
 #else
       data.CastSound = DEF_CAST_SOUND;
 #endif
@@ -5755,7 +5122,11 @@ void SPELL_DATA_TYPE::ExpandDefaultFilenames()
     if (data.MissileSound.CompareNoCase("DEFAULT")==0)
     {
 #ifdef UAFEDITOR
+#ifdef SIMPLE_STRUCTURE
       data.MissileSound = ede.TemplateSoundDir() + DEF_CAST_SOUND;
+#else
+      data.MissileSound.Format("%s%s",EditorArt, DEF_CAST_SOUND);
+#endif
 #else
       data.MissileSound = DEF_CAST_SOUND;
 #endif
@@ -5763,7 +5134,11 @@ void SPELL_DATA_TYPE::ExpandDefaultFilenames()
     if (data.CoverageSound.CompareNoCase("DEFAULT")==0)
     {
 #ifdef UAFEDITOR
+#ifdef SIMPLE_STRUCTURE
       data.CoverageSound = ede.TemplateSoundDir() + DEF_CAST_SOUND;
+#else
+      data.CoverageSound.Format("%s%s",EditorArt, DEF_CAST_SOUND);
+#endif
 #else
       data.CoverageSound = DEF_CAST_SOUND;
 #endif
@@ -5771,7 +5146,11 @@ void SPELL_DATA_TYPE::ExpandDefaultFilenames()
     if (data.HitSound.CompareNoCase("DEFAULT")==0)
     {
 #ifdef UAFEDITOR
+#ifdef SIMPLE_STRUCTURE
      data.HitSound = ede.TemplateSoundDir() + DEF_HIT_SOUND;
+#else
+     data.HitSound.Format("%s%s",EditorArt, DEF_HIT_SOUND);
+#endif
 #else
       data.HitSound = DEF_HIT_SOUND;
 #endif
@@ -5779,7 +5158,11 @@ void SPELL_DATA_TYPE::ExpandDefaultFilenames()
     if (data.LingerSound.CompareNoCase("DEFAULT")==0)
     {
 #ifdef UAFEDITOR
+#ifdef SIMPLE_STRUCTURE
       data.LingerSound = ede.TemplateSoundDir() + DEF_CAST_SOUND;
+#else
+      data.LingerSound.Format("%s%s",EditorArt, DEF_CAST_SOUND);
+#endif
 #else
       data.LingerSound = DEF_CAST_SOUND;
 #endif
@@ -5823,6 +5206,7 @@ void SPELL_DATA_TYPE::CollapseDefaultFilenames()
     //SPELL_DATA& data = *GetSpellData(p);
     SPELL_DATA *pSpell = GetSpell(i);
 
+#ifdef SIMPLE_STRUCTURE
     DefFilename = ede.TemplateSoundDir() + DEF_CAST_SOUND;
     if (pSpell->CastSound.CompareNoCase(DefFilename)==0)
       pSpell->CastSound = "DEFAULT";
@@ -5858,6 +5242,43 @@ void SPELL_DATA_TYPE::CollapseDefaultFilenames()
     DefFilename = ede.TemplateCombatArtDir() + DEFAULT_STL;
     if (pSpell->TargLingerArt.filename.CompareNoCase(DefFilename)==0)
       pSpell->TargLingerArt.filename = "DEFAULT";
+#else
+    DefFilename.Format("%s%s",EditorArt, DEF_CAST_SOUND);
+    if (pSpell->CastSound.CompareNoCase(DefFilename)==0)
+      pSpell->CastSound = "DEFAULT";
+    DefFilename.Format("%s%s",EditorArt, DEF_CAST_SOUND);
+    if (pSpell->MissileSound.CompareNoCase(DefFilename)==0)
+      pSpell->MissileSound = "DEFAULT";
+    DefFilename.Format("%s%s",EditorArt, DEF_CAST_SOUND);
+    if (pSpell->CoverageSound.CompareNoCase(DefFilename)==0)
+      pSpell->CoverageSound = "DEFAULT";
+    DefFilename.Format("%s%s",EditorArt, DEF_HIT_SOUND);
+    if (pSpell->HitSound.CompareNoCase(DefFilename)==0)
+      pSpell->HitSound = "DEFAULT";
+    DefFilename.Format("%s%s",EditorArt, DEF_CAST_SOUND);
+    if (pSpell->LingerSound.CompareNoCase(DefFilename)==0)
+      pSpell->LingerSound = "DEFAULT";
+    
+    DefFilename.Format("%s%s",EditorArt, DEFAULT_STH);
+    if (pSpell->CastArt.filename.CompareNoCase(DefFilename)==0)
+      pSpell->CastArt.filename = "DEFAULT";
+
+    DefFilename.Format("%s%s",EditorArt, DEFAULT_SIR);
+    if (pSpell->MissileArt.filename.CompareNoCase(DefFilename)==0)
+      pSpell->MissileArt.filename = "DEFAULT";
+
+    DefFilename.Format("%s%s",EditorArt, DEFAULT_STC);
+    if (pSpell->TargCoverageArt.filename.CompareNoCase(DefFilename)==0)
+      pSpell->TargCoverageArt.filename = "DEFAULT";
+    
+    DefFilename.Format("%s%s",EditorArt, DEFAULT_STH);
+    if (pSpell->TargHitArt.filename.CompareNoCase(DefFilename)==0)
+      pSpell->TargHitArt.filename = "DEFAULT";
+    
+    DefFilename.Format("%s%s",EditorArt, DEFAULT_STL);
+    if (pSpell->TargLingerArt.filename.CompareNoCase(DefFilename)==0)
+      pSpell->TargLingerArt.filename = "DEFAULT";
+#endif
 
     //key = GetKeyAt(p);
     //spellID = PeekSpellData(p)->SpellID();
@@ -5879,8 +5300,14 @@ BOOL saveData(SPELL_DATA_TYPE& data)
 {
   EditorStatusMsg("Saving spell data...");
 
+#ifdef SIMPLE_STRUCTURE
   CString fullPath;
   fullPath = rte.DataDir() + SPELL_DB_NAME;
+#else
+  char fullPath[_MAX_PATH+1];
+  GetDesignPath(fullPath);
+  strcat(fullPath, SPELL_DB_NAME);
+#endif
   return saveData(data, fullPath);
 }
 
@@ -5910,7 +5337,7 @@ BOOL saveData(SPELL_DATA_TYPE& data, LPCSTR fullPath)
   myFile.Write(&ver, sizeof(double));
 
   CAR ar(&myFile, CArchive::store);
-  ar.Compress(true); // 
+  ar.Compress(true); // qqqqq
 
   data.PreCARSerialize(ar.IsStoring());
   data.Serialize(ar, ver);
@@ -5995,7 +5422,7 @@ int loadData(SPELL_DATA_TYPE& data, LPCSTR fullPath)
     CAR ar(&myFile, CArchive::load);
     if (ver >= _SPECIAL_ABILITIES_VERSION_)
     {
-      ar.Compress(true); // 
+      ar.Compress(true); // qqqqq
     };
     try
     {
@@ -6207,28 +5634,7 @@ BOOL SPELL_DATA_TYPE::Validate(const SPELL_DATA &data,FILE *pFile) const
         data.Name);      
     }
   }
-
-  if (!data.SpellInitiationSource.IsEmpty())
-  {
-    if (data.SpellInitiationBinary.GetLength() == 0)
-    {
-      success = FALSE;
-      WriteValidateLog(pFile, "Spell '%s', initiation script did not compile\n",
-        data.Name);      
-    }
-  }
-  if (!data.SpellTerminationSource.IsEmpty())
-  {
-    if (data.SpellTerminationBinary.GetLength() == 0)
-    {
-      success = FALSE;
-      WriteValidateLog(pFile, "Spell '%s', termination script did not compile\n",
-        data.Name);      
-    }
-  }
     
-
-
   pos = data.m_EffectedAttributes.GetHeadPosition();
   while (pos!=NULL)
   {
@@ -6251,7 +5657,6 @@ BOOL SPELL_DATA_TYPE::Validate(const SPELL_DATA &data,FILE *pFile) const
           data.Name, spef.AffectedAttr());
       }
     }
-/*
     if (!spef.SavingThrowScript().IsEmpty())
     {
       if (spef.SavingThrowBinary().GetLength()==0)
@@ -6279,7 +5684,6 @@ BOOL SPELL_DATA_TYPE::Validate(const SPELL_DATA &data,FILE *pFile) const
           data.Name, spef.AffectedAttr());
       }
     }  
-*/
   }
   return success;
 }
@@ -7276,7 +6680,7 @@ int SPELL_TARGETING_DATA::NumMapTargets() const
 // PURPOSE: 
 //
 //*****************************************************************************
-BOOL SPELL_TARGETING_DATA::STD_CanAddTarget(int hd, int targDistance) 
+BOOL SPELL_TARGETING_DATA::CanAddTarget(int hd, int range) 
 { 
   if (m_SelectingUnits)
   {
@@ -7284,7 +6688,7 @@ BOOL SPELL_TARGETING_DATA::STD_CanAddTarget(int hd, int targDistance)
       return FALSE;
     if ((m_MaxHitDice > 0) && (hd+m_HDTotal > m_MaxHitDice))
       return FALSE;
-    if ((m_MaxRange > 0) && (targDistance > m_MaxRange))
+    if ((m_MaxRange > 0) && (range > m_MaxRange))
       return FALSE;
   }
   else
@@ -7379,7 +6783,7 @@ CString SPELL_TARGETING_DATA::FormatRemainingTargsText()
     strcpy(title, "CHOOSE START OF CONE");
     break;
   default:
-    die(0xab53d);
+    ASSERT(FALSE);
     strcpy(title, "CHOOSE");
     break;
   }
@@ -7423,7 +6827,7 @@ BOOL SPELL_TARGETING_DATA::ValidNumTargets()
     return ((m_MaxRange>0)&&(m_MaxTargets > 0));  
 
   default:
-    die(0xab53e);
+    ASSERT(FALSE);
     break;
   }
   return FALSE;
@@ -7488,7 +6892,7 @@ BOOL SPELL_TARGETING_DATA::AllTargetsChosen()
     break;
 
   default:
-    die(0xab53f);
+    ASSERT(FALSE);
     break;
   }
   return FALSE;
@@ -7500,14 +6904,10 @@ BOOL SPELL_TARGETING_DATA::AllTargetsChosen()
 // PURPOSE: 
 //
 //*****************************************************************************
-BOOL SPELL_TARGETING_DATA::STD_AddTarget(int target, 
-                                         double hd, 
-                                         int range, 
-                                         int mapX, 
-                                         int mapY)
+BOOL SPELL_TARGETING_DATA::AddTarget(int target, double hd, int range, int mapX, int mapY)
 {
   if (m_SelectingUnits==FALSE) return FALSE;
-  if (!STD_CanAddTarget(hd,range)) return FALSE; 
+  if (!CanAddTarget(hd,range)) return FALSE; 
   if (IsAlreadyTargeted(target)) return FALSE;
   int index = m_targets.GetSize();
   m_targets.SetAtGrow(index, target);
@@ -7545,28 +6945,6 @@ void EncodeMapTargetingData(DWORD &data, WORD mapx, WORD mapy)
 }
 */
 
-CString OverrideTargetingHook(SPELL_DATA *pSpell, 
-                              COMBATANT *pAttacker, 
-                              COMBATANT *pTarget, 
-                              int mapx, int mapy, const char *type)
-{
-  HOOK_PARAMETERS hookParameters;
-  SCRIPT_CONTEXT scriptContext;
-  CString ans;
-  char t[40];
-  _itoa(mapx, t, 10); hookParameters[5] = t;
-  _itoa(mapy, t, 10); hookParameters[6] = t;
-  hookParameters[7] = type;
-  scriptContext.SetSpellContext(pSpell->SpellID());
-  scriptContext.SetAttackerContext(pAttacker);
-  scriptContext.SetTargetContext(pTarget);
-  ans = pSpell->RunSpellScripts(OVERRIDE_SPELL_TARGETING, 
-                                ScriptCallback_RunAllScripts, 
-                                NULL, 
-                                "Selecting a spell target");
-  return ans;
-}
-
 //*****************************************************************************
 //    NAME: SPELL_TARGETING_DATA::AddMapTarget
 //
@@ -7576,7 +6954,7 @@ CString OverrideTargetingHook(SPELL_DATA *pSpell,
 BOOL SPELL_TARGETING_DATA::AddMapTarget(int mapx, int mapy)
 {
   if (m_SelectingUnits==TRUE) return FALSE;
-  if (!STD_CanAddTarget(0,0)) return FALSE;
+  if (!CanAddTarget(0,0)) return FALSE;
   m_MapTargetX=mapx;
   m_MapTargetY=mapy;
   return TRUE;
@@ -7763,13 +7141,10 @@ bool PENDING_SPELL_LIST::ProcessTimeSensitiveData(int roundInc, int currInitiati
     
     if (castIt)
     {      
-      if (logDebuggingInfo)
-      {
-        WriteDebugString("Activating pending spell for char %i, sdbkey %s, turn %i, round %i, initiative %i\n",
-          //data.caster.Instance, data.gsID, combatData.m_iCurrTurn, combatData.m_iCurrRound, combatData.m_iCurrInitiative);
-          data.caster.Instance, data.spellID.UniqueName(), combatData.m_iCurrTurn, combatData.m_iCurrRound, combatData.m_iCurrInitiative);
-        WriteDebugString("%u pending spells remaining\n", GetCount() - 1);
-      };
+      WriteDebugString("Activating pending spell for char %i, sdbkey %s, turn %i, round %i, initiative %i\n", 
+                        //data.caster.Instance, data.gsID, combatData.m_iCurrTurn, combatData.m_iCurrRound, combatData.m_iCurrInitiative);
+                        data.caster.Instance, data.spellID.UniqueName(), combatData.m_iCurrTurn, combatData.m_iCurrRound, combatData.m_iCurrInitiative);
+      WriteDebugString("%u pending spells remaining\n", GetCount()-1);      
       SpellActivate(data, false, NULL);
       RemoveAt(pos);
     }   
@@ -7802,11 +7177,7 @@ BOOL SPELL_LINGER_DATA::BlocksCombatant(int mapx, int mapy, COMBATANT *pCombatan
           SCRIPT_CONTEXT scriptContext;
           scriptContext.SetSpellContext(pSpell);
           scriptContext.SetCombatantContext(pCombatant);
-          result = pSpell->RunSpellScripts(
-                                  SPELL_LINGER_BLOCKAGE, 
-                                  ScriptCallback_RunAllScripts, 
-                                  NULL,
-                                  "Does a lingering spell block combatant?");
+          result = pSpell->RunSpellScripts(SPELL_LINGER_BLOCKAGE, ScriptCallback_RunAllScripts, NULL);
           spellBlocksCombatant = 1;
           if ((result.GetLength()> 0) && (result[0] == 'N')) spellBlocksCombatant = 0;
         };
@@ -7836,13 +7207,13 @@ BOOL ACTIVE_SPELL::LingerSpellBlocksCombatant(int mapx, int mapy, COMBATANT *pCo
 // PURPOSE: 
 //
 //*****************************************************************************
-void ACTIVE_SPELL_LIST::xClear() 
+void ACTIVE_SPELL_LIST::Clear() 
 { 
 //  CSingleLock sLock(&m_CS, TRUE); 
   //POSITION pos = GetHeadPosition();
   //while (pos != NULL)
   //  party.RemoveSpellEffect(GetNext(pos).key);
-  m_spellList.RemoveAll();
+  m_spells.RemoveAll();
 }
 
 //*****************************************************************************
@@ -7853,23 +7224,39 @@ void ACTIVE_SPELL_LIST::xClear()
 //*****************************************************************************
 int ACTIVE_SPELL_LIST::GetNextKey()
 {
-  // Search for an unused key.
-  POSITION pos = GetHeadPosition();
-  int prevKey = 0;
-  int currKey;
-  while (pos != NULL) 
+  int key=-1;
+  if (GetCount() > 0)
   {
-    currKey = GetNext(pos).key;
-    if (currKey != prevKey+1)
+    key = m_spells.GetTail().key;
+    if (key >= INT_MAX)
     {
-      return prevKey+1;
+      // Need to wrap key.
+      // Search for non-sequential gap between current keys.
+      // A gap is guaranteed since the key range is greater than max elements
+      // Gaps occur when deletions are made to the list
+      POSITION pos = GetHeadPosition();
+      BOOL found = FALSE;        
+      int prevKey = 0;
+      int currKey;
+      while ((pos != NULL) && (!found))
+      {
+        currKey = GetNext(pos).key;
+        if (currKey != prevKey+1)
+        {
+          key = prevKey+1;
+          found = TRUE;
+        }
+        else
+          prevKey = currKey; 
+      }
+      VERIFY(found); // should never happen
     }
     else
-    {
-      prevKey = currKey; 
-    };
-  };
-  return prevKey+1;
+      key++;
+  }
+  else
+    key = 1;
+  return key;
 }
 
 // called when loading from scripts, or
@@ -7880,14 +7267,14 @@ int ACTIVE_SPELL_LIST::GetNextKey()
 // PURPOSE: 
 //
 //*****************************************************************************
-int ACTIVE_SPELL_LIST::xAdd(ACTIVE_SPELL &data)
+int ACTIVE_SPELL_LIST::Add(ACTIVE_SPELL &data)
 {
 //  CSingleLock sLock(&m_CS, TRUE);
   //if (strlen(data.Name) == 0) return 0;
   // Do not allow multiple items with same full name.
   //if (m_FindName(data.Name)!=0) return 0;
   data.key = GetNextKey();
-  m_spellList.Insert(data, data.key);
+  m_spells.Insert(data, data.key);
   return data.key;
 }
 
@@ -7899,7 +7286,7 @@ int ACTIVE_SPELL_LIST::xAdd(ACTIVE_SPELL &data)
 // PURPOSE: 
 //
 //*****************************************************************************
-int ACTIVE_SPELL_LIST::xAddWithCurrKey(ACTIVE_SPELL &data)
+int ACTIVE_SPELL_LIST::AddWithCurrKey(ACTIVE_SPELL &data)
 {
 //  CSingleLock sLock(&m_CS, TRUE);
   //WriteDebugString("ACTIVE_SPELL_LIST::AddWithCurrKey(): key %i, spelldbkey %i\n", 
@@ -7907,7 +7294,7 @@ int ACTIVE_SPELL_LIST::xAddWithCurrKey(ACTIVE_SPELL &data)
   WriteDebugString("ACTIVE_SPELL_LIST::AddWithCurrKey(): key %s, spelldbkey %s\n", 
                    data.spellID.UniqueName(),data.spellID.UniqueName());
 
-  m_spellList.Insert(data, data.key);
+  m_spells.Insert(data, data.key);
   return data.key;
 }
 
@@ -7921,7 +7308,7 @@ BOOL ACTIVE_SPELL_LIST::Set(int index, ACTIVE_SPELL &spell)
 {
 //  CSingleLock sLock(&m_CS, TRUE);
   POSITION pos=NULL;
-  if ((pos = m_spellList.FindKeyPos(index)) != NULL)
+  if ((pos = m_spells.FindKeyPos(index)) != NULL)
   {
     GetAtPos(pos) = spell;
     return TRUE;
@@ -7936,19 +7323,13 @@ BOOL ACTIVE_SPELL_LIST::Set(int index, ACTIVE_SPELL &spell)
 // PURPOSE: 
 //
 //*****************************************************************************
-BOOL ACTIVE_SPELL_LIST::Remove(int index, const SPELL_DATA *pSpell)
+BOOL ACTIVE_SPELL_LIST::Remove(int index)
 {
 //  CSingleLock sLock(&m_CS, TRUE);
   POSITION pos=NULL;
-  if ((pos = m_spellList.FindKeyPos(index)) != NULL)
+  if ((pos = m_spells.FindKeyPos(index)) != NULL)
   {
-    const ACTIVE_SPELL *pActiveSpell;
-    pActiveSpell = &PeekAtPos(pos);
-    if (pActiveSpell->spellID != pSpell->SpellID())
-  {
-      die("We don't understand active spells");
-    };
-    m_spellList.RemoveAt(pos);
+    m_spells.RemoveAt(pos);
     return TRUE;
   }
   else
@@ -7965,7 +7346,7 @@ ACTIVE_SPELL *ACTIVE_SPELL_LIST::Get(int index)
 {
 //  CSingleLock sLock(&m_CS, TRUE);
   POSITION pos=NULL;
-  if ((pos = m_spellList.FindKeyPos(index)) != NULL)
+  if ((pos = m_spells.FindKeyPos(index)) != NULL)
     return &GetAtPos(pos);
   else
     return NULL;
@@ -7979,10 +7360,10 @@ ACTIVE_SPELL *ACTIVE_SPELL_LIST::Get(int index)
 ACTIVE_SPELL_LIST &ACTIVE_SPELL_LIST::operator=(ACTIVE_SPELL_LIST &src)
 {
   if (this == &src) return *this;
-  m_spellList.RemoveAll();
+  m_spells.RemoveAll();
   POSITION pos = src.GetHeadPosition();
   while (pos!=NULL)
-    xAddWithCurrKey(src.GetNext(pos));
+    AddWithCurrKey(src.GetNext(pos));
   return *this;
 }
 //*****************************************************************************
@@ -8003,7 +7384,7 @@ void ACTIVE_SPELL_LIST::Serialize(CAR &ar, double ver)
   }
   else
   {
-    m_spellList.RemoveAll();
+    m_spells.RemoveAll();
     ACTIVE_SPELL data;
     int count;
     ar >> count;
@@ -8011,7 +7392,7 @@ void ACTIVE_SPELL_LIST::Serialize(CAR &ar, double ver)
     {
       data.Clear();
       data.Serialize(ar, ver);
-      xAddWithCurrKey(data);
+      AddWithCurrKey(data);
       //WriteDebugString("Loading active spell: k %i, sk %i, st %u, c %u\n",
       //                 data.key, data.spellKey, data.StopTime, data.caster.Instance);
       WriteDebugString("Loading active spell: k %s, sk %s, st %u, c %u\n",
@@ -8038,7 +7419,7 @@ void ACTIVE_SPELL_LIST::Serialize(CArchive &ar, double ver)
   }
   else
   {
-    m_spellList.RemoveAll();
+    m_spells.RemoveAll();
     ACTIVE_SPELL data;
     int count;
     ar >> count;
@@ -8046,7 +7427,7 @@ void ACTIVE_SPELL_LIST::Serialize(CArchive &ar, double ver)
     {
       data.Clear();
       data.Serialize(ar, ver);
-      xAddWithCurrKey(data);
+      AddWithCurrKey(data);
       //WriteDebugString("Loading active spell: k %i, sk %i, st %u, c %u\n",
       //                 data.key, data.spellKey, data.StopTime, data.caster.Instance);
       WriteDebugString("Loading active spell: k %s, st %u, c %u\n",
@@ -8061,7 +7442,7 @@ void ACTIVE_SPELL_LIST::Serialize(CArchive &ar, double ver)
 // PURPOSE: 
 //
 //*****************************************************************************
-void ACTIVE_SPELL_LIST::DeactivateActiveSpell(int index, const SPELL_DATA *pSpell)
+void ACTIVE_SPELL_LIST::DeactivateActiveSpell(int index, SPELL_DATA *pSpell)
 { 
   if (pSpell != NULL)
     WriteDebugString("Deactivating spell from ACTIVE_SPELL_LIST: akey %i, spell %s\n", index, pSpell->Name);
@@ -8069,58 +7450,15 @@ void ACTIVE_SPELL_LIST::DeactivateActiveSpell(int index, const SPELL_DATA *pSpel
     WriteDebugString("Deactivating spell from ACTIVE_SPELL_LIST: akey %i, spell NULL\n", index);
 
   if (IsCombatActive())
-    combatData.RemoveSpellEffect(index, pSpell, true);
+    combatData.RemoveSpellEffect(index,pSpell);
   else
-    party.RemoveSpellEffect(index, pSpell, true);
+    party.RemoveSpellEffect(index,pSpell);
   
   // 'linger' spell animations
   RemoveAnimationFromList(index);  
-  {
-    POSITION pos=NULL;
-    const ACTIVE_SPELL *pActiveSpell;
-    if ((pos = m_spellList.FindKeyPos(index)) != NULL)
-    {
-#ifdef SpellInitiationScript
-      CHARACTER *pAttacker;
-      pActiveSpell = &PeekAtPos(pos);
-      pAttacker = GetCurrentlyActiveContext(&pActiveSpell->caster,"ACTIVE_SPELL_LIST::DeactivateActiveSpell");
-      if (Remove(index, pSpell))  
-      {
-        pSpell->ExecuteSpellTerminationScript(pAttacker);
-      };
-    };
-#else
-      CHARACTER *pAttacker;
-      CHARACTER *pTarget;
-      pActiveSpell = &PeekAtPos(pos);
-      pAttacker = GetCurrentlyActiveContext(&pActiveSpell->caster);
-      pTarget   = GetCurrentlyActiveContext(&pActiveSpell->target);
 
-
-      if (Remove(index, pSpell))  
-      {
-        pSpell->ExecuteSpellEndScript(pAttacker, pTarget);
-      };
-    };
-#endif
-  };
+  Remove(index);
 }
-
-#ifdef SpellInitiationScript
-void ACTIVE_SPELL_LIST::ExitCombat(void)
-{
-  POSITION pos = GetHeadPosition();
-  while (pos != NULL)
-  {
-    ACTIVE_SPELL *pData;
-    //SPELL_DATA *pSpell;
-    pData = &GetNext(pos);
-    //pSpell = spellData.GetSpell(pData->spellID);
-    pData->caster.ExitCombat();
-    pData->target.ExitCombat();
-  };
-}
-#endif
 
 // check to see if spell is ready to expire, then
 // remove effect from all characters
@@ -8167,7 +7505,7 @@ void ACTIVE_SPELL_LIST::ProcessTimeSensitiveData(int roundInc)
     }
     else
     {
-      die(0xab540);
+      ASSERT(FALSE);
       SpellOver=true;
       WriteDebugString("Removing active spell cast by %i - invalid spell key\n", data.caster.Instance);
     }
@@ -8199,26 +7537,9 @@ void ACTIVE_SPELL_LIST::RemoveLingerSpells()
     if (as.Lingers)
     {
       // 'linger' spell animations
-      const SPELL_DATA *pSpell;
-      RemoveAnimationFromList(as.key);  
-      pSpell = spellData.PeekSpell(as.spellID);
-      DeactivateActiveSpell(as.key, pSpell);
-      //die(0xab541); // What about running spell end scripts????
-
-      Remove(as.key, NULL);      
-    } 
-    else
-    {
-#ifdef SpellInitiationScript
-      //die(0xab542); // Should we run spell termination script?
-                      // No.  Here is why.
-                      // Temporary spells will still be active until the activeSpellList
-                      // entry is removed.  Permanent spells ran their end scripts 
-                      // immediately after the spell was cast.
-#else
-      die(0xab542);  // Should we run spell end script
-#endif
-    };
+      RemoveAnimationFromList(as.key);       
+      Remove(as.key);      
+    }   
   }   
 }
 
@@ -8277,14 +7598,14 @@ BOOL ACTIVE_SPELL_LIST::LingerSpellBlocksCombatant(int mapx, int mapy, COMBATANT
   return FALSE;
 };
 
-CString ACTIVE_SPELL_LIST::RunSEScripts(int x, int y, const CString& scriptName, LPCSTR comment)
+CString ACTIVE_SPELL_LIST::RunSEScripts(int x, int y, const CString& scriptName)
 {
   bool scriptProcessed;
   CString result;
   POSITION pos = GetHeadPosition();  
   for ( ;pos != NULL; GetNext(pos))
   {
-    GetAtPos(pos).m_XscriptProcessed = false;
+    GetAtPos(pos).m_scriptProcessed = false;
     // Any spell effects that get added will have m_scriptProcessed = true;
   };
   for (scriptProcessed=true; scriptProcessed;)
@@ -8294,7 +7615,7 @@ CString ACTIVE_SPELL_LIST::RunSEScripts(int x, int y, const CString& scriptName,
     {
       ACTIVE_SPELL *pActiveSpell;
       pActiveSpell = &GetAtPos(pos);
-      if (!pActiveSpell->m_XscriptProcessed)
+      if (!pActiveSpell->m_scriptProcessed)
       {
         //GLOBAL_SPELL_ID gsID;
         SPELL_ID spellID;
@@ -8303,7 +7624,7 @@ CString ACTIVE_SPELL_LIST::RunSEScripts(int x, int y, const CString& scriptName,
         CString SEIdentifier;
         POSITION mapPos;
 
-        pActiveSpell->m_XscriptProcessed = true;
+        pActiveSpell->m_scriptProcessed = true;
         //gsID = pActiveSpell->spellKey;
         spellID = pActiveSpell->spellID;
         pSLD = &pActiveSpell->lingerData;
@@ -8320,11 +7641,7 @@ CString ACTIVE_SPELL_LIST::RunSEScripts(int x, int y, const CString& scriptName,
             //pSpellData = spellData.GetSpellData(gsID);
             pSpellData = spellData.GetSpell(spellID);
             pScriptContext->SetSpellContext(pSpellData);
-            result += pSpellData->RunSpellScripts(
-                             scriptName, 
-                             ScriptCallback_RunAllScripts, 
-                             NULL,
-                             comment);
+            result += pSpellData->RunSpellScripts(scriptName, ScriptCallback_RunAllScripts, NULL);
           };
         };
         scriptProcessed = true;
@@ -8423,7 +7740,7 @@ int CompareSpellsForNewSpellList( const void *arg1, const void *arg2 )
 //*****************************************************************************
 void SPELL_TEXT_LIST::FillNewSpellLevelListText(CHARACTER &data)
 {
-  //int i;
+  int i;
 	Clear();
   m_CharData=&data;
   m_flags=NEW_SPELL_LEVEL_FORMAT_FLAG; 
@@ -8443,11 +7760,11 @@ void SPELL_TEXT_LIST::FillNewSpellLevelListText(CHARACTER &data)
 
 /*
   if (!CanCastMagicUserSpells(data.GetAdjClass()))
-*/ /* Really */ NotImplemented(0x8f31891, false);
+*/ NotImplemented(0x8f31891, false);
 
 
   {
-    die(0xab542);
+    ASSERT(FALSE);
     return;
   }  
 
@@ -8468,8 +7785,6 @@ void SPELL_TEXT_LIST::FillNewSpellLevelListText(CHARACTER &data)
   // fill in the list of spells that are allowed to be known
   //POSITION pos = spellData.GetHeadPosition();
   //for ( ;pos != NULL; spellData.GetNext(pos))
-
-  /* Unreachable
   int n;
   n = spellData.GetCount();
   for (i=0; i<n; i++)
@@ -8492,8 +7807,8 @@ void SPELL_TEXT_LIST::FillNewSpellLevelListText(CHARACTER &data)
     };
 
     // if spell level matches new spell level
-    //if ( Not Implemented(0xdc4adc5, false), (sdata.UsableByParty) 
-    if ( Not Implemented(0xdc4adc5, false), (sdata.CanMemorize) 
+    //if ( NotImplemented(0xdc4adc5, false), (sdata.UsableByParty) 
+    if ( NotImplemented(0xdc4adc5, false), (sdata.CanMemorize) 
         //&& (sdata.CanScribeAtLevelChange) 
         && (sdata.AllowScribe) 
         //&& (sdata.schoolMask == MagicUserFlag) 
@@ -8505,18 +7820,17 @@ void SPELL_TEXT_LIST::FillNewSpellLevelListText(CHARACTER &data)
 
       // !!!!!!!! this next line makes the assumption that we are selecting spells for a MU only !!!!!!!!!!
       // which is true for the current rules, but may change when rules are more configurable
-	  Not Implemented(0xec5ca6, false);
-      //if (data.MaxSpellsForLevel(MagicUserFlag, 
-      //                           data.GetCurrentLevel(MagicUserFlag), 
-      //                           sdata.Level, 
-      //                           data.GetPrimeSpellCastingScore(MagicUserFlag)) > 0)
+      if (NotImplemented(0xec5ca6, false), 1 /*data.MaxSpellsForLevel(MagicUserFlag, 
+                                 data.GetCurrentLevel(MagicUserFlag), 
+                                 sdata.Level, 
+                                 data.GetPrimeSpellCastingScore(MagicUserFlag))*/ > 0)
       {
         // if not already in character's spell book
         //if (!data.HaveSpell(sdata.m_gsID, FALSE))
         if (!data.HaveSpell(sdata.SpellID(), FALSE))
         {
           //if (data.CanKnowSpell(MagicUserFlag, sdata.schoolMask, sdata.CastMask, sdata.Level))
-          Not Implemented(0x9d741a, false);
+          NotImplemented(0x9d741a, false);
           //if (data.CanKnowSpell(NULL, sdata.schoolID, sdata.allowedBaseclasses, sdata.Level))
           if (data.CanKnowSpell(sdata.schoolID, sdata.Level))
           {          
@@ -8575,7 +7889,7 @@ void SPELL_TEXT_LIST::FillNewSpellLevelListText(CHARACTER &data)
   }
 
 
-  */
+
 
 /*
   // fill in the number of spells that *can* be known
@@ -8616,7 +7930,7 @@ void SPELL_TEXT_LIST::FillNewSpellLevelListText(CHARACTER &data)
       }
     }
   }
-  Not Implemented(0x1d5bc9, false);
+*/ NotImplemented(0x1d5bc9, false);
 
 
 
@@ -8624,7 +7938,6 @@ void SPELL_TEXT_LIST::FillNewSpellLevelListText(CHARACTER &data)
 
   // this flag should be set by now
   ASSERT(UseNewSpellLevelLayout());
-  */
 }
 
 void MemorizeSummary::Clear(void)
@@ -8632,98 +7945,6 @@ void MemorizeSummary::Clear(void)
   spells.RemoveAll();
 }
 
-int CreateSpellAvailabilityList( CHARACTER *pChar,
-                                 CArray<AVAILABLE_SPELL, AVAILABLE_SPELL&> *pSpellAvailabilityList,
-                                 LPCSTR comment)
-{
-  int n;
-  CLASS_DATA *pClass;
-  HOOK_PARAMETERS hookParameters;
-  SCRIPT_CONTEXT scriptContext;
-  AVAILABLE_SPELL avs;
-  int maxSpellLevel=0;
-
-  pSpellAvailabilityList->RemoveAll();
-
-  //if (m_dude.GetUniqueId() == 0xff)
-  //if (m_dude.CharacterID().IsEmpty())
-  if (pChar->uniquePartyID == 0xff)
-  {
-    scriptContext.SetCreatedCharacterContext(pChar);
-    hookParameters[4] = "I";
-  }
-  else
-  {
-    scriptContext.SetCharacterContext(pChar);
-    hookParameters[4] = "L";
-  };
-  pClass = classData.GetClass(pChar->GetClass());
-  scriptContext.SetClassContext(pClass);
-  hookParameters[5].Format("%d",pChar->GetLimitedInt());
-
-  //for (pos = spellData.GetHeadPosition(); pos!=NULL;)
-  //int i;
-  n = spellData.GetCount();
-  for (int i=0; i<n; i++)
-  {
-    SPELL_DATA *pSpell;
-    CString result;
-    int probability;
-    //pSpell = &spellData.GetNext(pos);
-    pSpell = spellData.GetSpell(i);
-    if (!pSpell->AllowScribe) continue;
-    //if (!m_dude.CanKnowSpell(pClass, pSpell->schoolID, pSpell->allowedBaseclasses, pSpell->Level))
-    if (!pChar->CanKnowSpell(pSpell->schoolID, pSpell->Level))
-    {
-      continue;
-    };
-    {
-      int j, m;
-      const BASECLASS_ID *pBaseclassID;
-      m = pSpell->allowedBaseclasses.GetCount();
-      for (j=0; j<m; j++)
-      {
-        pBaseclassID = pSpell->allowedBaseclasses.PeekBaseclassID(j);
-        if (pClass->LocateBaseclass(*pBaseclassID) >= 0) break;
-      };
-      if (j == m) continue;  // Cound not find baseclass
-    };
-    scriptContext.SetSpellContext(pSpell);
-    hookParameters[6].Format("%d",pSpell->Level);
-
-    
-    result = pClass->RunClassScripts(KNOWABLE_SPELLS, 
-                                     ScriptCallback_RunAllScripts, 
-                                     NULL,
-                                     comment);
-    if (result.IsEmpty())
-    {
-      result = pSpell->RunSpellScripts(KNOWABLE_SPELLS, 
-                                       ScriptCallback_RunAllScripts,
-                                       NULL,
-                                       comment);
-    };
-    if (result.IsEmpty())
-    {
-      probability = 100;
-    }
-    else
-    {
-      sscanf(result, "%d", &probability);
-    };
-    if (probability != 0)
-    {
-      avs.pSpellData = pSpell;
-      avs.probability = probability;
-      pSpellAvailabilityList->Add(avs);
-      if (avs.pSpellData->Level > maxSpellLevel)
-      {
-        maxSpellLevel = avs.pSpellData->Level;
-      };
-    };
-  };
-  return maxSpellLevel;
-}
 
 
 //*****************************************************************************
@@ -8762,7 +7983,7 @@ void SPELL_TEXT_LIST::FillMemorizeSpellListText(CHARACTER *pChar)
       const SCHOOL_ABILITY *pSchoolAbility;
       pSchoolAbility = pChar->spellAbility.PeekSchoolAbility(schoolID);
       if (pSchoolAbility == NULL) continue;
-      if (level > pSchoolAbility->maxAbilitySpellLevel) continue;
+      if (level > pSchoolAbility->maxSpellLevel) continue;
       memorizeItem.available =  pSchoolAbility->base[level-1];
       memorizeItem.available += pSchoolAbility->bonus[level-1];
       {
@@ -8787,10 +8008,7 @@ void SPELL_TEXT_LIST::FillMemorizeSpellListText(CHARACTER *pChar)
       };
       memorizeItem.numMemorized = pCharSpell->memorized;
       memorizeItem.numSelected  = pCharSpell->selected;
-      if (memorizeItem.available > 0)
-      {
-        memSum.Add(memorizeItem);
-      };
+      memSum.Add(memorizeItem);
     };
   };  
   // Now adjust the available to account for the number
@@ -8875,7 +8093,6 @@ void SPELL_TEXT_LIST::FillTempleCastSpellListText(CHARACTER &data, costFactorTyp
 //        currSelectBySchool[spellSchool][level-1] += data.PeekCharacterSpell(i)->selected;
         //Add((DWORD)pos);
         Add(i);
-        Add(data.PeekCharacterSpell(i)->spellID);
       }
     //data.GetNextSpell(pos);
 //    };
@@ -9109,10 +8326,7 @@ void SPELL_TEXT_LIST::FillSpellEffectsListText(CHARACTER &data, int flags)
 
 
           oldCount = results.m_numString;
-          sdata->RunSpellScripts(CHAR_DISPLAY_STATUS,
-                                 ScriptCallback_CharDisplayStatus, 
-                                 &results,
-                                 "Character Display - Spell Effects");
+          sdata->RunSpellScripts(CHAR_DISPLAY_STATUS, ScriptCallback_CharDisplayStatus, &results);
           if (results.m_numString == oldCount)
           {  // If nothing added, use spell name and level.
             CString alevel;
@@ -9163,10 +8377,7 @@ void SPELL_TEXT_LIST::FillSpellEffectsListText(CHARACTER &data, int flags)
     hookParameters[5] = "DISPLAY";
 
 
-    data.RunCharacterScripts(CHAR_DISPLAY_STATUS, 
-                             ScriptCallback_CharDisplayStatus, 
-                            &results,
-                             "Character Display - Spell Effects");
+    data.RunCharacterScripts(CHAR_DISPLAY_STATUS, ScriptCallback_CharDisplayStatus, &results);
 
     for (i=0; i<results.m_numString; i+=2)
     {
@@ -9193,7 +8404,7 @@ void SPELL_TEXT_LIST::FillSpellEffectsListText(CHARACTER &data, int flags)
           data.MaxSpellsForLevel(flag, data.GetCurrentLevel(flag), j+1, data.GetPrimeSpellCastingScore(flag));
     }
   }
-*/ //Not Implemented(0x2a78c, false);
+*/ //NotImplemented(0x2a78c, false);
   FormatSpellListTitle("NO SPELL EFFECTS");
 }
 
@@ -9315,7 +8526,7 @@ void SPELL_TEXT_LIST::FillSpellListText(CHARACTER &cdata, UINT flags, costFactor
 #endif
     }
   }
-*/ /* Really */ NotImplemented(0xfd5fda1, false);
+*/ NotImplemented(0xfd5fda1, false);
 
 
 
@@ -9477,7 +8688,7 @@ void SPELL_TEXT_LIST::ToggleSelected(int index)
   else
     (CurrSelect[lvl-1][sindex])--;
 #endif
-*/ /* Really */ NotImplemented(0x8f2a908, false);
+*/ NotImplemented(0x8f2a908, false);
 
 
 }
@@ -9525,7 +8736,7 @@ BOOL SPELL_TEXT_LIST::CanSelect(int index)
 #else
   return (CurrSelect[lvl-1][schoolIndex] < MaxSelect[lvl-1][schoolIndex]);
 #endif
-*/ /* Really */ NotImplemented(0x8f431c, false); return false;
+*/ NotImplemented(0x8f431c, false); return false;
 
 
 }
@@ -9554,8 +8765,7 @@ BOOL SPELL_TEXT_LIST::CanSelectSpell(int index)
   };
   //return (currSelectBySchool[schoolIndex][spellLevel-1] < maxSelect);
   return selectCounts.m_currSelect[schoolIndex][spellLevel-1] < maxSelect;
-*/ //Not Implemented(0xaf51a3, false); return FALSE;
-  return TRUE;
+*/ NotImplemented(0xaf51a3, false); return FALSE;
 
 
 }
@@ -9593,7 +8803,7 @@ BOOL SPELL_TEXT_LIST::CanSelectAnything()
 #endif
         found=TRUE;
     }
-*/ /* Really */ NotImplemented(0x5fda901, false);
+*/ NotImplemented(0x5fda901, false);
 
   
   }
@@ -9700,7 +8910,7 @@ int SPELL_TEXT_LIST::IncreaseSpellSelectedCount(int index, int num)
   //currSelectBySchool[schoolIndex][spellLevel-1]++;
   selectCounts.m_currSelect[schoolIndex][spellLevel-1]++;
   return total;
-*/ /* Really */ NotImplemented(0xbf4a211, false); return 0;
+*/ NotImplemented(0xbf4a211, false); return 0;
 
 }
 
@@ -9716,7 +8926,7 @@ int SPELL_TEXT_LIST::IncreaseSpellMemorizedCount(int index, int num)
     // for all spells of this school and level.
     return pMemorizeItem->numMemorized;
   };
-  /* Really */ NotImplemented(0xc45a, false);
+  NotImplemented(0xc45a, false);
   return 0;
 }
 
@@ -9726,13 +8936,13 @@ int SPELL_TEXT_LIST::IncreaseSpellMemorizedCount(int index, int num)
 int SPELL_TEXT_LIST::MaxSelect(const SCHOOL_ID& schoolID, int spellLevel) const
 {
   // Add up for all baseclasses.
-  /* Really */ NotImplemented(0x118ab8, false);
+  NotImplemented(0x118ab8, false);
   return 0;
 }
 
 int SPELL_TEXT_LIST::IncCurrSelectCount(const SCHOOL_ID& schoolID, int spellLevel) 
 {
-  /* Really */ NotImplemented(0xff41ca, false);
+  NotImplemented(0xff41ca, false);
   return 0;
 }
 
@@ -9781,7 +8991,7 @@ void SPELL_TEXT_LIST::GetSpellLevelAndSchoolIndex(int index, int *spellLevel, in
 */ 
   
   
-  /* Really */ NotImplemented(0xfdcd54, false);
+  NotImplemented(0xfdcd54, false);
 }
 
 //*****************************************************************************
@@ -9910,7 +9120,7 @@ char *SPELL_TEXT_LIST::GetSpellLevelText(int index)
 
 char *SPELL_TEXT_LIST::GetSpellEffectLevelText(int index)
 {
-  sprintf(text, "%s", (LPCSTR)spellEffects[2*index]);
+  sprintf(text, "%s", spellEffects[2*index]);
   return text;
 }
 //*****************************************************************************
@@ -10020,7 +9230,7 @@ char *SPELL_TEXT_LIST::GetSpellSchoolText(int index)
     const SPELL_DATA *pSpell;
     if (memSum.GetMemorizeItemCount() == 0) return NULL;
     pSpell = spellData.PeekSpell(memSum.PeekMemorizeItem(index)->spellDataIndex);
-    sprintf(text,"%s", (LPCSTR)pSpell->schoolID);
+    sprintf(text,"%s", pSpell->schoolID);
   }
     //sprintf(text, "%i", m_CharData->GetSpellAt((POSITION)spells[index]).memorized);
     //sprintf(text, "%i", m_CharData->PeekCharacterSpell(integers[index])->choolID());
@@ -10065,14 +9275,14 @@ char *SPELL_TEXT_LIST::GetSpellNameText(int index)
     //sprintf(text,"%s", spellData.GetSpellName(m_CharData->GetSpellAt((POSITION)spells[index]).spell));
   {
     if (memSum.GetMemorizeItemCount() == 0) return NULL;
-    sprintf(text,"%s", (LPCSTR)spellData.PeekSpell(memSum.PeekMemorizeItem(index)->spellDataIndex)->Name);
+    sprintf(text,"%s", spellData.PeekSpell(memSum.PeekMemorizeItem(index)->spellDataIndex)->Name);
     return text;
   };
   if (UseTempleCastLayout())
   {
     //sprintf(text,"%s", spellData.GetSpellName(m_CharData->GetSpellAt((POSITION)spells[index]).spell));
     if (integers.GetSize() == 0) return NULL;
-    sprintf(text,"%s", (LPCSTR)spellData.GetSpellName(m_CharData->PeekCharacterSpell(*PeekInteger(index))->spellID));
+    sprintf(text,"%s", spellData.GetSpellName(m_CharData->PeekCharacterSpell(*PeekInteger(index))->spellID));
     //sprintf(text,"%s", spellData.GetSpellName(m_CharData->PeekCharacterSpell(integers[index])->spellID));
     return text;
   };
@@ -10080,7 +9290,7 @@ char *SPELL_TEXT_LIST::GetSpellNameText(int index)
   {
     //sprintf(text,"%s", spellData.GetSpellName(m_CharData->GetSpellAt((POSITION)spells[index]).spell));
     if (integers.GetSize() == 0) return NULL;
-    sprintf(text,"%s", (LPCSTR)spellData.GetSpellName(m_CharData->PeekCharacterSpell(*PeekInteger(index))->spellID));
+    sprintf(text,"%s", spellData.GetSpellName(m_CharData->PeekCharacterSpell(*PeekInteger(index))->spellID));
     //sprintf(text,"%s", spellData.GetSpellName(m_CharData->PeekCharacterSpell(integers[index])->spellID));
     return text;
   };
@@ -10088,20 +9298,20 @@ char *SPELL_TEXT_LIST::GetSpellNameText(int index)
   {
     //sprintf(text,"%s", spellData.GetSpellName(spells[index]));
     if (spellIDs.GetSize() == 0) return NULL;
-    sprintf(text,"%s", (LPCSTR)spellData.GetSpellName(spellIDs[index]));
+    sprintf(text,"%s", spellData.GetSpellName(spellIDs[index]));
     return text;
   };
   {
     //sprintf(text,"%s", spellData.GetSpellName(spells[index]));
     if (spellIDs.GetSize() == 0) return NULL;
-    sprintf(text,"%s", (LPCSTR)spellData.GetSpellName(spellIDs[index]));
+    sprintf(text,"%s", spellData.GetSpellName(spellIDs[index]));
     return text;
   };
 }
 
 char *SPELL_TEXT_LIST::GetSpellEffectText(int index)
 {
-  sprintf(text, "%s", (LPCSTR)spellEffects[2*index+1]);
+  sprintf(text, "%s",spellEffects[2*index+1]);
   return text;
 }
 
@@ -10109,13 +9319,11 @@ char *SPELL_TEXT_LIST::GetSpellEffectText(int index)
 int SPELL_TEXT_LIST::GetSpellIndex(const SPELL_ID& spellID)
 {
   int i, num;
-  const MEMORIZE_ITEM *pMemItem;
   num = GetCount();
   for (i=0; i<num; i++)
   {
-     pMemItem = memSum.PeekMemorizeItem(i);
     //if (spellName == GetSpellNameText(i)) return i;
-    if (spellData.PeekSpell(pMemItem->spellDataIndex)->SpellID() == spellID) return i;
+    if (spellID == GetSpellID(i)) return i;
   };
   return -1;
 }
@@ -10154,7 +9362,7 @@ char *SPELL_TEXT_LIST::GetSpellText(int index)
 		strcat(text, temp);
     // name
     //sprintf(temp,"     %-.*s", MAX_SPELL_NAME, spellData.GetSpellName(m_CharData->GetSpellAt((POSITION)spells[index]).spell));
-    sprintf(temp,"     %-.*s", MAX_SPELL_NAME, (LPCSTR)spellData.GetSpellName(m_CharData->PeekCharacterSpell(*PeekInteger(index))->spellID));
+    sprintf(temp,"     %-.*s", MAX_SPELL_NAME, spellData.GetSpellName(m_CharData->PeekCharacterSpell(*PeekInteger(index))->spellID));
     //sprintf(temp,"     %-.*s", MAX_SPELL_NAME, spellData.GetSpellName(m_CharData->PeekCharacterSpell(integers[index])->spellID));
 	  strcat(text, temp);
   }
@@ -10173,7 +9381,7 @@ char *SPELL_TEXT_LIST::GetSpellText(int index)
 		strcat(text, temp);
     // name
     //sprintf(temp,"     %-.*s", MAX_SPELL_NAME, spellData.GetSpellName(m_CharData->GetSpellAt((POSITION)spells[index]).spell));
-    sprintf(temp,"     %-.*s", MAX_SPELL_NAME, (LPCSTR)spellData.GetSpellName(m_CharData->PeekCharacterSpell(*PeekInteger(index))->spellID));
+    sprintf(temp,"     %-.*s", MAX_SPELL_NAME, spellData.GetSpellName(m_CharData->PeekCharacterSpell(*PeekInteger(index))->spellID));
     //sprintf(temp,"     %-.*s", MAX_SPELL_NAME, spellData.GetSpellName(m_CharData->PeekCharacterSpell(integers[index])->spellID));
 	  strcat(text, temp);
   }
@@ -10190,7 +9398,7 @@ char *SPELL_TEXT_LIST::GetSpellText(int index)
 		strcat(text, temp);
     // name
     //sprintf(temp,"     %-.*s", MAX_SPELL_NAME, spellData.GetSpellName(m_CharData->GetSpellAt((POSITION)spells[index]).spell));
-    sprintf(temp,"     %-.*s", MAX_SPELL_NAME, (LPCSTR)spellData.GetSpellName(m_CharData->PeekCharacterSpell(*PeekInteger(index))->spellID));
+    sprintf(temp,"     %-.*s", MAX_SPELL_NAME, spellData.GetSpellName(m_CharData->PeekCharacterSpell(*PeekInteger(index))->spellID));
     //sprintf(temp,"     %-.*s", MAX_SPELL_NAME, spellData.GetSpellName(m_CharData->PeekCharacterSpell(integers[index])->spellID));
 	  strcat(text, temp);
   }
@@ -10209,7 +9417,7 @@ char *SPELL_TEXT_LIST::GetSpellText(int index)
 		strcat(text, temp);
     // name
     //sprintf(temp,"     %-.*s", MAX_SPELL_NAME, spellData.GetSpellName(spells[index]));
-    sprintf(temp,"     %-.*s", MAX_SPELL_NAME, (LPCSTR)spellData.GetSpellName(spellIDs[index]));
+    sprintf(temp,"     %-.*s", MAX_SPELL_NAME, spellData.GetSpellName(spellIDs[index]));
 	  strcat(text, temp);
   }
   else
@@ -10228,7 +9436,7 @@ char *SPELL_TEXT_LIST::GetSpellText(int index)
 		  strcat(text, temp);
 	  }
     //sprintf(temp,"     %-.*s", MAX_SPELL_NAME, spellData.GetSpellName(spells[index]));
-    sprintf(temp,"     %-.*s", MAX_SPELL_NAME, (LPCSTR)spellData.GetSpellName(spellIDs[index]));
+    sprintf(temp,"     %-.*s", MAX_SPELL_NAME, spellData.GetSpellName(spellIDs[index]));
 	  strcat(text, temp);
   }
 
@@ -10250,7 +9458,7 @@ int SPELL_TEXT_LIST::MaxSelectByLevel(int level)
     };
   };
   return result;
-*/ /* Really */ NotImplemented(0xcf7a21, false); return 0;
+*/ NotImplemented(0xcf7a21, false); return 0;
 
 
 }
@@ -10296,130 +9504,111 @@ int SPELL_TEXT_LIST::MaxSelectBySchoolAndLevel(int school, int level)
     result += selectCounts.m_maxSelect[school][level-1][baseclass];
   };
   return result;
-*/ /* Really */ NotImplemented(0xdf6a78, false); return 0;
+*/ NotImplemented(0xdf6a78, false); return 0;
 
 
 }
 
-struct TEMP_SPELL_DATA
-{
-  CString name;
-  CString school;
-  int level;
-  int selected;
-  int memorized;
-  bool operator > (const TEMP_SPELL_DATA& s) const;
-};
-
-bool TEMP_SPELL_DATA::operator >(const TEMP_SPELL_DATA& s) const
-{
-  if (school > s.school) return true;
-  if (school < s.school) return false;
-  if (level > s.level) return true;
-  if (level < s.level) return false;
-  return false;
-};
-
-// Rebuilt 20160907 PRS /* Deprecated
+/* Deprecated
 CString GetSpellbook(CHARACTER *pChar, CString delim)
 {
-  const CHARACTER_SPELL *pCharSpell;
-  char *defaultDelim = "!@#$";
-  char delimiters[4];
-  CString result;
-  const SPELL_DATA *pSpell;
-  int spellCount, len, numSpell;
-  TEMP_SPELL_DATA *tempSpells;
-  SCHOOL_ID curSchool, prevSchool;
-//   prevSchool = 12;
-  len = delim.GetLength();
-  for (int i=0; i<4; i++)
+   char *defaultDelim = "!@#$";
+   char delimiters[4];
+   CString temp, result;
+   int i, n,  curLevel, prevLevel=-1, len;
+   SCHOOL_ID curSchool, prevSchool;
+   prevSchool = 12;
+   len = delim.GetLength();
+   for (i=0; i<4; i++)
+   {
+     if (len>i) delimiters[i] = delim[i];
+     else delimiters[i] = defaultDelim[i];
+   };
+   spellListText.Clear();
+
+   //if (pChar->SpellsKnown() > 0)
+   //  pChar->SortSpells();
+   spellListText.FillMemorizeSpellListText(pChar);
+//  handleSpellFormInput(SPELLFORM_exit, spellListText);
+//  handleSpellFormInput(SPELLFORM_initial, spellListText);
+   //i = 0;
+   //spellListText.GetSpellLevelAndSchoolID(i, &curLevel, &curSchool);
+
+
+  n = spellListText.GetCount();
+  for (i=0; i<n; i++)
   {
-    if (len>i) delimiters[i] = delim[i];
-    else delimiters[i] = defaultDelim[i];
-  };
-  spellCount = pChar->GetSpellCount();
-  tempSpells = new TEMP_SPELL_DATA[spellCount];
-  numSpell = 0;
-  for (int i=0; i<spellCount; i++)
-  {
-    pCharSpell = pChar->PeekCharacterSpell(i);
-    pSpell = spellData.PeekSpell(pCharSpell->spellID);
-    if (pSpell != NULL)
+    //spellListText.GetSpellLevelAndSchoolID(i, &curLevel, &curSchool);
+    curSchool = "cleric";
+    curLevel = 1;
+    if (curSchool != prevSchool)
     {
-      tempSpells[numSpell].name   = pCharSpell->spellID;
-      tempSpells[numSpell].school = pSpell->schoolID;
-      tempSpells[numSpell].level  = pCharSpell->level;
-      tempSpells[numSpell].selected  = pCharSpell->selected;
-      tempSpells[numSpell].memorized  = pCharSpell->memorized;
-      numSpell++;
+      result += delimiters[0];
+      result += curSchool;
+      prevLevel = -1;
+      prevSchool = curSchool;
     };
-  };
-   // Let us sort the spells
-  {
-    int i, j, k, n;
-    TEMP_SPELL_DATA temp;
-    for (n=numSpell/2; n>0; n/=2)
+    if (curLevel != prevLevel)
     {
-      for (i=0; i<n; i++)
+      prevLevel = curLevel;
+      result += delimiters[1];
+      result += delimiters[2];
+      result += "3";  // Available spells
+    };
+    // Now we list the spells for this level.
+    result += delimiters[3];
+    result += "Fireball";
+    result += delimiters[3];
+*/
+  /*
+  for (school=0; school<MAX_SPELL_SCHOOL; school++)
+  {
+    result += delimiters[0]; // Spell school delimiter
+    for (level=1; level<=MAX_SPELL_LEVEL; level++)
+    {
+      result += delimiters[1];  // Spell level delimiter
+      result += delimiters[2];  // Spell name delimiter
+      temp.Format("%d", spellListText.MaxSelectBySchoolAndLevel(school, level));
+      result += temp;
+      while (    (i<spellListText.GetCount()) 
+              && (curSchool == school)
+              && (curLevel == level))
       {
-        for (j=i; j<numSpell-n; j+=n)
+        result += delimiters[2];
+        result += delimiters[3];
+        result += spellListText.GetSpellNameText(i);
+        result += delimiters[3];
+        temp.Format("%d",spellListText.GetSpellSelectedCount(i));
+        result += temp;
+        result += delimiters[3];
+        temp.Format("%d",spellListText.GetSpellMemorizeCount(i));
+        result += temp;
+        i++;
+        if (i < spellListText.GetCount())
         {
-          for (k=j; k>=0; k-=n)
-          {
-            if (!(tempSpells[k] > tempSpells[k+n])) break;
-            temp = tempSpells[k];
-            tempSpells[k] = tempSpells[k+n];
-            tempSpells[k+n] = temp;
-          };
+          spellListText.GetSpellLevelAndSchoolIndex(i, &curLevel, &curSchool);
+        }
+        else
+        {
+          curSchool = -1;
+          curLevel = -1;
         };
       };
     };
   };
-   
-  prevSchool = "";
-//   prevLevel = -99999;
-  for (int i=0; i<numSpell; i++)
-  {
-    int prevLevel;
-    CString ascii;
-    if (tempSpells[i].school != prevSchool)
-    {
-      result += delimiters[0];
-      result += delimiters[1];
-      prevSchool = tempSpells[i].school;
-      result += prevSchool;
-      prevLevel = -9999;
-    };
-    if (tempSpells[i].level != prevLevel)
-    {
-      prevLevel = tempSpells[i].level;
-      ascii.Format("%d", prevLevel);
-      result += delimiters[1];
-      result += delimiters[2];
-      result += ascii;
-    };
-    result += delimiters[2];
-    result += delimiters[3];
-    result += tempSpells[i].name;
-    result += delimiters[3];
-    ascii.Format("%d", tempSpells[i].selected);
-    result += ascii;
-    result += delimiters[3];
-    ascii.Format("%d", tempSpells[i].memorized);
-    result += ascii;
+  */
+  /*
   };
-  delete[] tempSpells;
+
   return result;
 };
+*/
 
 
 CString SelectSpell(CHARACTER *pCharacter, const SPELL_ID& spellID)
 {
-  int  n;
+  int i, n;
   CString result;
-  CHARACTER_SPELL *pCharSpell;
-  /*   PRS 20160908
   //if (pCharacter->SpellsKnown() > 0) pCharacter->SortSpells();
   spellListText.FillMemorizeSpellListText(pCharacter);
   i = spellListText.GetSpellIndex(spellID);
@@ -10428,20 +9617,58 @@ CString SelectSpell(CHARACTER *pCharacter, const SPELL_ID& spellID)
   n = spellListText.IncreaseSpellSelectedCount(i);
   result.Format("%d",n);
   return result;
-  */
-  n = pCharacter->GetSpellCount();
-  for (int i=0; i<n; i++)
-  {
-    pCharSpell = pCharacter->GetCharacterSpell(i);
-    if (pCharSpell->spellID == spellID)
-    {
-      pCharSpell->selected++;
-      return "1";
-    };
-  };
-  return "";
 }
 
+int SetMemorizeCount(int charIndex, const CString& spellName, const CString& adj)
+{
+  int i, n;
+  CHARACTER *pChar;
+  if (IsCombatActive())
+  {
+    if (charIndex >= combatData.NumCombatants())
+    {
+      return -1;
+    };
+    pChar = combatData.GetCombatant(charIndex)->m_pCharacter;
+  }
+  else
+  {
+    if (charIndex >= party.numCharacters)
+    {
+      return -1;
+    };
+    pChar = &party.GetCharacter(charIndex);
+  };
+  n = pChar->GetSpellCount();
+  for (i=0; i<n; i++)
+  {
+    CHARACTER_SPELL *pCharSpell;
+    pCharSpell = pChar->GetCharacterSpell(i);
+    if (spellName == pCharSpell->spellID)
+    {
+      int v;
+      if (adj.IsEmpty())
+      {
+        return pCharSpell->memorized;
+      };
+      sscanf(adj,"%d", &v);
+      if ((adj[0] == '-') || (adj[0] == '+'))
+      {
+        pCharSpell->memorized += v;
+      }
+      else
+      {
+        pCharSpell->memorized = v;
+      };
+      if ( pCharSpell->memorized < 0)
+      {
+        pCharSpell->memorized = 0;
+      };
+      return pCharSpell->memorized;
+    };
+  }
+  return -1;
+}
 
 void Memorize(CHARACTER *pChar)
 {

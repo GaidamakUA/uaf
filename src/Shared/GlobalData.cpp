@@ -20,7 +20,7 @@
 #include "../Shared/ProjectVersion.h"
 
 #ifdef UAFEDITOR
-#include "..\UAFWinEd\UAFWinEd.h"
+#include "../UAFWinEd/UAFWinEd.h"
 #else
 //#include "externs.h"
 #include "../UAFWin/Dungeon.h"
@@ -29,18 +29,17 @@
 
 #include "class.h"
 #ifdef UAFEDITOR
-#include "..\UAFWinEd\resource.h"
-#include "..\UAFWinEd\CrossReference.h"
+#include "../UAFWinEd/resource.h"
+#include "../UAFWinEd/CrossReference.h"
 #include "ConfigFile.h"
 #endif
-#include "FileParse.h"
 #include "Graphics.h"
 #include "PicSlot.h"
-#include "party.h"
+#include "Party.h"
 #include "GlobalData.h"
 #include "Level.h"
 #include "SoundMgr.h"
-#include "monster.h"
+#include "Monster.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -125,19 +124,8 @@ extern const double VersionSpellNames;
 extern const double PRODUCT_VER;
 //extern const double ENGINE_VER;
 
-extern int useWallIndex;
-extern int useDoorAndOverlayIndex;
 
-
-/*
-int GetCurrentLevel(void)
-{
-  return globalData.currLevel;
-}
-*/
 #ifdef UAFEDITOR
-
-
 int ExportGlobalDB(LPCSTR file,
                    GLOBAL_STATS *pGlobalPointer,
                    CONFIG_FILE *pConfigFile);
@@ -159,13 +147,11 @@ void ExportGlobal()
 }
 
 
-void ImportGlobal(CString filename) 
+void ImportGlobal() 
 {
-  if (filename.IsEmpty())
-  {
+   CString filename;
    filename.Format("%sGlobalData.txt",rte.DataDir());
-    if (!GetFilename(filename, "txt", TRUE)) return;
-  }
+   if (GetFilename(filename, "txt", TRUE))
    {  
      CFile cf;
      int status = CONFIG_STAT_ok;
@@ -191,12 +177,12 @@ void ImportGlobal(CString filename)
      AfxGetApp()->DoWaitCursor(-1);
      {
        GLOBAL_STATS tempGlobal;
-       CONFIG_ITEM_STATUS itemStatus = CONFIG_STAT_ok;;
+       CONFIG_ITEM_STATUS status = CONFIG_STAT_ok;;
        try
        {
           jr.StartList();
-          itemStatus = tempGlobal.Import(jr, FALSE);
-          if (itemStatus == CONFIG_STAT_ok)
+          status = tempGlobal.Import(jr);
+          if (status == CONFIG_STAT_ok)
           {
             tempGlobal.levelInfo = globalData.levelInfo;
           };
@@ -206,9 +192,9 @@ void ImportGlobal(CString filename)
        {
          e = 1;
          MsgBoxInfo(jr.GetErrorMessage());
-         itemStatus = CONFIG_STAT_semantic;
+         status = CONFIG_STAT_semantic;
        };
-       if (itemStatus != CONFIG_STAT_ok)
+       if (status != CONFIG_STAT_ok)
        {
          MsgBoxInfo("We failed to import the Global Data");
          AfxGetApp()->DoWaitCursor(-1);
@@ -220,7 +206,7 @@ void ImportGlobal(CString filename)
 
      SET_MODIFIED;
      CString temp;
-    MsgBoxInfo("Global Data Import Successful", "Dat File Message");
+     MsgBoxInfo("Operation Successful", "Dat File Message");
    }
 }
 
@@ -228,13 +214,6 @@ void ImportGlobal(CString filename)
 
 void FillDefaultFontData(LPCSTR font, BYTE size, LOGFONT *plf)
 {
-  int tmpCharset, charset;
-  charset = ANSI_CHARSET;
-  if (ConfigFile.FindToken("CHARSET", tmpCharset))
-  {
-      charset = tmpCharset;
-  }
-
   memset(plf,0,sizeof(LOGFONT));
 	CFont Font;
   Font.CreateFont(size,0,0,0,
@@ -242,7 +221,7 @@ void FillDefaultFontData(LPCSTR font, BYTE size, LOGFONT *plf)
 		              FALSE,
 		              FALSE,
 		              FALSE,
-                      (byte) charset,
+		              ANSI_CHARSET,
 		              OUT_DEFAULT_PRECIS,
 		              CLIP_DEFAULT_PRECIS,
 		              NONANTIALIASED_QUALITY,
@@ -904,7 +883,7 @@ GLOBAL_SOUND_DATA::GLOBAL_SOUND_DATA() : hPartyBump(-1),hPartyStep(-1),hDeathMus
                         /*hIntroMusic(-1),*/ hCharHit(-1), hCharMiss(-1)
 {  
   ClearSounds();
-  PartyBump="";PartyStep="";DeathMusic="";IntroMusic.Clear(); CreditsMusic.Clear();
+  PartyBump="";PartyStep="";DeathMusic="";IntroMusic.Clear();
   CharHit="";CharMiss="";
   CampMusic.Clear();
 }
@@ -912,7 +891,7 @@ GLOBAL_SOUND_DATA::GLOBAL_SOUND_DATA() : hPartyBump(-1),hPartyStep(-1),hDeathMus
 void GLOBAL_SOUND_DATA::Clear(BOOL ctor) 
 { 
   ClearSounds();
-  PartyBump="";PartyStep="";DeathMusic="";IntroMusic.Clear(); CreditsMusic.Clear();
+  PartyBump="";PartyStep="";DeathMusic="";IntroMusic.Clear();
   CharHit="";CharMiss="";
   CampMusic.Clear();
 
@@ -968,7 +947,6 @@ void GLOBAL_SOUND_DATA::Serialize(CArchive &ar)
     AS(ar, PartyStep);
     AS(ar, DeathMusic);
     IntroMusic.Serialize(ar);
-    CreditsMusic.Serialize(ar);
     CampMusic.Serialize(ar);
 
     //AddFolderToPath(CharHit,    rte.SoundDir());
@@ -996,16 +974,6 @@ void GLOBAL_SOUND_DATA::Serialize(CArchive &ar)
     }
     else
       IntroMusic.Serialize(ar);
-
-    CreditsMusic.Clear();
-    if (globalData.version < _VERSION_525)
-    {
-        CString tmp;
-        ar >> tmp;
-        CreditsMusic.sounds.AddHead(tmp);
-    }
-    else
-        CreditsMusic.Serialize(ar);
 
     CampMusic.Clear();
     if (globalData.version >= _VERSION_0910_)
@@ -1042,7 +1010,6 @@ void GLOBAL_SOUND_DATA::Serialize(CAR &ar)
 
 
     IntroMusic.Serialize(ar);
-    CreditsMusic.Serialize(ar);
     CampMusic.Serialize(ar);
 
     //AddFolderToPath(CharHit,    rte.SoundDir());
@@ -1076,15 +1043,7 @@ void GLOBAL_SOUND_DATA::Serialize(CAR &ar)
       IntroMusic.sounds.AddHead(tmp);
     }
     else
-        IntroMusic.Serialize(ar);
-
-    CreditsMusic.Clear();
-    if (globalData.version < _VERSION_525)
-    {
-        //Do nothing because no outro music existing in prior versions - not even a default one
-    }
-    else
-        CreditsMusic.Serialize(ar);
+      IntroMusic.Serialize(ar);
 
     CampMusic.Clear();
     if (globalData.version >= _VERSION_0910_)
@@ -1109,7 +1068,6 @@ const char *JKEY_PARTYBUMP = "partyBump";
 const char *JKEY_PARTYSTEP = "partyStep";
 const char *JKEY_DEATHMUSIC = "deathMusic";
 const char *JKEY_INTROMUSIC = "introMusic";
-const char* JKEY_CREDITSMUSIC = "creditsMusic";
 const char *JKEY_CAMPMUSIC = "campMusic";
 
 void GLOBAL_SOUND_DATA::Export(JWriter& jw)
@@ -1120,7 +1078,6 @@ void GLOBAL_SOUND_DATA::Export(JWriter& jw)
   jw.NameAndValue(JKEY_PARTYSTEP, PartyStep);
   jw.NameAndValue(JKEY_DEATHMUSIC, DeathMusic);
   IntroMusic.Export(jw, JKEY_INTROMUSIC);
-  CreditsMusic.Export(jw, JKEY_CREDITSMUSIC);
   CampMusic.Export(jw, JKEY_CAMPMUSIC);
 }
 
@@ -1132,7 +1089,6 @@ void GLOBAL_SOUND_DATA::Import(JReader& jr)
   jr.NameAndValue(JKEY_PARTYSTEP, PartyStep);
   jr.NameAndValue(JKEY_DEATHMUSIC, DeathMusic);
   IntroMusic.Import(jr, JKEY_INTROMUSIC);
-  CreditsMusic.Import(jr, JKEY_CREDITSMUSIC);
   CampMusic.Import(jr, JKEY_CAMPMUSIC);
 }
 
@@ -1149,7 +1105,6 @@ void GLOBAL_SOUND_DATA::CrossReference(CR_LIST *pCRList)
   pCRList->CR_AddSoundReference(PartyStep, &CRReference);
   pCRList->CR_AddSoundReference(DeathMusic, &CRReference);
   IntroMusic.CrossReference(pCRList, &CRReference);
-  CreditsMusic.CrossReference(pCRList, &CRReference);
   CampMusic.CrossReference(pCRList, &CRReference);
 }
 #endif
@@ -1172,7 +1127,6 @@ GLOBAL_SOUND_DATA& GLOBAL_SOUND_DATA::operator =(const GLOBAL_SOUND_DATA& src)
   PartyStep = src.PartyStep;
   DeathMusic = src.DeathMusic;
   IntroMusic = src.IntroMusic;
-  CreditsMusic = src.CreditsMusic;
   CampMusic = src.CampMusic;
   return *this;
 }
@@ -2130,15 +2084,6 @@ BOOL QUEST_LIST::IsFailed(const int id) const
     return FALSE;
 }
 
-BOOL QUEST_LIST::StageEqual(const int id, const int stage) const
-{
-  POSITION pos;
-  if ((pos = quests.FindKeyPos(id)) != NULL)
-    return (quests.PeekAtPos(pos).stage == stage);
-  else
-    return FALSE;
-}
-
 void QUEST_LIST::SetInProgress(const int id) 
 { 
   POSITION pos;
@@ -2330,22 +2275,6 @@ void WALL_OVERRIDES::Clear(void)
   if (m_row != NULL)
   {
     free(m_row);
-    m_row = NULL;
-  };
-}
-
-void WALL_OVERRIDES::operator = (const WALL_OVERRIDES& src)
-{
-  int i;
-  Clear();
-  if (src.m_numRow == 0) return;
-  m_numRow = src.m_numRow;
-  m_row = (ROW_OVERRIDES **)malloc(m_numRow*sizeof(m_row[0]));
-  if (m_row == NULL) die(0xdee83);
-  for (i=0; i<m_numRow; i++)
-  {
-    m_row[i] = new ROW_OVERRIDES;
-    *(m_row[i]) = *(src.m_row[i]);
   };
 }
 
@@ -2363,36 +2292,10 @@ CELL_OVERRIDE *WALL_OVERRIDES::FindCellOverride(OVERRIDE_TYPE ovt, int x, int y,
 
 int LEVEL_STATS::GetMapOverride(OVERRIDE_TYPE ovt, int x, int y, int facing)
 {
-  int n, adj=0;
+  int n;
   CELL_OVERRIDE *pCellOverride;
   ROW_OVERRIDES *pRowOverride;
-  switch (ovt)
-  {
-    case WALL_OVERRIDE_USER:
-    case DOOR_OVERRIDE_USER:
-    case BACKGROUND_OVERRIDE_USER:
-    case OVERLAY_OVERRIDE_USER:
-    case BLOCKAGE_OVERRIDE:
-         break;
-    case WALL_OVERRIDE_INDEX:
-         adj = useWallIndex?0:1;
-         ovt = WALL_OVERRIDE_USER;
-         break;
-    case DOOR_OVERRIDE_INDEX:
-         adj = useDoorAndOverlayIndex?0:1;
-         ovt = DOOR_OVERRIDE_USER;
-         break;
-    case BACKGROUND_OVERRIDE_INDEX:
-         adj = useDoorAndOverlayIndex?0:1;
-         ovt = BACKGROUND_OVERRIDE_USER;
-         break;
-    case OVERLAY_OVERRIDE_INDEX:
-         adj = useDoorAndOverlayIndex?0:1;
-         ovt = OVERLAY_OVERRIDE_USER;
-         break;
-    default:  die(0xd18a7);
-  };
-  if (area_height <= 0) return -1;
+
   y = y % area_height;
   if (y < 0) y = y + area_height;
   x = x % area_width;
@@ -2416,48 +2319,15 @@ int LEVEL_STATS::GetMapOverride(OVERRIDE_TYPE ovt, int x, int y, int facing)
   pCellOverride = pRowOverride->m_cellOverrides + x;
   n = pCellOverride->m_overrides[ovt][facing];
   if (n == 255) return -1;
-  
-  return n - adj;  // conver 'user' value to 'index' value
+  return n;
 }
 
 void LEVEL_STATS::SetMapOverride(OVERRIDE_TYPE ovt, int x, int y, int facing, unsigned int value)
 {
   CELL_OVERRIDE *pCellOverride;
   ROW_OVERRIDES *pRowOverride;
-  int adj=0;
-  switch (ovt)
-  {
-    case WALL_OVERRIDE_USER:
-    case DOOR_OVERRIDE_USER:
-    case BACKGROUND_OVERRIDE_USER:
-    case OVERLAY_OVERRIDE_USER:
-    case BLOCKAGE_OVERRIDE:
-         break;
-    case WALL_OVERRIDE_INDEX:
-         adj = useWallIndex?0:1;
-         ovt = WALL_OVERRIDE_USER;
-         break;
-    case DOOR_OVERRIDE_INDEX:
-         adj = useDoorAndOverlayIndex?0:1;
-         ovt = DOOR_OVERRIDE_USER;
-         break;
-    case BACKGROUND_OVERRIDE_INDEX:
-         adj = useDoorAndOverlayIndex?0:1;
-         ovt = BACKGROUND_OVERRIDE_USER;
-         break;
-    case OVERLAY_OVERRIDE_INDEX:
-         adj = 1;
-         ovt = OVERLAY_OVERRIDE_USER;
-         break;
-    default:  die(0xd18a7);
-  };
   if (value > 255) value = 255;
-  if (value != 255)
-  {
-    value = value+adj;  // convert 'index' value to 'user' value
-  };
   if (ovt >= NUM_OVERRIDE_TYPE) return;
-  if (area_height <= 0) return;
 
   y = y % area_height;
   if (y < 0) y = y + area_height;
@@ -2647,358 +2517,7 @@ void WALL_OVERRIDES::Serialize(CAR& car)
   };
 }
 
-#ifdef UAFEDITOR
 
-void WALL_OVERRIDES::Export(JWriter& jw, const char* name)
-{
-  jw.StartList(name);
-    jw.StartArray("rows");
-    if (m_numRow != 0)
-      NotImplemented(0x3ab6d9, false);
-//  pos = sounds.GetHeadPosition();
-//  while (pos != NULL)
-//  {
-//    CString* pSound;
-//    pSound = &sounds.GetNext(pos);
-//    jw.NameAndValue(JKEY_SOUND, *pSound);
-//  };
-    jw.EndArray();
-  jw.EndList();
-}
-#endif
-
-void CELL_ITEM::Serialize(CAR& car)
-{
-  int temp;
-  if (car.IsStoring())
-  {
-    car << m_itemID;
-    car << m_charges;
-    car << m_qty;
-    car << m_identified;
-    car << m_paid;
-    temp = m_type;
-    car << temp;
-    car << m_cursed;
-  }
-  else
-  {
-    car >> m_itemID;
-    car >> m_charges;
-    car >> m_qty;
-    car >> m_identified;
-    car >> m_paid;
-    car >> temp;
-    m_type = (CELL_ITEM_TYPE) temp;
-    car >> m_cursed;
-  };
-}
-
-void CELL_ITEM::operator =(const ITEM *pItem)
-{
-  m_itemID = pItem->itemID;
-  m_charges = pItem->charges;
-  m_qty = pItem->qty;
-  m_identified = pItem->identified;
-  m_paid = pItem->paid;
-  m_type = CIT_DroppedItem;
-  m_cursed = pItem->cursed;
-}
-
-void CELL_ITEM::operator =(const CELL_ITEM *pSrc)
-{
-  m_itemID = pSrc->m_itemID;
-  m_charges = pSrc->m_charges;
-  m_qty = pSrc->m_qty;
-  m_identified = pSrc->m_identified;
-  m_paid = pSrc->m_paid;
-  m_type = pSrc->m_type;
-  m_cursed = pSrc->m_cursed;
-}
-
-CELL_ROW_CONTENTS::~CELL_ROW_CONTENTS(void)
-{
-  Clear();
-}
-
-void CELL_ROW_CONTENTS::Clear(void)
-{
-  unsigned int i;
-  for (i=0; i<m_numItem; i++)
-  {
-    delete m_pCellItem[i];
-  };
-  m_numItem = 0;
-  free (m_pCellItem);
-  m_pCellItem = NULL;
-}
-
-void CELL_ROW_CONTENTS::operator =(const CELL_ROW_CONTENTS *pSrc)
-{
-  unsigned int i;
-  Clear();
-  m_row = pSrc->m_row;
-  m_numItem = pSrc->m_numItem;
-  if (m_numItem == 0) return;
-  m_pCellItem = (CELL_ITEM **)malloc(m_numItem * sizeof(m_pCellItem[0]));
-  if (m_pCellItem == NULL)
-  {
-    die(0xe0ae7);
-  };
-  for (i=0; i<m_numItem; i++)
-  {
-    m_pCellItem[i] = new CELL_ITEM;
-    *m_pCellItem[i] = pSrc->m_pCellItem[i];
-  };
-}
-
-void CELL_ROW_CONTENTS::Serialize(CAR& car)
-{
-  unsigned int i;
-  if (car.IsStoring())
-  {
-    car << m_row;
-    car << m_numItem;
-    for(i=0; i<m_numItem; i++)
-    {
-      m_pCellItem[i]->Serialize(car);
-    };
-  }
-  else
-  {
-    Clear();
-    car >> m_row;
-    car >> m_numItem;
-    if (m_numItem == 0) return;
-    m_pCellItem = (CELL_ITEM **)malloc(m_numItem*sizeof(m_pCellItem[0]));
-    for (i=0; i<m_numItem; i++)
-    {
-      m_pCellItem[i] = new CELL_ITEM;
-      m_pCellItem[i]->Serialize(car);
-    };
-  };
-}
-
-void CELL_ROW_CONTENTS::Add(CELL_ITEM *pCellItem)
-{
-  m_pCellItem = (CELL_ITEM **)realloc(m_pCellItem, (m_numItem+1)*sizeof(m_pCellItem[0]));
-  m_pCellItem[m_numItem] = pCellItem;
-  m_numItem++;
-}
-
-int CELL_ROW_CONTENTS::GetCount(void ) const
-{
-  return m_numItem;
-}
-
-
-CELL_COLUMN_CONTENTS::~CELL_COLUMN_CONTENTS(void)
-{
-  Clear();
-}
-
-void CELL_COLUMN_CONTENTS::Clear(void)
-{
-  unsigned int i;
-  for (i=0; i<m_numRow; i++)
-  {
-    delete m_pCellRowContents[i];
-  };
-  m_numRow = 0;
-  free (m_pCellRowContents);
-  m_pCellRowContents = NULL;
-}
-
-void CELL_COLUMN_CONTENTS::Add(CELL_ITEM *pCellItem, unsigned int y)
-{
-  unsigned int i;
-  for (i=0; i<m_numRow; i++)
-  {
-    if (m_pCellRowContents[i]->Row() == y) break;
-  };
-  if (i == m_numRow)
-  {
-    m_numRow++;
-    m_pCellRowContents = (CELL_ROW_CONTENTS **)
-             realloc(m_pCellRowContents, m_numRow*sizeof(m_pCellRowContents[0]));
-    m_pCellRowContents[i] = new CELL_ROW_CONTENTS;
-    m_pCellRowContents[i]->Row(y);
-  };
-  m_pCellRowContents[i]->Add(pCellItem);
-}
-
-int CELL_COLUMN_CONTENTS::GetCount(unsigned int y) const
-{
-  unsigned int i;
-  for (i = 0; i < m_numRow; i++)
-  {
-    if (m_pCellRowContents[i]->Row() == y) break;
-  };
-  if (i == m_numRow) return 0;
-  return m_pCellRowContents[i]->GetCount();
-}
-
-void CELL_COLUMN_CONTENTS::operator = (const CELL_COLUMN_CONTENTS *pSrc)
-{
-  unsigned int i;
-  Clear();
-  m_numRow = pSrc->m_numRow;
-  m_column = pSrc->m_column;
-  if (m_numRow == 0) return;
-  m_pCellRowContents = (CELL_ROW_CONTENTS **)malloc(m_numRow*sizeof(m_pCellRowContents[0]));
-  if (m_pCellRowContents == NULL)
-  {
-    die(0x44a0cb);
-  };
-  for (i=0; i< m_numRow; i++)
-  {
-    m_pCellRowContents[i] = new CELL_ROW_CONTENTS;
-    *m_pCellRowContents[i] = pSrc->m_pCellRowContents[i];
-  };
-}
-
-void CELL_COLUMN_CONTENTS::Serialize(CAR& car)
-{
-  unsigned int i;
-  if (car.IsStoring())
-  {
-    car << m_column;
-    car << m_numRow;
-    for (i=0; i<m_numRow; i++)
-    {
-      m_pCellRowContents[i]->Serialize(car);
-    };
-  }
-  else
-  {
-    Clear();
-    car >> m_column;
-    car >> m_numRow;
-    m_pCellRowContents = (CELL_ROW_CONTENTS **)
-           malloc(m_numRow * sizeof(m_pCellRowContents[0]));
-    if (m_pCellRowContents == NULL)
-    {
-      die(0xca332e);
-    };
-    for (i=0; i<m_numRow; i++)
-    {
-      m_pCellRowContents[i] = new CELL_ROW_CONTENTS;
-      m_pCellRowContents[i]->Serialize(car);
-    };
-  };
-}
-
-CELL_LEVEL_CONTENTS::~CELL_LEVEL_CONTENTS(void)
-{
-  Clear();
-}
-
-void CELL_LEVEL_CONTENTS::Clear()
-{
-  unsigned int i;
-  for(i=0; i<m_numColumn; i++)
-  {
-    delete m_pCellColumnContents[i];
-  };
-  m_numColumn = 0;
-  free (m_pCellColumnContents);
-  m_pCellColumnContents = NULL;
-}
-
-void CELL_LEVEL_CONTENTS::Add(CELL_ITEM *pCellItem, unsigned int x, unsigned int y)
-{
-  unsigned int i;
-  for(i=0; i<m_numColumn; i++)
-  {
-    if (m_pCellColumnContents[i]->Column() == x) break;
-  };
-  if (i == m_numColumn)
-  {
-    m_numColumn++;
-    m_pCellColumnContents = (CELL_COLUMN_CONTENTS **)
-             realloc(m_pCellColumnContents, m_numColumn*sizeof(m_pCellColumnContents[0]));
-    m_pCellColumnContents[i] = new CELL_COLUMN_CONTENTS;
-    m_pCellColumnContents[i]->Column(x);
-  };
-  m_pCellColumnContents[i]->Add(pCellItem, y);
-}
-
-int CELL_LEVEL_CONTENTS::GetCount(unsigned int x, unsigned int y) const
-{
-  unsigned int i;
-  for (i = 0; i < m_numColumn; i++)
-  {
-    if (m_pCellColumnContents[i]->Column() == x) break;
-  };
-  if (i == m_numColumn) return 0;
-  return m_pCellColumnContents[i]->GetCount(y);
-}
-
-
-void CELL_LEVEL_CONTENTS::operator = (const CELL_LEVEL_CONTENTS& src)
-{
-  unsigned int i;
-  Clear();
-  if (src.m_numColumn == 0) return;
-  m_numColumn = src.m_numColumn;
-  m_pCellColumnContents = (CELL_COLUMN_CONTENTS **)
-         malloc(m_numColumn * sizeof (m_pCellColumnContents[0]));
-  if (m_pCellColumnContents == NULL)
-  {
-    die(0x565ab);
-  };
-  for (i=0; i<m_numColumn; i++)
-  {
-    m_pCellColumnContents[i] = new CELL_COLUMN_CONTENTS;
-    *m_pCellColumnContents[i] = src.m_pCellColumnContents[i];
-  };
-}
-
-void CELL_LEVEL_CONTENTS::Serialize(CAR& car)
-{
-  unsigned int i;
-  if (car.IsStoring())
-  {
-    car << m_numColumn;
-    for (i=0; i<m_numColumn; i++)
-    {
-        m_pCellColumnContents[i]->Serialize(car);
-    };
-  }
-  else
-  {
-    Clear();
-    car >> m_numColumn;
-    m_pCellColumnContents = (CELL_COLUMN_CONTENTS **)malloc(m_numColumn*sizeof(m_pCellColumnContents[0]));
-    if (m_pCellColumnContents == NULL)
-    {
-      die(0x6ccd03);
-    }
-    for(i=0; i<m_numColumn; i++)
-    {
-      m_pCellColumnContents[i] = new CELL_COLUMN_CONTENTS;
-      m_pCellColumnContents[i]->Serialize(car);
-    };
-  };
-}
-
-#ifdef UAFEDITOR
-void CELL_LEVEL_CONTENTS::Export(JWriter& jw, const char* name)
-{
-  jw.StartList(name);
-    jw.StartArray("columns");
-    if (m_numColumn != 0)
-      NotImplemented(0xc3a03, false);
- // while (pos != NULL)
- // {
- //   CString* pSound;
- //   pSound = &sounds.GetNext(pos);
- //   jw.NameAndValue(JKEY_SOUND, *pSound);
- // };
-    jw.EndArray();
-  jw.EndList();
-}
-#endif
 
 LEVEL_STATS& LEVEL_STATS::operator =(const LEVEL_STATS& src)
 {
@@ -3016,10 +2535,6 @@ LEVEL_STATS& LEVEL_STATS::operator =(const LEVEL_STATS& src)
 
 	level_asl.Copy(src.level_asl);
   temp_asl.Copy(src.temp_asl);
-
-  m_wallOverrides = src.m_wallOverrides;
-  m_cellContents = src.m_cellContents;
-  //NotImplemented(0x8da6c, false);  // Need to copy m_wallOverrides and m_cellContents
 
   for (int i=0;i<MAX_ENTRY_POINTS;i++)
     entryPoints[i] = src.entryPoints[i];
@@ -3042,7 +2557,6 @@ BOOL LEVEL_STATS::operator ==(LEVEL_STATS& src)
 	if ( !(level_asl==src.level_asl) ) return FALSE;
   for (int i=0;i<MAX_ENTRY_POINTS;i++)
     if ( !(entryPoints[i] == src.entryPoints[i]) ) return FALSE;
-  NotImplemented(0x8da6d, false);  // Need to copy m_wallOverrides and m_cellContents
   return TRUE;
 }
 #endif
@@ -3062,8 +2576,6 @@ void LEVEL_STATS::Clear()
   }
 
   level_asl.Clear();
-  m_wallOverrides.Clear();
-  m_cellContents.Clear();
 }
 
 void LEVEL_STATS::SetDefaults()
@@ -3076,9 +2588,6 @@ void LEVEL_STATS::SetDefaults()
   bgSounds.UseNightMusic=FALSE;
   bgSounds.EndTime=600;
   bgSounds.StartTime=1800;
-  m_wallOverrides.Clear();
-  m_cellContents.Clear();
-  //NotImplemented(0x8da6f, false);  // Need to clear m_wallOverrides and m_cellContents
 }
 
 void LEVEL_STATS::Serialize(CArchive &ar)
@@ -3116,7 +2625,6 @@ void LEVEL_STATS::Serialize(CArchive &ar)
     level_asl.Serialize(ar, "LEVEL_STATS_ATTRIBUTES");
     level_asl.Delete("__LEVEL_STATS_VERSION");
     m_wallOverrides.Serialize(ar);
-    NotImplemented(0x8da70, false);  // Need to clear m_wallOverrides and m_cellContents
   }
   else
   {
@@ -3167,8 +2675,6 @@ void LEVEL_STATS::Serialize(CArchive &ar)
     level_asl.Serialize(ar, "LEVEL_STATS_ATTRIBUTES");
     RetrieveIntFromASL(level_asl, m_version, "__LEVEL_STATS_VERSION");
     level_asl.Delete("__LEVEL_STATS_VERSION");
-    m_wallOverrides.Clear();
-    m_cellContents.Clear();
     if (m_version >= 1)
     {
       m_wallOverrides.Serialize(ar);
@@ -3208,8 +2714,6 @@ void LEVEL_STATS::Serialize(CAR &car)
     car << bgSounds.UseNightMusic;
     car << bgSounds.EndTime;
     car << bgSounds.StartTime;
-	m_wallOverrides.Serialize(car);
-	m_cellContents.Serialize(car);
   }
   else
   {
@@ -3262,15 +2766,8 @@ void LEVEL_STATS::Serialize(CAR &car)
       car >> bgSounds.EndTime;
       car >> bgSounds.StartTime;
     }
-	if (globalData.version >= _CELL_CONTENTS_VERSION)
-	{
-  	m_wallOverrides.Serialize(car);
-	  m_cellContents.Serialize(car);
-	  //NotImplemented(0x8da73, false);  // Need to serialize m_wallOverrides and m_cellContents
-	};
   }
   level_asl.Serialize(car, "LEVEL_STATS_ATTRIBUTES");
-  //m_wallOverrides.Serialize(car);
 
   PostSerialize(car.IsStoring());
 }
@@ -3322,9 +2819,6 @@ CONFIG_ITEM_STATUS LEVEL_STATS::Export(JWriter& jw)
   bgSounds.backgroundSounds.Export(jw, "backgroundSounds");
   bgSounds.nightSounds.Export(jw, "nightSounds");
   level_asl.Export(jw);
-  m_wallOverrides.Export(jw, "wallOverrides");
-  m_cellContents.Export(jw, "cellContents");
-  // NotImplemented(0x8da75, false);  // Need to export m_wallOverrides and m_cellContents
   jw.EndList();
   return CONFIG_STAT_ok;
 }
@@ -3360,7 +2854,6 @@ CONFIG_ITEM_STATUS LEVEL_STATS::Import(JReader& jr)
   bgSounds.backgroundSounds.Import(jr, "backgroundSounds");
   bgSounds.nightSounds.Import(jr, "nightSounds");
   level_asl.Import(jr);
-  NotImplemented(0x8da76, false);  // Need to import m_wallOverrides and m_cellContents
   jr.EndList();
   return CONFIG_STAT_ok;
 }
@@ -3370,25 +2863,22 @@ CONFIG_ITEM_STATUS LEVEL_STATS::Import(JReader& jr)
 
 void LEVEL_STATS::PreSerialize(BOOL IsStoring)
 {
-	if (IsStoring)
-	{
-		// move fields that need to be serialized
-		// as attributes into the attribute map  
+  if (IsStoring)
+  {
+    // move fields that need to be serialized
+    // as attributes into the attribute map  
 
-		if (used)
-		{
-			CString key;
-			// Entry Point facings    
-			for (int i = 0; i < MAX_ENTRY_POINTS; i++)
-			{
-				key.Format("EPFace_%i", i);
-				StoreIntAsASL(level_asl, entryPoints[i].facing, key);
-			};
-		};
-		//NotImplemented(0x8da77, false);  // Need to preserialize m_wallOverrides and m_cellContents
-		m_wallOverrides.PreSerialize();
-		m_cellContents.PreSerialize();
-	};
+    if (used)
+    {
+      CString key;
+      // Entry Point facings    
+      for (int i=0;i<MAX_ENTRY_POINTS;i++)
+      {
+        key.Format("EPFace_%i", i);
+        StoreIntAsASL(level_asl, entryPoints[i].facing, key);
+      };
+    };
+  }
 }
 
 void LEVEL_STATS::PostSerialize(BOOL IsStoring)
@@ -3400,7 +2890,7 @@ void LEVEL_STATS::PostSerialize(BOOL IsStoring)
     {
       key.Format("EPFace_%i", i);
       level_asl.Delete(key);
-    };
+    }
   }
   else
   {
@@ -3418,11 +2908,9 @@ void LEVEL_STATS::PostSerialize(BOOL IsStoring)
         RetrieveIntFromASL(level_asl, temp, key);
         level_asl.Delete(key);
         entryPoints[i].facing = (BYTE)temp;
-      };
-    };
-  };
-  m_wallOverrides.PostSerialize();
-  m_cellContents.PostSerialize();
+      }
+    }
+  }
 }
 
 
@@ -3433,7 +2921,6 @@ void LEVEL_STATS::Save(CAR& car)
   level_asl.Save(car, "LEVEL_STATS_ATTRIBUTES");
   level_asl.Delete("__LEVEL_STATS_VERSION");
   m_wallOverrides.Serialize(car);
-  m_cellContents.Serialize(car);
 };
 
 void LEVEL_STATS::Restore(CArchive& ar) 
@@ -3444,7 +2931,6 @@ void LEVEL_STATS::Restore(CArchive& ar)
   if (m_version >= 1)
   {
     m_wallOverrides.Serialize(ar);
-    NotImplemented(0x8da7b, false);  // Need to postserialize m_wallOverrides and m_cellContents
   };
 }
 
@@ -3456,11 +2942,6 @@ void LEVEL_STATS::Restore(CAR& car)
   if (m_version >= 1)
   {
     m_wallOverrides.Serialize(car);
-    if (m_version >= 2)
-    {
-      m_cellContents.Serialize(car);
-    };
-    //NotImplemented(0x8da7c, false);  // Need to restore m_wallOverrides and m_cellContents
   };
 }
 
@@ -3793,30 +3274,21 @@ GLOBAL_STATS& GLOBAL_STATS::operator =(const GLOBAL_STATS& src)
   m_MapArt = src.m_MapArt;
   UseAVZones = src.UseAVZones;
   MagicAdjFont = src.MagicAdjFont;
-  /*   prs 20191220
-   *WhiteFont = src.WhiteFont;
-   *YellowFont = src.YellowFont;
-   *OrangeFont = src.OrangeFont;
-   *RedFont = src.RedFont;
-   *GreenFont = src.GreenFont;
-   *BlueFont = src.BlueFont;
-   */
-  // Instead of the above:
-// prs 20191227  {
-// prs 20191227    int font;
-// prs 20191227    for (font = 0; font < 10; font++) availableFonts[font] = src.availableFonts[font];
-// prs 20191227  };
-  fontLib = src.fontLib;
-
+  WhiteFont = src.WhiteFont;
+  YellowFont = src.YellowFont;
+  OrangeFont = src.OrangeFont;
+  RedFont = src.RedFont;
+  GreenFont = src.GreenFont;
+  BlueFont = src.BlueFont;
   Custom1Font=src.Custom1Font;
   KeyboardFont = src.KeyboardFont;
   KeyboardHighlightFont=src.KeyboardHighlightFont;
   HighlightFont = src.HighlightFont;
   //TitleBgArt = src.TitleBgArt;
   titleData = src.titleData;
-  creditsData = src.creditsData;
   IconBgArt = src.IconBgArt;
   BackgroundArt = src.BackgroundArt;
+  CreditsBgArt = src.CreditsBgArt;
   MapArtSurf = src.MapArtSurf;
   BackgroundSurf=src.BackgroundSurf;
   keyData = src.keyData;
@@ -3911,8 +3383,12 @@ void GLOBAL_STATS::Serialize(CArchive &ar)
     StripFilenamePath(BackgroundArt);
     AS(ar, BackgroundArt);
     //AddFolderToPath(BackgroundArt, rte.BackgroundArtDir());
-  
-    i = global_SmallPicImport.GetCount();
+
+    StripFilenamePath(CreditsBgArt);
+    AS(ar, CreditsBgArt);
+    //AddFolderToPath(CreditsBgArt, rte.CreditsArtDir());
+
+   i = global_SmallPicImport.GetCount();
    ar << i;
    pos = global_SmallPicImport.GetHeadPosition();
    while (pos != NULL)
@@ -3929,15 +3405,17 @@ void GLOBAL_STATS::Serialize(CArchive &ar)
    {
      global_IconPicImport.GetAt(pos)->picType=IconDib;
      global_IconPicImport.GetAt(pos)->SetDefaults();
+#ifdef SIMPLE_STRUCTURE
      global_IconPicImport.GetNext(pos)->Serialize(ar, version, rte.PicArtDir());
+#else
+     global_IconPicImport.GetNext(pos).Serialize(ar, version);
+#endif
    }
    titleData.Serialize(ar);
-   creditsData.Serialize(ar);
   }
   else
   {
     titleData.Clear();
-    creditsData.Clear();
 
     ar >> version;
     DAS(ar,designName);
@@ -4032,18 +3510,9 @@ void GLOBAL_STATS::Serialize(CArchive &ar)
 
     if (version >= _VERSION_0566_)
     {
-        if (version < _VERSION_525)
-        {
-          // For older versions - Load the old CreditsBgArt filepath in as a single screen in the sequence
-          CString CreditsBgArt;
-          DAS(ar, CreditsBgArt);
-          StripFilenamePath(CreditsBgArt);
-          TITLE_SCREEN data;
-          data.TitleBgArt = CreditsBgArt;
-          data.DisplayBy = TITLE_SCREEN::tsFadeIn;
-          data.UseTrans = FALSE;
-          creditsData.AddTitle(data);
-        }
+      DAS(ar,CreditsBgArt);
+      StripFilenamePath(CreditsBgArt);
+      //AddFolderToPath(CreditsBgArt, rte.CreditsArtDir());
     }
 
     int count;
@@ -4077,8 +3546,6 @@ void GLOBAL_STATS::Serialize(CArchive &ar)
     }
     if (version >= _VERSION_0800_)
       titleData.Serialize(ar);
-    if (version >= _VERSION_525)
-      creditsData.Serialize(ar);
   }
 
   global_asl.Serialize(ar, "GLOBAL_STATS_ATTRIBUTES");
@@ -4090,8 +3557,6 @@ void GLOBAL_STATS::Serialize(CArchive &ar)
   CombatWallArt.Serialize(ar);
   CombatCursorArt.Serialize(ar);
   CombatDeathIconArt.Serialize(ar);
-  if (version >= _VERSION_526 || ar.IsStoring())
-      CharViewFrameVPArt.Serialize(ar);
   if (version >= 0.930204)
       CombatPetrifiedIconArt.Serialize(ar);
   CombatDeathArt.Serialize(ar);
@@ -4302,6 +3767,10 @@ void GLOBAL_STATS::Serialize(CAR& car)
     AS(car, BackgroundArt);
     //AddFolderToPath(BackgroundArt, rte.BackgroundArtDir());
 
+    StripFilenamePath(CreditsBgArt);
+    AS(car, CreditsBgArt);
+    //AddFolderToPath(CreditsBgArt, rte.CreditsArtDir());
+
    i = global_SmallPicImport.GetCount();
    car << i;
    pos = global_SmallPicImport.GetHeadPosition();
@@ -4318,21 +3787,14 @@ void GLOBAL_STATS::Serialize(CAR& car)
    while (pos != NULL)
    {
      global_IconPicImport.GetAt(pos)->picType=IconDib;
-     /*
-      * SetDefaults was removed 20160608 PRS
-      * It was unconditionally setting NumFrames to 2.
-      * Manikus did not like that.
      global_IconPicImport.GetAt(pos)->SetDefaults();
-      */
      global_IconPicImport.GetNext(pos)->Serialize(car, version, rte.PicArtDir());
    }
    titleData.Serialize(car);
-   creditsData.Serialize(car);
   }
   else
   {
     titleData.Clear();
-    creditsData.Clear();
     {
       __int64 temp;
       car.Serialize((char *)&temp, sizeof(temp));
@@ -4439,18 +3901,9 @@ void GLOBAL_STATS::Serialize(CAR& car)
 
     if (version >= _VERSION_0566_)
     {
-        if (version < _VERSION_525)
-        {
-            // For older versions - Load the old CreditsBgArt filepath in as a single screen in the sequence
-            CString CreditsBgArt;
-            DAS(car, CreditsBgArt);
-            StripFilenamePath(CreditsBgArt);
-            TITLE_SCREEN data;
-            data.TitleBgArt = CreditsBgArt;
-            data.DisplayBy = TITLE_SCREEN::tsFadeIn;
-            data.UseTrans = FALSE;
-            creditsData.AddTitle(data);
-        }
+      DAS(car,CreditsBgArt);
+      StripFilenamePath(CreditsBgArt);
+      //AddFolderToPath(CreditsBgArt, rte.CreditsArtDir());
     }
 
     int count;
@@ -4484,9 +3937,7 @@ void GLOBAL_STATS::Serialize(CAR& car)
     }
     if (version >= _VERSION_0800_)
       titleData.Serialize(car);
-    if (version >= _VERSION_525)
-      creditsData.Serialize(car);
- }
+  }
 
   global_asl.Serialize(car, "GLOBAL_STATS_ATTRIBUTES");
   HBarVPArt.Serialize(car);
@@ -4497,8 +3948,6 @@ void GLOBAL_STATS::Serialize(CAR& car)
   CombatWallArt.Serialize(car);
   CombatCursorArt.Serialize(car);
   CombatDeathIconArt.Serialize(car);
-  if (version >= _VERSION_526 || car.IsStoring())
-      CharViewFrameVPArt.Serialize(car);
   if (version >= 0.930204)
       CombatPetrifiedIconArt.Serialize(car);
   CombatDeathArt.Serialize(car);
@@ -4672,9 +4121,9 @@ const char *JKEY_DEADATZEROHP = "deadAtZeroHP";
 const char *JKEY_MAPART= "mapArt";
 const char *JKEY_ICONBGART= "IconBgArt";
 const char *JKEY_BACKGROUNDART= "BackgroundArt";
+const char *JKEY_CREDITSBGART= "CreditsBgArt";
 const char *JKEY_LOGFONT="logFont";
 const char *JKEY_TITLEDATA="titleData";
-const char* JKEY_CREDITSDATA = "creditsData";
 const char *JKEY_SMALLPIC="smallPic";
 const char *JKEY_ICONPIC="iconPic";
 const char *JKEY_HBARVPART = "hBarVPArt";
@@ -4687,7 +4136,6 @@ const char *JKEY_COMBATCURSORART = "combatCursorArt";
 const char *JKEY_COMBATDEATHICONART = "combatDeathIcon";
 const char *JKEY_COMBATPETRIFIEDICONART = "combatPetrifidIcon";
 const char *JKEY_COMBATDEATHART = "combatDeathArt";
-const char* JKEY_CHARVIEWFRAMEVPART = "charViewFrameVPArt";
 const char *JKEY_CURSORART = "cursorArt";
 const char *JKEY_SMALLPICS = "smallPics";
 const char *JKEY_ICONPICS = "iconPics";
@@ -4756,6 +4204,10 @@ CONFIG_ITEM_STATUS GLOBAL_STATS::Export(JWriter& jw)
     jw.NameAndValue(JKEY_BACKGROUNDART, BackgroundArt);
     //AddFolderToPath(BackgroundArt, rte.BackgroundArtDir());
 
+    StripFilenamePath(CreditsBgArt);
+    jw.NameAndValue(JKEY_CREDITSBGART, CreditsBgArt);
+    //AddFolderToPath(CreditsBgArt, rte.CreditsArtDir());
+
    //i = global_SmallPicImport.GetCount();
    //car << i;
    pos = global_SmallPicImport.GetHeadPosition();
@@ -4786,7 +4238,6 @@ CONFIG_ITEM_STATUS GLOBAL_STATS::Export(JWriter& jw)
    };
    jw.EndArray();
    titleData.Export(jw);
-   creditsData.Export(jw);
   }
   global_asl.Export(jw);
   HBarVPArt.Export(jw, JKEY_HBARVPART);
@@ -4799,7 +4250,6 @@ CONFIG_ITEM_STATUS GLOBAL_STATS::Export(JWriter& jw)
   CombatDeathIconArt.Export(jw,JKEY_COMBATDEATHICONART);
   CombatPetrifiedIconArt.Export(jw, JKEY_COMBATPETRIFIEDICONART);
   CombatDeathArt.Export(jw, JKEY_COMBATDEATHART);
-  CharViewFrameVPArt.Export(jw, JKEY_CHARVIEWFRAMEVPART);
   CursorArt.Export(jw, JKEY_CURSORART);
   sounds.Export(jw);
   keyData.Export(jw, JKEY_SPECIALKEYS);
@@ -4819,7 +4269,7 @@ CONFIG_ITEM_STATUS GLOBAL_STATS::Export(JWriter& jw)
 }
 
 
-CONFIG_ITEM_STATUS GLOBAL_STATS::Import(JReader& jr, BOOL quiet)
+CONFIG_ITEM_STATUS GLOBAL_STATS::Import(JReader& jr)
 {
 //  POSITION pos;
   {
@@ -4887,6 +4337,10 @@ CONFIG_ITEM_STATUS GLOBAL_STATS::Import(JReader& jr, BOOL quiet)
     jr.NameAndValue(JKEY_BACKGROUNDART, BackgroundArt);
     //AddFolderToPath(BackgroundArt, rte.BackgroundArtDir());
 
+    StripFilenamePath(CreditsBgArt);
+    jr.NameAndValue(JKEY_CREDITSBGART, CreditsBgArt);
+    //AddFolderToPath(CreditsBgArt, rte.CreditsArtDir());
+
    //i = global_SmallPicImport.GetCount();
    //car << i;
    //pos = global_SmallPicImport.GetHeadPosition();
@@ -4920,7 +4374,6 @@ CONFIG_ITEM_STATUS GLOBAL_STATS::Import(JReader& jr, BOOL quiet)
    };
    jr.EndArray();
    titleData.Import(jr);
-   creditsData.Import(jr);
   }
   global_asl.Import(jr);
   HBarVPArt.Import(jr, JKEY_HBARVPART);
@@ -4933,13 +4386,12 @@ CONFIG_ITEM_STATUS GLOBAL_STATS::Import(JReader& jr, BOOL quiet)
   CombatDeathIconArt.Import(jr,JKEY_COMBATDEATHICONART);
   CombatPetrifiedIconArt.Import(jr, JKEY_COMBATPETRIFIEDICONART);
   CombatDeathArt.Import(jr, JKEY_COMBATDEATHART);
-  CharViewFrameVPArt.Import(jr, JKEY_CHARVIEWFRAMEVPART);
   CursorArt.Import(jr, JKEY_CURSORART);
   sounds.Import(jr);
   keyData.Import(jr, JKEY_SPECIALKEYS);
   specialItemData.Import(jr, JKEY_SPECIALITEMS);
   questData.Import(jr);
-  charData.Import(quiet);
+  charData.Import();
   //levelInfo.Serialize(ar);
   moneyData.Import(jr);
   m_diffLvlData.Import(jr);
@@ -5183,14 +4635,14 @@ void GLOBAL_STATS::Serialize(CAR &ar)
   // in the saved game file.
   if (ar.IsStoring())
   {   
-    ASS ERT(FALSE);
+    ASSERT(FALSE);
     ar << MAX_GLOBAL_VAULTS;
     for (int i=0;i<MAX_GLOBAL_VAULTS;i++)
       vault[i].Serialize(ar);
   }
   else
   {
-    ASS ERT(FALSE);
+    ASSERT(FALSE);
     // if loading old design with only one vault
     if (version < _VERSION_0910_)
     {
@@ -5203,7 +4655,7 @@ void GLOBAL_STATS::Serialize(CAR &ar)
       if (numvaults != MAX_GLOBAL_VAULTS)
       {
         TRACE("*** ERROR: Invalid numvaults read from design file\n");
-        ASS ERT(FALSE);
+        ASSERT(FALSE);
         if (numvaults > MAX_GLOBAL_VAULTS)
           numvaults = MAX_GLOBAL_VAULTS;
       }
@@ -5333,6 +4785,7 @@ void GLOBAL_STATS::CrossReference(CR_LIST *pCRList)
   pCRList->CR_AddPicReference(m_MapArt, &CRReference);
   pCRList->CR_AddPicReference(IconBgArt, &CRReference);
   pCRList->CR_AddPicReference(BackgroundArt, &CRReference);
+  pCRList->CR_AddPicReference(CreditsBgArt, &CRReference);
   CrossReferenceEquipment(&startEquip,     "Basic", pCRList);
   CrossReferenceEquipment(&ClericEquip,    "Cleric", pCRList);
   CrossReferenceEquipment(&FighterEquip,   "Fighter", pCRList);
@@ -5344,13 +4797,6 @@ void GLOBAL_STATS::CrossReference(CR_LIST *pCRList)
   specialItemData.CrossReference(pCRList, CR_TYPE_specialItem);
   keyData.CrossReference(pCRList, CR_TYPE_specialKey);
   charData.CrossReference(pCRList);
-  raceData.CrossReference(pCRList);
-  abilityData.CrossReference(pCRList);
-  baseclassData.CrossReference(pCRList);
-//  traitData.CrossReference(pCRList);
-  spellgroupData.CrossReference(pCRList);
-  classData.CrossReference(pCRList);
-  spellData.CrossReference(pCRList);
   for (i=0; i<MAX_GLOBAL_VAULTS; i++)
   {
     vault[i].CrossReference(pCRList);
@@ -5363,7 +4809,6 @@ void GLOBAL_STATS::CrossReference(CR_LIST *pCRList)
     eventData.CrossReference(&crEI);
   };
   titleData.CrossReference(pCRList, &CRReference);
-  creditsData.CrossReference(pCRList, &CRReference);
   fixSpellBook.CrossReference(pCRList);
   sounds.CrossReference(pCRList);
 }
@@ -5371,13 +4816,12 @@ void GLOBAL_STATS::CrossReference(CR_LIST *pCRList)
 #endif
 
 
-GLOBAL_STATS::GLOBAL_STATS() : keyData(MAX_SPECIAL_KEYS),
-// ASLs named "GLOBAL_STATS_ATTRIBUTES"
-                 global_asl(),
-                 temp_asl(),
+GLOBAL_STATS::GLOBAL_STATS() : keyData(MAX_SPECIAL_KEYS), 
+         // ASLs named "GLOBAL_STATS_ATTRIBUTES"
+				 global_asl(),
+				 temp_asl(),
                  specialItemData(MAX_SPECIAL_ITEMS),
-// prs 20191220                   WhiteFont(-1),YellowFont(-1),OrangeFont(-1),RedFont(-1),GreenFont(-1),BlueFont(-1),HighlightFont(-1),KeyboardFont(-1),
-                 fontLib(), HighlightFont(-1), KeyboardFont(-1),
+                 WhiteFont(-1),YellowFont(-1),OrangeFont(-1),RedFont(-1),GreenFont(-1),BlueFont(-1),HighlightFont(-1),KeyboardFont(-1),
                  MapArtSurf(-1),BackgroundSurf(-1),Custom1Font(-1),MagicAdjFont(-1),KeyboardHighlightFont(-1)
 { 
    version = PRODUCT_VER;
@@ -5423,9 +4867,9 @@ GLOBAL_STATS::GLOBAL_STATS() : keyData(MAX_SPECIAL_KEYS),
 
    //TitleBgArt="";
    titleData.Clear();
-   creditsData.Clear();
    IconBgArt="";
    BackgroundArt="";
+   CreditsBgArt="";
    
    MapArtSurf = -1; 
    BackgroundSurf=-1;
@@ -5505,9 +4949,9 @@ void GLOBAL_STATS::Clear(BOOL ctor, BOOL npcclear)
    FillDefaultFontData("SYSTEM", 16, &logfont);
    //TitleBgArt="";
    titleData.Clear();
-   creditsData.Clear();
    IconBgArt="";
    BackgroundArt="";
+   CreditsBgArt="";
 
 #ifdef UAFEDITOR
    if (!ctor)
@@ -5519,9 +4963,7 @@ void GLOBAL_STATS::Clear(BOOL ctor, BOOL npcclear)
      CString TitleBgArt("");
      TitleBgArt = ede.TemplateBackgroundArtDir() + DEFAULT_TITLE_BG;//.Format("%s%s", global_editorResourceDir, DEFAULT_TITLE_BG);
      titleData.SetDefault(TitleBgArt);
-     CString CreditsBgArt("");
-     CreditsBgArt = ede.TemplateBackgroundArtDir() + DEFAULT_CREDITS_BG;
-     creditsData.SetDefault(CreditsBgArt);
+     CreditsBgArt = ede.TemplateBackgroundArtDir() + DEFAULT_CREDITS_BG;//.Format("%s%s", global_editorResourceDir, DEFAULT_CREDITS_BG);
    }
 #else
    if (!ctor)
@@ -5534,9 +4976,7 @@ void GLOBAL_STATS::Clear(BOOL ctor, BOOL npcclear)
      CString TitleBgArt("");
      TitleBgArt = DEFAULT_TITLE_BG;
      titleData.SetDefault(TitleBgArt);
-     CString CreditsBgArt(""); 
      CreditsBgArt = DEFAULT_CREDITS_BG;
-     creditsData.SetDefault(CreditsBgArt);
    }
 #endif
 
@@ -5706,10 +5146,6 @@ void GLOBAL_STATS::SaveSounds()
   while (pos!=NULL)
     ::SaveSound(sounds.IntroMusic.sounds.GetNext(pos), GLOBAL_SOUND, rte.SoundDir());
 
-  pos = sounds.CreditsMusic.sounds.GetHeadPosition();
-  while (pos != NULL)
-      ::SaveSound(sounds.CreditsMusic.sounds.GetNext(pos), GLOBAL_SOUND, rte.SoundDir());
-
   pos = sounds.CampMusic.sounds.GetHeadPosition();
   while (pos!=NULL)
     ::SaveSound(sounds.CampMusic.sounds.GetNext(pos), GLOBAL_SOUND, rte.SoundDir());
@@ -5731,10 +5167,10 @@ void GLOBAL_STATS::SaveArt()
    ::SaveArt(CombatDeathIconArt.name    ,CommonDib      , GLOBAL_ART, TRUE, rte.CombatArtDir());
    ::SaveArt(CombatPetrifiedIconArt.name,CommonDib      , GLOBAL_ART, TRUE, rte.CombatArtDir());
    ::SaveArt(CombatDeathArt.name        ,CommonDib      , GLOBAL_ART, TRUE, rte.CombatArtDir());
-   ::SaveArt(CharViewFrameVPArt.name    ,CommonDib      , GLOBAL_ART, TRUE, rte.WindowArtDir());
    ::SaveArt(CursorArt.filename         ,CommonDib      , GLOBAL_ART, TRUE, rte.CursorArtDir());
    ::SaveArt(m_MapArt                   ,CommonDib      , GLOBAL_ART, TRUE, rte.MapArtDir());
    ::SaveArt(IconBgArt                  ,CommonDib      , GLOBAL_ART, TRUE, rte.IconArtDir());   ::SaveArt(BackgroundArt              ,TransBufferDib , GLOBAL_ART, TRUE, rte.BackgroundArtDir());
+   ::SaveArt(CreditsBgArt               ,TitleDib       , GLOBAL_ART, TRUE, rte.BackgroundArtDir());
 
    // save pre-gen character pics (smallpics, icons, sprites)
 
@@ -5761,10 +5197,6 @@ void GLOBAL_STATS::SaveArt()
    pos = titleData.Titles.GetHeadPosition();
    while (pos != NULL)
      ::SaveArt(titleData.Titles.GetNext(pos).TitleBgArt, TitleDib, GLOBAL_ART, TRUE, rte.TitleArtDir());
-
-   pos = creditsData.Titles.GetHeadPosition();
-   while (pos != NULL)
-       ::SaveArt(creditsData.Titles.GetNext(pos).TitleBgArt, TitleDib, GLOBAL_ART, TRUE, rte.TitleArtDir());
 
    eventData.saveUsedEventArt(GLOBAL_ART);
 }
@@ -5820,11 +5252,7 @@ int CALLBACK EnumFontFamExProc(
 
 
 
-// prs 20191221 BOOL GLOBAL_STATS::LoadFonts(COLORREF green, COLORREF yellow, COLORREF red, COLORREF blue, COLORREF orange, COLORREF keyb, COLORREF BackColor, COLORREF TransColor, COLORREF Custom)
-BOOL GLOBAL_STATS::LoadSystemFonts(COLORREF keyb, 
-                                   COLORREF BackColor, 
-                                   COLORREF TransColor, 
-                                   COLORREF Custom)
+BOOL GLOBAL_STATS::LoadFonts(COLORREF green, COLORREF yellow, COLORREF red, COLORREF blue, COLORREF orange, COLORREF keyb, COLORREF BackColor, COLORREF TransColor, COLORREF Custom)
 {
 #ifdef UAFEngine
   ReleaseFonts();
@@ -5853,7 +5281,7 @@ BOOL GLOBAL_STATS::LoadSystemFonts(COLORREF keyb,
   
   //fontSize = max(8, fontSize);
   WriteDebugString("Creating fonts from %s\n", logfont.lfFaceName);
-  /*   prs 20191220
+  
   //WhiteFont = GraphicsMgr.CreateBitmappedFont(font, fontSize, White, BackColor, TransColor);
   WhiteFont = GraphicsMgr.CreateBitmappedFont(&logfont, White, BackColor, TransColor);
   if (WhiteFont < 0) return FALSE;
@@ -5876,23 +5304,7 @@ BOOL GLOBAL_STATS::LoadSystemFonts(COLORREF keyb,
   //BlueFont = GraphicsMgr.CreateBitmappedFont(font, fontSize, blue, BackColor, TransColor);
   BlueFont = GraphicsMgr.CreateBitmappedFont(&logfont, blue, BackColor, TransColor);
   if (BlueFont < 0) return FALSE;
-  */
-
-  {
-// prs 20191227    int font;
-    LOGFONT tempFont;
-    tempFont = logfont;
-    /*  prs 20191227
-    for (font = 0; font < 10; font++)
-    {
-      availableFonts[font].LoadFont(tempFont, BackColor, TransColor);
-    };
-    */
-    // PRS 20200208 fontLib.LoadFonts(tempFont, BackColor, TransColor);
-
-
-  };
-
+  
   //Custom1Font = GraphicsMgr.CreateBitmappedFont(font, fontSize, Custom, BackColor, TransColor);
   Custom1Font = GraphicsMgr.CreateBitmappedFont(&logfont, Custom, BackColor, TransColor);
   if (Custom1Font < 0) return FALSE;
@@ -5902,29 +5314,12 @@ BOOL GLOBAL_STATS::LoadSystemFonts(COLORREF keyb,
   if (KeyboardFont < 0) return FALSE;
   
   //KeyboardHighlightFont = GraphicsMgr.CreateBitmappedFont(font, fontSize, keyb, White, red);
-// prs 20191221  KeyboardHighlightFont = GraphicsMgr.CreateBitmappedFont(&logfont, keyb, White, red);
-  KeyboardHighlightFont = GraphicsMgr.CreateBitmappedFont(
-                                  &logfont,
-                                  keyb,
-    // prs 20191227                      globalData.availableFonts[0].color[whiteColor], 
-                                  globalData.fontLib.GetColor(0, whiteColor),
-                                  globalData.fontLib.GetColor(0, redColor));
-// prs 20191227                      globalData.availableFonts[0].color[redColor]);
-
+  KeyboardHighlightFont = GraphicsMgr.CreateBitmappedFont(&logfont, keyb, White, red);
   if (KeyboardHighlightFont < 0) return FALSE;
 
   //HighlightFont = GraphicsMgr.CreateBitmappedFont(font, fontSize, Black, White, red);
-// prs 20191221  HighlightFont = GraphicsMgr.CreateBitmappedFont(&logfont, Black, White, RGB(255,0,0));
-  HighlightFont = GraphicsMgr.CreateBitmappedFont(
-    &logfont,
-    globalData.fontLib.GetColor(0, blackColor),
-    globalData.fontLib.GetColor(0, whiteColor),
-    globalData.fontLib.GetColor(0, redColor));
-                      // prs 20191227
-                      //globalData.availableFonts[0].color[blackColor],
-                      //globalData.availableFonts[0].color[whiteColor],
-                      //globalData.availableFonts[0].color[redColor]);
-  if (HighlightFont < 0) return FALSE;
+  HighlightFont = GraphicsMgr.CreateBitmappedFont(&logfont, Black, White, red);
+  if (HighlightFont < 0) return FALSE;   
   
   MagicAdjFont = GraphicsMgr.CreateBitmappedFont(&logfont, RGB(255,128,0), BackColor, TransColor);
   if (MagicAdjFont < 0) return FALSE; 
@@ -5940,223 +5335,12 @@ void GLOBAL_STATS::ReleaseSurfaces()
   MapArtSurf = -1; 
   if (BackgroundSurf >= 0)
     GraphicsMgr.ReleaseSurface(BackgroundSurf);
-
   BackgroundSurf = -1; 
   ReleaseFonts();
 }
 
-
-
-/* prs 20191227
-void AVAIL_FONT::ReleaseFonts(void)
-{
-  int colorNum;
-  for (colorNum = whiteColor; colorNum <= silverColor; colorNum++)
-  {
-    if (fontNum[colorNum] >= 0)
-    {
-      GraphicsMgr.ReleaseSurface(fontNum[colorNum]);
-    };
-    fontNum[colorNum] = -1;
-  };
-};
-
-BOOL AVAIL_FONT::LoadFont(LOGFONT& logFont, COLORREF backColor, COLORREF transColor)
-{
-  int colorNum;
-  for (colorNum = whiteColor; colorNum <= silverColor; colorNum++)
-  {
-    strcpy_s(logFont.lfFaceName, 32, fontName);
-    //      long int origFont; 
-    //      origFont = availableFonts[font].fontNum;
-    //      availableFonts[font].fontNum = -1;
-    fontNum[colorNum] = GraphicsMgr.CreateBitmappedFont(
-                                    &logFont, 
-                                    color[colorNum], 
-                                    backColor, 
-                                    transColor);
-    if (fontNum[colorNum] < 0)
-    {
-      fontNum[colorNum] = -1;
-      return FALSE;
-    };
-  };
-  return TRUE;
-}
-*/
-
-void FONT_DESC::ReleaseFont(void)
-{
-  if (m_fontHandle >= 0)
-  {
-    GraphicsMgr.ReleaseSurface(m_fontHandle);
-  };
-  m_fontHandle = -1;
-}
-
-void FONT_DESC::LoadFont(void)
-{
-  if (m_fontHandle >= 0)
-  {
-    die(0x44a0df);
-  }
-  if (m_fontHandle == -2)
-  {
-    return;
-  };
-  LOGFONT temp;
-  temp = globalData.logfont;
-  temp.lfItalic = m_italic;
-  temp.lfWeight = m_bold?999:001;
-  strcpy_s(temp.lfFaceName, 32, (LPCSTR)m_fontName);
-#ifdef UAFEngine
-  m_fontHandle = GraphicsMgr.CreateBitmappedFont(
-                     &temp, 
-                     m_color, 
-                     m_backColor, 
-                     m_transColor);
-  if (m_fontHandle < 0)
-  {
-    m_fontHandle = -2;
-  };
-#else
-  die(0x5a9bc1);
-#endif
-}
-
-void FONT_DESC::operator=(const FONT_DESC& src)
-{
-  m_fontName   = src.m_fontName;
-  m_fontHandle = src.m_fontHandle;
-  m_color      = src.m_color;
-  m_backColor  = src.m_backColor;
-  m_transColor = src.m_transColor;
-  m_italic     = src.m_italic;
-  m_bold       = src.m_bold;
-}
-
-void FONT_LIBRARY::operator =(const FONT_LIBRARY& src)
-{
-  int i, numFont;
-  numFont = sizeof(m_fonts) / sizeof(m_fonts[0]);
-  for (i = 0; i < numFont; i++)
-  {
-    m_fonts[i] = src.m_fonts[i];
-  };
-}
-
-COLORREF FONT_LIBRARY::GetColor(int baseFontNumber, FONT_COLOR_NUM colorNum)
-{
-  return m_fonts[baseFontNumber + colorNum].m_color;
-}
-
-long int FONT_LIBRARY::CheckFont(int baseFontNumber, 
-                                 FONT_COLOR_NUM colorNum,
-                                 BOOL custom)
-{
-  int fnum;
-  fnum = baseFontNumber + colorNum;
-  if ((fnum < 0) || (fnum >= NUMTEXTFONT))
-  {
-    return m_fonts[0].m_fontHandle;
-  };
-  fnum = custom ? fnum + 100 : fnum;
-  if (m_fonts[fnum].m_fontHandle == -1)
-  {
-    m_fonts[fnum].LoadFont();
-  };
-  if (m_fonts[fnum].m_fontHandle >= 0)
-  {
-    return m_fonts[fnum].m_fontHandle;
-  };
-  return m_fonts[0].m_fontHandle;
-}
-
-long int FONT_LIBRARY::GetFont(int baseFontNumber, 
-                               FONT_COLOR_NUM colorNum,
-                               BOOL custom)
-{
-  int fontHandle;
-  // check errors; load font.
-  fontHandle = CheckFont(baseFontNumber, colorNum, custom);  
-  return fontHandle;
-}
-
-//void FONT_LIBRARY::LoadFonts(LOGFONT& logFont, COLORREF backColor, COLORREF transColor)
-void FONT_LIBRARY::LoadFonts(void)
-{
-  SetFontColor(0, whiteColor,        RGB(255, 255, 255));
-  SetFontColor(0, blackColor,        RGB(  0,   0,   0));
-  SetFontColor(0, greenColor,        RGB(  0, 255,   0));
-  SetFontColor(0, redColor,          RGB(255,   0,   0));
-  SetFontColor(0, blueColor,         RGB(128, 128, 255));
-  SetFontColor(0, magentaColor,      RGB(255,   0, 255));
-  SetFontColor(0, cyanColor,         RGB(  0, 255, 255));
-  SetFontColor(0, orangeColor,       RGB(255, 128,   0));
-  SetFontColor(0, brightOrangeColor, RGB(255, 128,   0));
-  SetFontColor(0, silverColor,       RGB(192, 192, 192));
-  SetFontColor(0, yellowColor,       RGB(255, 255,   0))
-    ;
-}
-
-void FONT_LIBRARY::ReleaseFonts(void)
-{
-  int font;
-  for (font = 0; font < 2*NUMTEXTFONT; font++)
-  {
-    m_fonts[font].ReleaseFont();
-  }
-}
-
-void FONT_LIBRARY::SetFontColor(int baseFontNumber, FONT_COLOR_NUM colorNum, COLORREF color)
-{
-  m_fonts[baseFontNumber + colorNum].ReleaseFont();
-  m_fonts[baseFontNumber + colorNum].m_color = color;
-  m_fonts[baseFontNumber + colorNum + NUMTEXTFONT].ReleaseFont();
-  m_fonts[baseFontNumber + colorNum + NUMTEXTFONT].m_color = color;
-}
-
-void FONT_LIBRARY::SetCustomColor(COLORREF color)
-{
-  int i;
-  for (i = 0; i < NUMTEXTFONT; i++)
-  {
-    m_fonts[NUMTEXTFONT + i].m_color = color;
-  };
-}
-
-void FONT_LIBRARY::SetFontType(int fontNum, const CString& fontType)
-{
-  if (fontType.CompareNoCase("italic") == 0)
-  {
-    m_fonts[fontNum].m_italic = true;
-    m_fonts[fontNum + NUMTEXTFONT].m_italic = true;
-  };
-  if (fontType.CompareNoCase("regular") == 0)
-  {
-    m_fonts[fontNum].m_italic = false;
-    m_fonts[fontNum].m_bold = false;
-    m_fonts[fontNum + NUMTEXTFONT].m_italic = false;
-    m_fonts[fontNum + NUMTEXTFONT].m_bold = false;
-  };
-  if (fontType.CompareNoCase("bold") == 0)
-  {
-    m_fonts[fontNum].m_bold = true;
-    m_fonts[fontNum + NUMTEXTFONT].m_bold = true;
-  };
-}
-
-void FONT_LIBRARY::SetFontName(int baseFontNumber, const CString& name)
-{
-  m_fonts[baseFontNumber].ReleaseFont();
-  m_fonts[baseFontNumber].m_fontName = name;
-  m_fonts[baseFontNumber+NUMTEXTFONT].ReleaseFont();
-  m_fonts[baseFontNumber+NUMTEXTFONT].m_fontName = name;
-}
-
 void GLOBAL_STATS::ReleaseFonts()
 {
-  /*  prs 20191220
   if (WhiteFont >= 0)
     GraphicsMgr.ReleaseSurface(WhiteFont);
   WhiteFont = -1;
@@ -6175,20 +5359,6 @@ void GLOBAL_STATS::ReleaseFonts()
   if (BlueFont >= 0)
     GraphicsMgr.ReleaseSurface(BlueFont);
   BlueFont = -1;
-  */
-  {
-// prs 20191227    int font;
-    /* prs 20191227
-    for (font = 0; font < 10; font++)
-    {
-      availableFonts[font].ReleaseFonts();
-    };
-    */
-    fontLib.ReleaseFonts();
-
-
-
-  };
   if (KeyboardFont >= 0)
     GraphicsMgr.ReleaseSurface(KeyboardFont);
   KeyboardFont=-1;  
@@ -6390,23 +5560,6 @@ void PlayIntro(BOOL play)
     pSndMgr->StopBgndQueue();
 }
 
-void PlayOuttro(BOOL play)
-{
-    if (play)
-    {
-        if (pSndMgr != NULL)
-        {
-            pSndMgr->StopBgndQueue();
-            POSITION pos = globalData.sounds.CreditsMusic.sounds.GetHeadPosition();
-            while (pos != NULL)
-                pSndMgr->QueueBgndSound(globalData.sounds.CreditsMusic.sounds.GetNext(pos), FALSE);
-            pSndMgr->PlayBgndQueue();
-        }
-    }
-    else
-        pSndMgr->StopBgndQueue();
-}
-
 void PlayCampMusic(BOOL play) 
 { 
   if (pSndMgr == NULL)
@@ -6468,27 +5621,6 @@ void ReleaseAllSounds()
   pSndMgr->Clear();
   //WriteDebugString("RemoveAllSounds\n");
 }
-
-int messageMapInitStatus = 0;
-MESSAGEMAP *messageMap;
-const char* getGameText(const char* id) {
-    if (messageMapInitStatus == -1) {  // -1 indicates failed status
-        return id;
-    }
-    if (messageMapInitStatus == 0) {
-        messageMap = new MESSAGEMAP();
-        messageMapInitStatus = 1;
-        if (FileExists(rte.DataDir() + MESSAGEMAP_FILE_NAME)) {
-            messageMap->LoadFile(rte.DataDir() + MESSAGEMAP_FILE_NAME);
-        }
-        else {
-            messageMapInitStatus = -1;
-            return id;
-        }
-    }
-    return messageMap->getTextFromId(id);
-}
-
 
 #ifdef UAFEngine
 void CheckAndPlayBackgroundMusic(int &UsingDayMusic)

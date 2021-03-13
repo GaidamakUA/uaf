@@ -20,11 +20,11 @@
 #define __SPELL_H__
 
 //#include "externs.h"
-#include "SpecAb.h"
+#include "Specab.h"
 #include "SharedQueue.h"
 #include "PicData.h"
 #include "class.h"
-#include "gamerules.h"
+#include "GameRules.h"
 //#include "ProjectVersion.h"
 
 
@@ -318,7 +318,7 @@ public:
   //                   int   SpellLevel);
   //BOOL  KnowSpell(WORD CasterClassFlag, WORD SpellClassFlag, GLOBAL_SPELL_ID SpellDbKey, int level, BOOL known);
   BOOL  KnowSpell(const BASECLASS_ID& baselassID, const SCHOOL_ID& spellSchoolID, const SPELL_ID& spellID, int level, BOOL known);
-  BOOL  KnowSpellxxx(const SPELL_DATA *pSpell, BOOL known);
+  BOOL  KnowSpell(const SPELL_DATA *pSpell, BOOL known);
   //BOOL  SelectSpell(GLOBAL_SPELL_ID index, int selected=1);
   BOOL  SelectSpell(const SPELL_ID& spellID, int selected=1);
   void  UnselectIfNotMemorized(void);
@@ -358,11 +358,11 @@ public:
 
   int NumTargets() const;
   int NumMapTargets(void) const;
-  BOOL STD_AddTarget(int target, double hd, int range, int mapX, int mapY);
+  BOOL AddTarget(int target, double hd, int range, int mapX, int mapY);
   BOOL IsAlreadyTargeted(int target) const;
   BOOL AddMapTarget(int mapx, int mapy);
 
-  BOOL STD_CanAddTarget(int hd=0, int range=0); 
+  BOOL CanAddTarget(int hd=0, int range=0);
   BOOL AllTargetsChosen();
   BOOL ValidNumTargets();
   BOOL HDLimitReached();
@@ -383,17 +383,6 @@ public:
 };
 
 class ToHitComputation;
-
-struct SAVING_THROW_DATA
-{
-  SPELL_DATA *pSpell;
-  BOOL success;
-  double changeResult;
-  BOOL   noEffectWhatsoever;
-  CHARACTER *pCaster;
-  CHARACTER *pTarget;
-};
-
 
 class SPELL_DATA //: public CObject
 {
@@ -504,7 +493,7 @@ public:
   BOOL CanBeDispelled;
   BOOL Lingers;
   BOOL LingerOnceOnly; // affects target once only, else once per round
-	spellSaveVersusType Save_Vs;
+	spellSaveVsType Save_Vs;
 	spellSaveEffectType Save_Result;
 	spellTargetingType Targeting;
 	spellDurationType Duration_Rate;
@@ -516,14 +505,12 @@ public:
 	SPECIAL_ABILITIES specAbs;
   CString RunSpellScripts(LPCSTR scriptName, 
                                  CBRESULT (*fnc)(CBFUNC func, CString *scriptResult, void *pkt), 
-                                 void      *pkt,
-                                 LPCSTR     comment) const
+                                 void      *pkt) const
   {
     return specAbs.RunScripts(scriptName, 
                               fnc, 
                               pkt,
-                              comment,
-                              ScriptSourceType_Spell,
+                              "SPELL",
 #ifdef UAFengine
                               uniqueName);
 #else
@@ -579,52 +566,25 @@ public:
   PIC_DATA TargLingerArt;    // used if graphic is displayed for spell duration
 
   bool CompileScripts();
-  bool CompileScript(SPELL_EFFECTS_DATA &src);
   bool ExecuteSpellBeginScript(CHARACTER *pAttacker, 
                                CHARACTER *pTarget,
-                               ToHitComputation *pToHitComutation);
+                               ToHitComputation *pToHitComutation) const;
   void ExecuteSpellEndScript(CHARACTER *pAttacker, CHARACTER *pTarget) const;
-#ifdef SpellInitiationScript
-  bool ExecuteSpellInitiationScript(CHARACTER *pAttacker) const;
-  void ExecuteSpellTerminationScript(CHARACTER *pAttacker) const;
-#endif
-  bool CompileBeginScript(void);
-  bool CompileEndScript(void) const;
-  bool CompileInitiationScript(void) const;
-  bool CompileTerminationScript(void) const;
-  bool CompileSavingThrowScript(void);
-  bool CompileSavingThrowFailedScript(void);
-  bool CompileSavingThrowSucceededScript(void);
     
   CString SpellBeginSource;
   CString SpellBeginBinary;
   CString SpellEndSource;
   CString SpellEndBinary;
   
-  //Introduced in version 1.0303
-  CString SavingThrowSource;           // 1.0303
-  CString SavingThrowBinary;           // 1.0303
-  CString SavingThrowSucceededSource;  // 1.0303
-  CString SavingThrowSucceededBinary;  // 1.0303
-  CString SavingThrowFailedSource;     // 1.0303
-  CString SavingThrowFailedBinary;     // 1.0303
-  //
-  CString SpellInitiationSource;       // 2.60
-  CString SpellInitiationBinary;       // 2.60
-  CString SpellTerminationSource;      // 2.60
-  CString SpellTerminationBinary;      // 2.60
-
-  
   POSITION AddEffect(SPELL_EFFECTS_DATA &src);
   void DeleteEffect(SPELL_EFFECTS_DATA &src);
   bool HaveEffectAttr(const SPELL_EFFECTS_DATA &src) const;
-  //bool CompileScript(SPELL_EFFECTS_DATA &src);
-  CString CompileScript(const CString& script, const char *namePostfix) const;
+  bool CompileScript(SPELL_EFFECTS_DATA &src);
   bool ExecuteActivationScript(SPELL_EFFECTS_DATA &src);
   int ExecuteModificationScript(SPELL_EFFECTS_DATA &src);
-  int ExecuteSavingThrowScript(SAVING_THROW_DATA &src);    
-  void ExecuteSavingThrowFailedScript(SAVING_THROW_DATA &src, CString *displayText);    
-  void ExecuteSavingThrowSucceededScript(SAVING_THROW_DATA &src, CString *displayText);    
+  int ExecuteSavingThrowScript(SPELL_EFFECTS_DATA &src);    
+  void ExecuteSavingThrowFailedScript(SPELL_EFFECTS_DATA &src);    
+  void ExecuteSavingThrowSucceededScript(SPELL_EFFECTS_DATA &src);    
   BOOL CanPerformSpecAb(specialAbilitiesType sa);
   bool CanEnableAffectAttr(const CString &attr) const;
 
@@ -963,7 +923,6 @@ struct SPELL_TEXT_LIST
   //int m_school;
   //WORD spellClasses;
   BASECLASS_LIST baseclassList;
-  CString memorizedText;
   CString title;
   CString arbitraryText[5];
   void ClearArbitraryText(void);
@@ -1267,11 +1226,10 @@ struct ACTIVE_SPELL
     //spellKey.Clear();
     spellID.Clear();
     caster.Clear();
-    target.Clear();
     StopTime=0;
     CountTime=0;
     Lingers=FALSE;
-    m_XscriptProcessed = true;
+    m_scriptProcessed = true;
     casterLevel = -1;
     lingerData.Clear(); 
   }
@@ -1281,7 +1239,6 @@ struct ACTIVE_SPELL
     {
       ar << key;
       caster.Serialize(ar, ver);
-      target.Serialize(ar, ver);
       //spellKey.Serialize(ar, ver); //ar << spellKey;
       ar << spellID; //ar << spellKey;
       ar << StopTime;
@@ -1295,14 +1252,6 @@ struct ACTIVE_SPELL
     {
       ar >> key;
       caster.Serialize(ar, ver);
-      if (ver >= 1.0303)
-      {
-        target.Serialize(ar, ver);
-      }
-      else
-      {
-        target.Clear();
-      };
       //spellKey.Serialize(ar, ver); //bar >> spellKey;
       ar >> spellID; //bar >> spellKey;
       ar >> StopTime;
@@ -1323,23 +1272,21 @@ struct ACTIVE_SPELL
   {
     if (ar.IsStoring())
     {
-      die(0x41b12);
-      //ar << key;
-      //caster.Serialize(ar, ver);
-      ////spellKey.Serialize(ar, ver); //ar << spellKey;
-      //ar << spellID; //ar << spellKey;
-      //ar << StopTime;
-      //ar << CountTime;
-      //ar << Lingers;
-      //ar << casterLevel;
-      //
-      //lingerData.Serialize(ar, ver);
+      ar << key;
+      caster.Serialize(ar, ver);
+      //spellKey.Serialize(ar, ver); //ar << spellKey;
+      ar << spellID; //ar << spellKey;
+      ar << StopTime;
+      ar << CountTime;
+      ar << Lingers;
+      ar << casterLevel;
+
+      lingerData.Serialize(ar, ver);
     }
     else
     {
       ar >> key;
       caster.Serialize(ar, ver);
-      target.Clear();
       //spellKey.Serialize(ar, ver); //ar >> spellKey;
       ar >> spellID; //ar >> spellKey;
       ar >> StopTime;
@@ -1361,7 +1308,6 @@ struct ACTIVE_SPELL
     if (this==&src) return *this;
     key=src.key;
     caster=src.caster;
-    target=src.target;
     //spellKey=src.spellKey;
     spellID=src.spellID;
     StopTime = src.StopTime;
@@ -1383,43 +1329,42 @@ struct ACTIVE_SPELL
   //GLOBAL_SPELL_ID spellKey; // spell db key
   SPELL_ID spellID;
   ActorType caster; // context info that id's caster
-  ActorType target;
   DWORD StopTime;
   DWORD CountTime;
   BOOL Lingers;
   SPELL_LINGER_DATA lingerData;
-  bool m_XscriptProcessed;
+  bool m_scriptProcessed;
   int  casterLevel;  // At the time the spell was cast
 };
 
 class ACTIVE_SPELL_LIST
 {
 public:
-  ACTIVE_SPELL_LIST() { xClear(); }
-  ~ACTIVE_SPELL_LIST() { xClear(); }
+  ACTIVE_SPELL_LIST() { Clear(); }
+  ~ACTIVE_SPELL_LIST() { Clear(); }
 
-  void xClear();
+  void Clear();
   //int GetCount() { CSingleLock sLock(&m_CS, TRUE); return m_spells.GetCount(); }
-  int GetCount() {/* CSingleLock sLock(&m_CS, TRUE);*/ return m_spellList.GetCount(); }
-  POSITION GetHeadPosition() const {return m_spellList.GetHeadPosition(); }
+  int GetCount() {/* CSingleLock sLock(&m_CS, TRUE);*/ return m_spells.GetCount(); }
+  POSITION GetHeadPosition() const {return m_spells.GetHeadPosition(); }
         //ACTIVE_SPELL& GetAtPos(POSITION pos)  { CSingleLock sLock(&m_CS, TRUE); return m_spells.GetAtPos(pos); }
-        ACTIVE_SPELL& GetAtPos(POSITION pos)  { /*CSingleLock sLock(&m_CS, TRUE);*/ return m_spellList.GetAtPos(pos); }
-  const ACTIVE_SPELL& PeekAtPos(POSITION pos) const {return m_spellList.PeekAtPos(pos); }
+        ACTIVE_SPELL& GetAtPos(POSITION pos)  { /*CSingleLock sLock(&m_CS, TRUE);*/ return m_spells.GetAtPos(pos); }
+  const ACTIVE_SPELL& PeekAtPos(POSITION pos) const {return m_spells.PeekAtPos(pos); }
   //ACTIVE_SPELL& GetNext(POSITION &pos) { CSingleLock sLock(&m_CS, TRUE); return m_spells.GetNext(pos); }
-  ACTIVE_SPELL& GetNext(POSITION &pos) { return m_spellList.GetNext(pos); }
-  const ACTIVE_SPELL& PeekNext(POSITION &pos) const {return *m_spellList.PeekNext(pos); }
+  ACTIVE_SPELL& GetNext(POSITION &pos) { return m_spells.GetNext(pos); }
+  const ACTIVE_SPELL& PeekNext(POSITION &pos) const {return *m_spells.PeekNext(pos); }
   //int GetKeyAt(POSITION pos) { CSingleLock sLock(&m_CS, TRUE); return m_spells.GetKeyAt(pos); }
-  int GetKeyAt(POSITION pos) { return m_spellList.GetKeyAt(pos); }
+  int GetKeyAt(POSITION pos) { return m_spells.GetKeyAt(pos); }
   ACTIVE_SPELL_LIST&operator=(ACTIVE_SPELL_LIST&src);
 
   // called when loading from scripts, or
   // when adding from editor GUI
-  int xAdd(ACTIVE_SPELL &data);
+  int Add(ACTIVE_SPELL &data);
   // called when loading binary data that
   // was saved with key info
-  int xAddWithCurrKey(ACTIVE_SPELL &data);
+  int AddWithCurrKey(ACTIVE_SPELL &data);
   BOOL Set(int index, ACTIVE_SPELL &spell);
-  BOOL Remove(int index, const SPELL_DATA *pSpell);
+  BOOL Remove(int index);
   ACTIVE_SPELL *Get(int index);
   int GetNextKey();
 
@@ -1429,7 +1374,7 @@ public:
   void PostSerialize(BOOL IsStoring) { }
 
   void ProcessTimeSensitiveData(int roundInc);
-  void DeactivateActiveSpell(int index, const SPELL_DATA *pSpell);
+  void DeactivateActiveSpell(int index, SPELL_DATA *pSpell);
 
   BOOL LingerSpellAffectsTarget(int targ, int mapx, int mapy, int width, int height)
   {
@@ -1448,14 +1393,11 @@ public:
 
   BOOL ActivateLingerSpellsOnTarget(int targ, int mapx, int mapy, int width, int height);
   void RemoveLingerSpells();
-  CString RunSEScripts(int x, int y, const CString& scriptName, LPCSTR comment);
-#ifdef SpellInitiationScript
-  void ExitCombat(void);  // Convert Actor references from combat to non-combat
-#endif
+  CString RunSEScripts(int x, int y, const CString& scriptName);
 
 private:
   CCriticalSection m_CS;
-  OrderedQueue<ACTIVE_SPELL, MAX_ACTIVE_SPELLS> m_spellList;
+  OrderedQueue<ACTIVE_SPELL, MAX_ACTIVE_SPELLS> m_spells;
 
   ACTIVE_SPELL_LIST(ACTIVE_SPELL_LIST &src); // not enabled
 };

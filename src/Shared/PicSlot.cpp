@@ -16,22 +16,22 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ******************************************************************************/
-#include "..\shared\stdafx.h"
+#include "../Shared/stdafx.h"
 //#include "..\Shared\Version.h"
 
 #ifdef UAFEDITOR
-#include "..\UAFWinEd\UAFWinEd.h"
-#include "..\UAFWinEd\resource.h"
+#include "../UAFWinEd/UAFWinEd.h"
+#include "../UAFWinEd/resource.h"
 #include "class.h"
-#include "..\UAFWinEd\CrossReference.h"
+#include "../UAFWinEd/CrossReference.h"
 #else
-#include "externs.h"
-#include "..\UAFWin\Dungeon.h"
+#include "Externs.h"
+#include "../UAFWin/Dungeon.h"
 #endif
 
 #include "class.h"
 #include "SurfaceMgr.h"
-#include "globalData.h"
+#include "GlobalData.h"
 //#include "level.h"
 #include "SoundMgr.h"
 #include "PicData.h"
@@ -95,7 +95,6 @@ PicDataType CombatCursorArt;
 PicDataType CombatDeathIconArt;
 PicDataType CombatPetrifiedIconArt;
 PicDataType CombatDeathArt;
-PicDataType CharViewFrameVPArt;
 
 CString DEFAULT_TITLE_BG = "Title.png";
 CString DEFAULT_CREDITS_BG = "Credits.png";
@@ -358,16 +357,32 @@ void ImageCacheMgr::RemoveOldest()
 void WallSetSlotMemType::SaveArt(int level)
 {
   if (!wallFile.IsEmpty())
+#ifdef SIMPLE_STRUCTURE
     ::SaveArt(wallFile, WallDib, level, TRUE, rte.WallArtDir());
+#else
+     saveArt(wallFile, WallDib, level);
+#endif
 
   if (!doorFile.IsEmpty())
+#ifdef SIMPLE_STRUCTURE
     ::SaveArt(doorFile, DoorDib, level, TRUE, rte.DoorArtDir());
+#else
+     saveArt(doorFile, DoorDib, level);
+#endif
 
   if (!overlayFile.IsEmpty())
+#ifdef SIMPLE_STRUCTURE
     ::SaveArt(overlayFile, OverlayDib, level, TRUE, rte.OverlayArtDir());
+#else
+     saveArt(overlayFile, OverlayDib, level);
+#endif
 
   if (!AVArtFile.IsEmpty())
+#ifdef SIMPLE_STRUCTURE
     ::SaveArt(AVArtFile, TransBufferDib, level, TRUE, rte.AreaViewArtDir());
+#else
+     saveArt(AVArtFile, TransBufferDib, level);
+#endif
 }
 void WallSetSlotMemType::SaveSound(int level)
 {
@@ -388,9 +403,17 @@ void WallSetSlotMemType::PlaySlotSound()
 void BackgroundSlotMemType::SaveArt(int level)
 {
   if (!backgroundFile.IsEmpty())
+#ifdef SIMPLE_STRUCTURE
     ::SaveArt(backgroundFile, BackGndDib, level, TRUE, rte.BackgroundArtDir());
+#else
+     saveArt(backgroundFile, BackGndDib, level);
+#endif
   if (!backgroundFileAlt.IsEmpty())
+#ifdef SIMPLE_STRUCTURE
     ::SaveArt(backgroundFileAlt, BackGndDib, level, TRUE, rte.BackgroundArtDir());
+#else
+     saveArt(backgroundFileAlt, BackGndDib, level);
+#endif
 }
 
 void BackgroundSlotMemType::SaveSound(int level)
@@ -961,7 +984,11 @@ void SaveArt(CString &filename, SurfaceType type, int level, BOOL alterPath, con
   if (index > 1)
     saveName = filename.Right(filename.GetLength()-(index+1));
   else
+#ifdef SIMPLE_STRUCTURE
     return;  // No folder name in source.
+#else
+    saveName = filename;
+#endif
 
   POSITION pos = LevelPicData[level].GetHeadPosition();
   while (pos != NULL)
@@ -980,7 +1007,11 @@ void SaveArt(CString &filename, SurfaceType type, int level, BOOL alterPath, con
 
   CString temp;
   temp = filename;
+#ifdef SIMPLE_STRUCTURE
   if (WriteArtToFile(temp, destDir))
+#else
+  if (writeArtToFile(temp))
+#endif
   {
     if (alterPath)
       filename = temp;
@@ -1000,12 +1031,15 @@ void deleteAllLevelArt(int level)
 #endif
 }
 
-#ifdef REQART
 void WriteRequiredArtList()
 {
 #ifdef UAFEDITOR
   static char dsnPath[_MAX_PATH+1];
+#ifdef SIMPLE_STRUCTURE
   strcpy(dsnPath, rte.DataDir());
+#else
+  GetDesignPath(dsnPath);
+#endif
   CString filename;
   filename.Format("%sReqArt.txt", dsnPath);
   FILE *fp = fopen(filename, "w");
@@ -1036,7 +1070,6 @@ void WriteRequiredArtList()
     fclose(fp);
 #endif
 }
-#endif
 
 BOOL WriteArtToFile(CString &sourceFile, const CString& destinationDir)
 {
@@ -1044,11 +1077,19 @@ BOOL WriteArtToFile(CString &sourceFile, const CString& destinationDir)
   // Copy it to the directory 'destinationDir' if it is not already there.
   // Set 'sourceFile' to the path and filename of the copy.
 #ifdef UAFEDITOR
+#ifdef SIMPLE_STRUCTURE
  CString dsnPath;
+#else
+ static char dsnPath[_MAX_PATH+1];
+#endif
 
  if (sourceFile.IsEmpty())
     return TRUE;
+#ifdef SIMPLE_STRUCTURE
   dsnPath = destinationDir;
+#else
+  GetDesignPath(dsnPath);
+#endif
 
   // determine path and name of destination file
   CString saveName;
@@ -1064,15 +1105,26 @@ BOOL WriteArtToFile(CString &sourceFile, const CString& destinationDir)
   {
     CString tmp;
     tmp = sourceFile;
+#ifdef SIMPLE_STRUCTURE
     //if (!SearchForArtFile(tmp)) // returns full path file
+#else
+    if (!SearchForFile(tmp)) // returns full path file
+#endif
     {
       WriteDebugString("Can't find file \'%s\' in WriteArtToFile()\n", tmp);
       return FALSE;
     }
+    sourceFile = tmp;
   }
 
   // if same file is already in design folder,
   // skip the copy
+#ifdef SIMPLE_STRUCTURE
+#else
+  if (   (FileExists(saveName)) 
+      && (FileSize(saveName) == FileSize(sourceFile)))
+    return TRUE;
+#endif
   // 20110508 PRS   This gets done after the copy   SetFileAttributes(saveName, FILE_ATTRIBUTE_NORMAL);
 
   //******* 20110508 PRS
@@ -1125,7 +1177,6 @@ void clearArtSlots(void)
    CombatDeathIconArt.Clear();
    CombatPetrifiedIconArt.Clear();
    CombatDeathArt.Clear();
-   CharViewFrameVPArt.Clear();
    CursorArt.Clear();
 
   for (i=0; i<MAX_WALLSETS;i++)
@@ -1143,7 +1194,7 @@ BOOL GetWallSlotSurfaces(WallSetSlotMemType &data)
 {
   if (pWallSlotMgr==NULL)
   {
-    die(0xab52b);
+    ASSERT(FALSE);
     return FALSE;
   }
 
@@ -1369,7 +1420,7 @@ BOOL GetBackgroudSlotSurfaces(BackgroundSlotMemType &data)
 {
   if (pBgSlotMgr==NULL)
   {
-    die(0xab52c);
+    ASSERT(FALSE);
     return FALSE;
   }
 
@@ -1635,7 +1686,11 @@ long WallSetSlotMemType::GetWallSurface()
           path = "wa_" + name;
 
 #ifdef UAFEngine
+#ifdef SIMPLE_STRUCTURE
           if ((wallSurface = GraphicsMgr.AddFileSurface(path, WallDib, rte.WallArtDir())) >= 0)
+#else
+          if ((wallSurface = GraphicsMgr.AddFileSurface(path, WallDib, rte.WallArtDir())) >= 0)
+#endif
 #else
           if ((wallSurface = GraphicsMgr.AddFileSurface(path, WallDib, rte.WallArtDir(), ede.TemplateWallArtDir())) >= 0)
 #endif

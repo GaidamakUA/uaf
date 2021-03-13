@@ -20,8 +20,8 @@
 #define __CHAR_H__
 
 #include "class.h"
-#include "items.h"
-#include "spell.h"
+#include "Items.h"
+#include "Spell.h"
 #include "Property.h"
 #ifdef UAFEngine
 #include "../UAFWin/CombatSummary.h"
@@ -158,7 +158,7 @@ inline BYTE IndexToFlag(BYTE index)
   case 6: return DruidFlag;break;
   case 7: return AllClasses;break;
   }
-  ASS ERT(FALSE);
+  ASSERT(FALSE);
   return 0;
 }
 
@@ -175,7 +175,7 @@ inline BYTE FlagToIndex(BYTE flag)
   case DruidFlag:     return 6;break;
   case AllClasses:    return 7;break;
   }
-  ASS ERT(FALSE);
+  ASSERT(FALSE);
   return 0;
 }
 
@@ -234,17 +234,13 @@ class BASECLASS_STATS
 {
 public:
   BASECLASS_STATS(void);
-  int CurExperience(void) const;
-  int IncCurExperience(int exp);
 
   BASECLASS_ID baseclassID;
-  mutable const BASE_CLASS_DATA *pBaseclassData;  // temporary....not serialized
   int currentLevel;
   int temp__origLevel; // Temporary....not serialized
   int previousLevel;
   int preDrainLevel;
-  int x_experience;
-
+  int experience;
 
   CArchive& Serialize(CArchive& ar);
   CAR&      Serialize(CAR& car, const CString& version);  // Added 20121208 PRS
@@ -259,7 +255,7 @@ public:
     if (currentLevel  != bcs.currentLevel)  return FALSE;
     if (previousLevel != bcs.previousLevel) return FALSE;
     if (preDrainLevel != bcs.preDrainLevel) return FALSE;
-    if (x_experience    != bcs.x_experience)    return FALSE;
+    if (experience    != bcs.experience)    return FALSE;
     return TRUE;
   };
 };
@@ -308,12 +304,12 @@ public:
       bonus[i] = 0;
       baseclassLevel[i] = 0;
     };
-    maxAbilitySpellLevel = 0;
+    maxSpellLevel = 0;
     maxSpells = 0;
   };
 
   SCHOOL_ID schoolID;
-  int maxAbilitySpellLevel; // Max spell level based on ability score.
+  int maxSpellLevel; // Max spell level based on ability score.
   int maxSpells;     // Total number of spells based on ability score.
   int base[MAX_SPELL_LEVEL];
   int bonus[MAX_SPELL_LEVEL];
@@ -395,9 +391,6 @@ public:
   void operator =(const ABILITY_ADJUSTMENT& src);
 };
 #endif
-
-
-
 
 class CHARACTER //: public CObject
 {
@@ -535,7 +528,7 @@ public:
   void buyItem(const ITEM_ID& itemID, costFactorType type);
   void payForItem(int moneyCost, itemClassType moneyType, int gems=0, int jewelry=0);
   int  IsIdentified(int key, int num);
-  bool CanReady(int itemKey);
+  bool CanReady(int index);
   BOOL toggleReadyItem(int item);
   void ReadyBestWpn(int dist, BOOL isLargeTarget);
 #ifdef UAFEngine
@@ -544,33 +537,32 @@ public:
   void ReadyBestShield();
   void ReadyBestArmor();
   void ReadyBestAmmo(BOOL isLargeTarget);
-  BOOL ReadyItemByLocation(DWORD rdyLoc, int index, bool specAbsOK);
-  void UnreadyItemByLocation(DWORD rdyLoc, bool specAbsOK);
-  //void ReadyXXX        (itemReadiedLocation rdyLoc, char *scriptName, int index);
-  void ReadyXXXScript        (DWORD rdyLoc, char *scriptName, int index);
-  void UnReadyXXXScript      (char *scriptName, int index);
-  void ReadyWeaponScript     (int index);
-  void UnReadyWeaponScript   (int index);
-  void ReadyShieldScript     (int index);
-  void UnReadyShieldScript   (int index);
-  void ReadyArmorScript      (int index);
-  void UnReadyArmorScript    (int index);
-  void ReadyGauntletsScript  (int index);
-  void UnReadyGauntletsScript(int index);
-  void ReadyHelmScript       (int index);
-  void UnReadyHelmScript     (int index);
-  void ReadyBeltScript       (int index);
-  void UnReadyBeltScript     (int index);
-  void ReadyRobeScript       (int index);
-  void UnReadyRobeScript     (int index);
-  void ReadyCloakScript      (int index);
-  void UnReadyCloakScript    (int index);
-  void ReadyBootsScript      (int index);
-  void UnReadyBootsScript    (int index);
-  void ReadyRingScript       (int index);
-  void UnReadyRingScript     (int index);
-  void ReadyAmmoScript       (int index);
-  void UnReadyAmmoScript     (int index);
+  BOOL ReadyItemByType(itemReadiedType type, int index, bool specAbsOK);
+  void UnreadyItemByType(itemReadiedType type, bool specAbsOK);
+  void ReadyXXX        (itemReadiedType, char *scriptName, int index);
+  void UnReadyXXX      (char *scriptName, int index);
+  void ReadyWeapon     (int index);
+  void UnReadyWeapon   (int index);
+  void ReadyShield     (int index);
+  void UnReadyShield   (int index);
+  void ReadyArmor      (int index);
+  void UnReadyArmor    (int index);
+  void ReadyGauntlets  (int index);
+  void UnReadyGauntlets(int index);
+  void ReadyHelm       (int index);
+  void UnReadyHelm     (int index);
+  void ReadyBelt       (int index);
+  void UnReadyBelt     (int index);
+  void ReadyRobe       (int index);
+  void UnReadyRobe     (int index);
+  void ReadyCloak      (int index);
+  void UnReadyCloak    (int index);
+  void ReadyBoots      (int index);
+  void UnReadyBoots    (int index);
+  void ReadyRing       (int index);
+  void UnReadyRing     (int index);
+  void ReadyAmmo       (int index);
+  void UnReadyAmmo     (int index);
 
   int poolCharacterGold();
   BOOL enoughMoney(int moneyCost, int gemCost=0, int jewelryCost=0, itemClassType moneyType=PlatinumType);
@@ -591,7 +583,7 @@ public:
                            int dmgDice, 
                            int dmgDiceQty, 
                            int dmgBonus, 
-                           spellSaveVersusType spellSave, 
+                           spellSaveVsType spellSave, 
                            int saveBonus,
                            CHARACTER *pAttacker);
   void giveCharacterDamage(int damage); // non-combat damage
@@ -608,11 +600,6 @@ public:
   void UpdateLevelBasedStats(void);
   void UpdateSkillBasedStats(void);
   void UpdateSpellAbility(void);
-#ifdef OldDualClass20180126
-  void UpdateSpellAbilityForBaseclass(const BASE_CLASS_DATA *pBaseclass, int effectiveBaseclassLevel);
-#else
-  void UpdateSpellAbilityForBaseclass(const BASECLASS_STATS *pBaseclassStats);
-#endif
 
   BOOL CanBeModified();
   void generateNewCharacter(DWORD StartExperience, int StartExpType);
@@ -641,28 +628,17 @@ public:
   void TrainCharacter(const CArray<TRAINABLE_BASECLASS, TRAINABLE_BASECLASS&> *pTrainableBaseclasses);
   //BOOL CanChangeClassHuman();  
   //BOOL CanChangeClass();  
-  BOOL CanChangeToClass(const CLASS_DATA *pFromClass,
-                        const CLASS_DATA *pToClass);
+  BOOL CanChangeToClass(const CLASS_DATA *pClass);
   int  CreateChangeClassList(CArray<CLASS_ID, CLASS_ID&> *pClassArray);
   //void HumanChangeClass(classType newClass);
   //classType GetPreviousClass() const;
-  //20180126 BASECLASS_ID GetPreviousBaseclass(void) const;
+  BASECLASS_ID GetPreviousBaseclass(void) const;
   void HumanChangeClass(const CLASS_ID& classID);
-#ifdef OldDualClass20180126
   CLASS_ID GetPreviousClass() const;
   BYTE GetPreviousClassLevel() const;
-#endif
-#ifdef OldDualClass20180126
-  20180126  BOOL CanUsePrevClass() const;
-   following added 20180126  
-#else
-  BOOL CanUseBaseclass(const BASECLASS_STATS *pBaseclassStats) const ;
-  BOOL CanUseBaseclass(BASECLASS_ID baseclassID) const;
-#endif
-#ifdef OldDualClass20180126
-  //mutable int  temp__canUsePrevClass; // Not serialiized
-                                // -1=unknown;  0=FLASE;  1=TRUE
-#endif
+  BOOL CanUsePrevClass() const;
+  mutable int  temp__canUsePrevClass; // Not serialiized
+                              // -1=unknown;  0=FLASE;  1=TRUE
   BOOL IsDualClass() const;
   /*
   BOOL CanDualClassCleric() const;
@@ -723,43 +699,34 @@ public:
                                 CString *displayText,
                                 BOOL *spellSucceeded,
                                 InvokeSpellOptions *invokeOptions,
-                                bool abortIfSetPartyXY,
-                                ToHitComputation *pToHitComputation);
+                                bool abortIfSetPartyXY);
 
   void ApplySpellEffectAdjustments(DWORD /*flags*/, IF_KEYWORD_INDEX key, int &val) const;
   double ModifyByDouble(IF_KEYWORD_INDEX ifKey, double modifiecation);
   BOOL AddSpellEffect(SPELL_EFFECTS_DATA &data, 
                       const CHARACTER *pAttacker,
-                      InvokeSpellOptions *pInvokeOptions,
-                      LPCSTR comment);
-  BOOL AddLingeringSpellEffect(SPELL_EFFECTS_DATA &data, const CHARACTER *pAttacker,LPCSTR comment);
+                      InvokeSpellOptions *pInvokeOptions);
+  BOOL AddLingeringSpellEffect(SPELL_EFFECTS_DATA &data, const CHARACTER *pAttacker);
   BOOL AddSpecAb(SPELL_EFFECTS_DATA &data);
   BOOL AddTemporaryEffect(const CString& attrName,
                           const CString& timeUnits,
                           int            duration,
                           int            delta,
                           const CString& text,
-                          const CString& source,
-                          LPCSTR comment);
+                          const CString& source);
   BOOL RemoveTemporaryEffect(const CString& mask);
-  BOOL CHARACTER::DoesSavingThrowSucceed(SPELL_DATA *pSdata,
-                                         SAVING_THROW_DATA &stData, 
-                                         BOOL friendlyFire,
-                                         CHARACTER *pCaster,
-                                         CString *displayText);
-
   void CalcSpellEffectChangeValue(SPELL_DATA *spData, 
-                                  SPELL_EFFECTS_DATA &seData, 
+                                  SPELL_EFFECTS_DATA &data, 
                                   BOOL friendlyFire,
                                   CHARACTER *pCaster);
   BOOL RemoveSpellByName(const CString &sname);
 
-  BOOL RemoveSpellEffect(DWORD parent, const SPELL_DATA *pSpell, bool endSpell);  
+  BOOL RemoveSpellEffect(DWORD parent, SPELL_DATA *pSpell);  
 
   CString RemoveSpellEffect(const CString& SEIdentifier);
   void CheckForExpiredSpellEffects();
   
-  CString RunSEScripts(const CString& scriptName, LPCSTR comment);
+  CString RunSEScripts(const CString& scriptName);
   CString ForEachPossession(const CString& scriptName);
   void RemoveAllEffectsFor(const CString &AttrName);
   void RemoveSpecAb(SPELL_EFFECTS_DATA &data);
@@ -852,19 +819,25 @@ public:
   BYTE GetCurrentLevel(const BASECLASS_ID& baseclassID) const;// ID="" means return max level for all class types
   //int  CurrentBaseclassLevel(unsigned int baseClass) const;
   int  CurrentBaseclassLevel(const BASECLASS_ID& baseclassID) const;
-
 /*
+  BYTE GetPrevLevel(WORD ClassFlag) const;
+  BYTE GetPreDrainLevel(WORD ClassFlag) const;
+  void SetCurrentLevel(WORD ClassFlag, int lvl);
+  void SetPrevLevel(WORD ClassFlag, int lvl);
+  void SetPreDrainLevel(WORD ClassFlag, int lvl);
+  int IncCurrentLevel(WORD ClassFlag, int inc=1);
+  int IncPrevLevel(WORD ClassFlag, int inc=1);
+  int IncPreDrainLevel(WORD ClassFlag, int inc=1);
+*/
   BYTE GetPrevLevel(const BASECLASS_ID& baseclassID) const;
   BYTE GetPreDrainLevel(const BASECLASS_ID& baseclassID) const;
-*/
   void SetCurrentLevel(const BASECLASS_ID& baseclassID, int lvl);
-/* 
   void SetPrevLevel(const BASECLASS_ID& baseclassID, int lvl);
   void SetPreDrainLevel(const BASECLASS_ID& baseclassID, int lvl);
   int IncCurrentLevel(const BASECLASS_ID& baseclassID, int inc=1);
   int IncPrevLevel(const BASECLASS_ID& baseclassID, int inc=1);
   int IncPreDrainLevel(const BASECLASS_ID& baseclassID, int inc=1);
-*/
+
   
   int GetHitBonus() const { return hitBonus; }
   //int GetAdjHitBonus(GLOBAL_ITEM_ID weaponID, int distance, DWORD flags=DEFAULT_SPELL_EFFECT_FLAGS) const;
@@ -875,10 +848,26 @@ public:
   void SetDmgBonus(int val);
 
   void ComputeCharSavingThrows();
-  BOOL DidSaveVersus(spellSaveVersusType type, int bonus, SPELL_DATA *pSpell, CHARACTER *pAttackerr);
+  BOOL DidSaveVs(spellSaveVsType type, int bonus, SPELL_DATA *pSpell, CHARACTER *pAttackerr);
   int GetMagicResistance() const { return magicResistance; }
   int GetAdjMagicResistance(DWORD flags=DEFAULT_SPELL_EFFECT_FLAGS) const;
   void SetMagicResistance(int val);
+//  int GetSaveVsPPDM() const { return saveVsParPsnDMag; }
+  int GetAdjSaveVsPPDM(DWORD flags=DEFAULT_SPELL_EFFECT_FLAGS) const;
+//  void SetSaveVsPPDM(int val);
+//  int GetSaveVsPP() const { return saveVsPetPoly; }
+  int GetAdjSaveVsPP(DWORD flags=DEFAULT_SPELL_EFFECT_FLAGS) const;
+//  void SetSaveVsPP(int val);
+//  int GetSaveVsRSW() const { return saveVsRdStWnd; }
+  int GetAdjSaveVsRSW(DWORD flags=DEFAULT_SPELL_EFFECT_FLAGS) const;
+//  void SetSaveVsRSW(int val);
+//  int GetSaveVsBr() const { return saveVsBreath; }
+  int GetAdjSaveVsBr(DWORD flags=DEFAULT_SPELL_EFFECT_FLAGS) const;
+//  void SetSaveVsBr(int val);
+//  int GetSaveVsSp() const { return saveVsSpell; }
+  int GetAdjSaveVsSp(DWORD flags=DEFAULT_SPELL_EFFECT_FLAGS) const;
+//  void SetSaveVsSp(int val);
+
   genderType GetGender() const { return gender; }
   //classType GetClass() const { return charClass; }
   CLASS_ID GetClass() const { return classID; }
@@ -886,7 +875,7 @@ public:
   alignmentType GetAlignment() const { return alignment; }
   charStatusType GetStatus() const { return status; }
   //undeadType GetUndeadType() const { return undead; }
-  CString GetUndeadType() const { return undeadType.IsEmpty()?"none":undeadType; }
+  CString GetUndeadType() const { return undeadType; }
   creatureSizeType GetSize() const { return creatureSize; }
   BOOL GetAllowInCombat() const { return allowInCombat; }
 
@@ -906,7 +895,7 @@ public:
   void SetAlignment(alignmentType val) { alignment=val; }
   void SetStatus(charStatusType val) { status=val; if (status==Dead) m_spellEffects.RemoveAll(); }
   //void SetUndead(undeadType val) { undead=val; }
-  void SetUndead(const CString& uType) { undeadType=uType; }
+  void SetUndead(const CString& type) { undeadType=type; }
   void SetSize(creatureSizeType val) { creatureSize=val; }
   void SetAllowInCombat(BOOL allow) { allowInCombat=allow; }
 
@@ -1050,7 +1039,6 @@ public:
   RACE_ID RaceID(void) const {return race;};
   //void race(raceType race);
   void RaceID(const RACE_ID& raceID){race = raceID;};
-  const RACE_DATA *PeekRaceData(void) const; // Loud alert if race not defined
 
   void getCharTHAC0();
   int GetTHAC0(void) const;
@@ -1081,8 +1069,6 @@ public:
   int GetAge() const { return age; }
   int GetAdjAge(DWORD flags=DEFAULT_SPELL_EFFECT_FLAGS) const;
   void SetAge(int val);
-  int GetIconIndex() const {return iconIndex;};
-  void SetIconIndex(int val) {iconIndex = val;};
   int GetBirthday() const { return birthday; }
   void SetBirthday(int bday); // day 1-365
   int GetMaxAge() const { return maxAge; }
@@ -1093,11 +1079,7 @@ public:
 
   int determineMaxMovement();
   BYTE GetMaxMovement() const { return maxMovement; }
-  BYTE GetAdjMaxMovement(DWORD flags, LPCTSTR comment) const;
-  BYTE GetAdjMaxMovement_GPDL(DWORD flags=DEFAULT_SPELL_EFFECT_FLAGS) const
-  {
-    return GetAdjMaxMovement(flags, "Script function $GET_CHAR_MAXMOVE()");
-  };
+  BYTE GetAdjMaxMovement(DWORD flags=DEFAULT_SPELL_EFFECT_FLAGS) const;
   void SetMaxMovement(int val);
 
   BOOL IsReadyToTrain(const BASECLASS_STATS *pBaseclassStats) const;
@@ -1113,9 +1095,7 @@ public:
   //int GetCurrExp(int classflag);
   //int GetCurrExp(const CString& baseclassName);
   int GetCurrExp(const BASECLASS_ID& baseclassID);
-#ifdef UAFEDITOR
   void ClearExperience(void);
-#endif
   //void SetCurrExp(int classflag, int exp);
   //void SetCurrExp(const CString& baseclassName, int exp);
   int SetCurrExp(const BASECLASS_ID& baseclassID, int exp);
@@ -1235,17 +1215,15 @@ public:
   mCList<SPELL_EFFECTS_DATA, SPELL_EFFECTS_DATA&> m_spellEffects;
   SPECIAL_ABILITIES specAbs;
   CString RunCharacterScripts(
-                     LPCSTR          scriptName, 
+                     LPCSTR scriptName, 
                      enum CBRESULT (*fnc)(enum CBFUNC func, CString *scriptResult, void *pkt),
-                     void           *pkt,
-                     LPCSTR          comment
+                     void *pkt
                              ) const
   {
         return specAbs.RunScripts(scriptName, 
                                   fnc,
                                   pkt,
-                                  comment,
-                                  ScriptSourceType_Character,
+                                  "CHARACTER",
                                   name);
 
   };
@@ -1257,7 +1235,6 @@ protected:
 public:
   SPELL_ABILITY spellAbility;  // A summary of this character's spell abilities
                                // at his current baseclass levels and ability scores.
-                               // Not serialized.  Temporary.
   int     GetSpellCount(void) const {return m_spellbook.GetCount();};
    void    ClearSpellbook(void){m_spellbook.Clear();};
 //   BOOL    GetSpell           (GLOBAL_SPELL_ID gsID, CHARACTER_SPELL &spell)
@@ -1345,8 +1322,11 @@ public:
                                                           level, 
                                                           known);
                           };
-   BOOL                 KnowSpellyyy(const SPELL_DATA *pSpell,
-                                  BOOL know);
+   BOOL                 KnowSpell(const SPELL_DATA *pSpell,
+                                  BOOL known) 
+                        {
+                          return m_spellbook.KnowSpell(pSpell, known);
+                        };
    void                 CopySpellbook(spellBookType& b){m_spellbook=b;};
    void                 UnselectIfNotMemorized(void){m_spellbook.UnselectIfNotMemorized();};
 #ifdef newCombatant
@@ -1383,7 +1363,7 @@ public:
      if (i < 0) return FALSE;
      const SCHOOL_ABILITY *pSchoolAbility;
      pSchoolAbility = spellAbility.PeekSchoolAbility(i);
-     if (spellLevel <= pSchoolAbility->maxAbilitySpellLevel)
+     if (spellLevel <= pSchoolAbility->maxSpellLevel)
      {
        return TRUE;
      };
@@ -1403,7 +1383,7 @@ public:
   bool AddKnowableSpell(const CString& uniqueName);
   bool DelKnowableSpell(const CString& uniqueName);
   bool ClrKnowableSpell(void);
-  void ComputeAIBaseclass(void);
+  
 
 protected: // attributes of a character
 
@@ -1432,10 +1412,6 @@ public:
                             // Moved here from COMBATANT to work with spells
                             // outside of combat 
                             // level of character casting m_spellIDBeingCast
-  int AIBaseclass;  // Not serialized.  Initialized to -1 to indicate
-                    // that it has not been computed.
-                    // This is the bitwise OR of the character's
-                    // baseclass SpecialAbilities named "AIBaseclass".
   BOOL readyToTrain;
   BOOL canTradeItems; // can restrict player from taking NPC items
   BOOL automatic;  // combat only, true means control with AI instead of player control
@@ -1482,6 +1458,16 @@ public:
   mutable int constitution_adjustment;
   mutable int charisma_adjustment;
 protected:
+  // keys into abilityData database
+  // no need to serialize these, they are initialized
+  // at runtime
+  //abilityType strengthKey;
+  //abilityType intelligenceKey;
+  //abilityType wisdomKey;
+  //abilityType dexterityKey;
+  //abilityType constitutionKey;
+  //abilityType charismaKey;
+
   int encumbrance;
 	int maxEncumbrance;
 
@@ -1492,15 +1478,58 @@ protected:
   
   // saving throw values
 	int magicResistance;  // only monsters have non-zero mr
+	//int saveVsParPsnDMag; // paralysis, poison, death magic
+	//int saveVsPetPoly;    // petrify, polymorph
+	//int saveVsRdStWnd;    // rod, staff, wand
+	//int saveVsBreath;     // breath weapon
+	//int saveVsSpell;      // spell
 
   int morale;	 // 0-100, higher is better
   int m_iMaxCureDisease; // uses per day, 0=none
   int m_iUsedCureDisease; // times used this day (not serialized or used yet!)
 
+  // thief attributes, 0-100 percentage
+	//int pickPockets;
+	//int openLocks;
+	//int findRemoveTrap;
+	//int moveSilent;
+	//int hideInShadows;
+	//int hearNoise;
+	//int climbWalls;
+	//int readLanguages;
+
   // attributes based on strength
   BYTE openDoors;      // locked doors
   BYTE openMagicDoors; // wizard locked doors
   BYTE BB_LG;	         // bend bars - lift gates
+/*
+   // current levels (more than one set for Multi-Class)
+	BYTE FighterLevel;
+	BYTE ClericLevel;
+	BYTE RangerLevel;
+	BYTE PaladinLevel;
+	BYTE MULevel;
+	BYTE ThiefLevel;
+  BYTE DruidLevel;
+
+	// levels attained before changing class (Dual-Class)
+	BYTE prevFighterLevel;
+	BYTE prevClericLevel;
+	BYTE prevRangerLevel;
+	BYTE prevPaladinLevel;
+	BYTE prevMULevel;
+	BYTE prevThiefLevel;
+  BYTE prevDruidLevel;
+
+	// pre-drain levels
+	BYTE pdFighterLevel;
+	BYTE pdClericLevel;
+	BYTE pdRangerLevel;
+	BYTE pdPaladinLevel;
+	BYTE pdMULevel;
+	BYTE pdThiefLevel;
+  BYTE pdDruidLevel;
+*/
   mCArray<BASECLASS_STATS, BASECLASS_STATS&> baseclassStats;
 public:
   DEFINE_mCARRAY_ACCESS_FUNCTIONS(BaseclassStats,   /* array data name      */ \
@@ -1520,14 +1549,44 @@ public:
                                   CHARACTER)         /* type of *this        */
   
   void DeleteSkillAdj(int indx);
-  int  LocateSkillAdj(const CString& skillName, const CString& adjName) const;
-  //void ApplyTempSkillAdjustments(const CString& skillID, int *skillValue) const;
-  void ApplyTempSkillAdjustments(SKILL_COMPUTATION& SC) const;
-  int  InsertSkillAdj(const CString& skillName, const CString&adjName, char type, int value);
+  int  LocateSkillAdj(const SKILL_ID& skillId, const CString& adjName) const;
+  int  InsertSkillAdj(const SKILL_ID& skillID, const CString&adjName, char type, int value);
+  double UpdateSkillValue(const SKILL_ID& skillID, double val) const;
+  int    GetAdjSkillValue(const SKILL_ID& skillID);
   /*
-  void UpdateSkillValuex(SKILL_COMPUTATION& SC) const;
-  */
-  int    GetAdjSkillValue(const CString& skillName, bool minimize, bool includeTempAdj) const;
+  int LocateBaseclassStats(const BASECLASS_ID& baseclassID) const
+  {
+    int i,n;
+    n = GetBaseclassStatsCount();
+    for (i=0; i<n; i++)
+    {
+      if (baseclassStats[i].baseclassID == baseclassID) return i;
+    };
+    return -1;
+  };
+  const BASECLASS_STATS *PeekBaseclassStats(int baseclassIndex) const
+  {
+    return &(const_cast<CHARACTER *>(this)->baseclassStats[baseclassIndex]);
+  };
+  const BASECLASS_STATS *PeekBaseclassStats(const BASECLASS_ID& baseclassID) const
+  {
+    int i;
+    i = LocateBaseclassStats(baseclassID);
+    if (i < 0) return NULL;
+    return PeekBaseclassStats(i);
+  };
+        BASECLASS_STATS *GetBaseclassStats(int baseclassIndex)
+  {
+    return &(const_cast<CHARACTER *>(this)->baseclassStats[baseclassIndex]);
+  };
+        BASECLASS_STATS *GetBaseclassStats(const BASECLASS_ID& baseclassID)
+  {
+    int i;
+    i = LocateBaseclassStats(baseclassID);
+    if (i < 0) return NULL;
+    return GetBaseclassStats(i);
+  };
+*/
 
 protected:
 
@@ -1660,7 +1719,7 @@ public:
 #ifdef UAFEDITOR
   void CrossReference(CR_LIST *pCRList) const;
   void Export(void);
-  bool Import(BOOL quiet);
+  void Import(void);
 #endif
   //BOOL HaveKey(int index);
   BOOL HaveCharacter(const CHARACTER_ID& characterID) const;

@@ -21,7 +21,7 @@
 #ifdef UAFEDITOR
 #else
 #endif
-#include "externs.h"
+#include "Externs.h"
 #include "Timer.h"
 
 #ifdef _DEBUG

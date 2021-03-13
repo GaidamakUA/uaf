@@ -20,8 +20,8 @@
 #define __CLASS_H__
 
 #include "SharedQueue.h"
-#include "specAb.h"
-#include "items.h"
+#include "Specab.h"
+#include "Items.h"
 
 
 #define MAX_RACES 9999
@@ -125,7 +125,7 @@ enum eventTurnUndeadModType;
 enum passwordActionType;
 enum eventPartyAffectType;
 enum spellSaveEffectType;
-enum spellSaveVersusType;
+enum spellSaveVsType;
 enum takeItemQtyType;
 enum takeItemsAffectsType;
 enum taleOrderType;
@@ -140,9 +140,6 @@ enum QuestStateType;
 enum QuestAcceptType;
 enum MappingType;
 enum charStatusType;
-enum ACTION;
-enum ACTION_CONDITION;
-enum VALUE_MODIFICATION;
 
 #ifdef UAFEDITOR
 #define JWTAB 3
@@ -220,7 +217,7 @@ class JWriter
   void NameAndEnum(const char *name, const passwordActionType& value);
   void NameAndEnum(const char *name, const eventPartyAffectType& value);
   void NameAndEnum(const char *name, const spellSaveEffectType& value);
-  void NameAndEnum(const char *name, const spellSaveVersusType& value);
+  void NameAndEnum(const char *name, const spellSaveVsType& value);
   void NameAndEnum(const char *name, const takeItemsAffectsType& value);
   void NameAndEnum(const char *name, const takeItemQtyType& value);
   void NameAndEnum(const char *name, const taleOrderType& value);
@@ -234,9 +231,6 @@ class JWriter
   void NameAndEnum(const char *name, QuestAcceptType& value);
   void NameAndEnum(const char *name, const MappingType& value);
   void NameAndEnum(const char *name, const charStatusType& value);
-  void NameAndEnum(const char *name, const VALUE_MODIFICATION& value);
-  void NameAndEnum(const char *name, const ACTION_CONDITION& value);
-  void NameAndEnum(const char *name, const ACTION& value);
   void NameAndFlags(const char *name, const BYTE& value, int num, const char *text[]);
   void NameAndFlags(const char *name, const DWORD& value, int num, const char *text[]);
   void NameAndBool(const char *name, const BOOL& value){NameAndBool(name, value!=0);};
@@ -426,7 +420,7 @@ public:
   bool    NameAndEnum(const char *name, encounterButtonResultType& value);
   bool    NameAndEnum(const char *name, labelPostChainOptionsType& value);
   bool    NameAndEnum(const char *name, spellSaveEffectType& value);
-  bool    NameAndEnum(const char *name, spellSaveVersusType& value);
+  bool    NameAndEnum(const char *name, spellSaveVsType& value);
   bool    NameAndEnum(const char *name, passwordActionType& value);
   bool    NameAndEnum(const char *name, MathOperationType& value);
   bool    NameAndEnum(const char *name, MultiItemCheckType& value);
@@ -439,9 +433,6 @@ public:
   bool    NameAndEnum(const char *name, MappingType& value);
   bool    NameAndEnum(const char *name, QuestAcceptType& value);
   bool    NameAndEnum(const char *name, charStatusType& value);
-  bool    NameAndEnum(const char *name, VALUE_MODIFICATION& value);
-  bool    NameAndEnum(const char *name, ACTION_CONDITION& value);
-  bool    NameAndEnum(const char *name, ACTION& value);
   bool    NameAndFlags(const char *name, BYTE& value, int num, const char *text[]);
   bool    NameAndFlags(const char *name, DWORD& value, int num, const char *text[]);
   bool    NameAndBool(const char *name, BOOL& value);
@@ -473,7 +464,6 @@ public:
 
 class CAR //: public CArchive
 {
-public:
   CArchive ar;
 public:
   inline BOOL IsStoring(void){return ar.IsStoring();};     //Added 20121208 PRS
@@ -497,7 +487,7 @@ public:
     }
     else
     {
-      die("Not Needed?"); // Not Implemented(0xc3a17, false);
+      NotImplemented(0xc3a17, false);
       return FALSE;
     };
   };
@@ -876,7 +866,6 @@ public:
   void PreSerialize(BOOL IsStoring);
   int Serialize(CAR& car);
   int Serialize(CArchive& car);
-  void CrossReference(class CR_LIST *pCRList, class CR_REFERENCE *pCRReference)const;
   //void AddAdjust(int value, const CString& name);
   //void AddAdjust(ADJUSTMENT& adjust);
   void AddAdjust(CString &name);
@@ -1005,7 +994,6 @@ public:
   void Clear(void);
   void PreSerialize(BOOL IsStoring);
   int Serialize(CAR& car);
-  void CrossReference(class CR_LIST* pCRList, class CR_REFERENCE* pCRReference) const;
 
   //abilityType GetKey(void) const { return m_ability.m_abilityKey; }
   //CString Name(void) const { return m_ability.m_abilityName; }
@@ -1043,7 +1031,6 @@ struct SKILL
   SKILL_ID skillID;
   int  value;
   void Serialize(CAR& car); // Added 20121208 PRS
-  void CrossReference(class CR_LIST* pCRList, class CR_REFERENCE* pCRReference)const;
   void Encode(CONFIG_PKT *pkt) const;
   void Decode(CONFIG_PKT *pkt);
 };
@@ -1056,7 +1043,6 @@ struct BONUS_XP
   int          bonus[HIGHEST_CHARACTER_PRIME];
   char         bonusType; // eg: '%' for percentage
   CAR&         Serialize(CAR& car);
-  void CrossReference(class CR_LIST* pCRList, class CR_REFERENCE* pCRReference)const;
   //void         UpdateSkillValue(const CHARACTER *pChar, double *val) const;
   BOOL         operator ==(const BONUS_XP& b) const
   {
@@ -1076,9 +1062,7 @@ struct SKILL_ADJUSTMENT_ABILITY
   short        skillAdj[HIGHEST_CHARACTER_PRIME];
   char         adjType; // eg: '%' for percentage
   CAR&         Serialize(CAR& car);
-  //void         UpdateSkillValue(const CHARACTER *pChar, double baseVal, bool minimize) const;
-  void CrossReference(class CR_LIST* pCRList, class CR_REFERENCE* pCRReference)const;
-  void         UpdateSkillValue(SKILL_COMPUTATION& SC) const;
+  double       UpdateSkillValue(const CHARACTER *pChar, double val) const;
   BOOL         operator ==(const SKILL_ADJUSTMENT_ABILITY& s) const
   {
     return     (skillID==s.skillID)
@@ -1097,12 +1081,7 @@ struct SKILL_ADJUSTMENT_BASECLASS
   short        skillAdj[HIGHEST_CHARACTER_LEVEL];
   char         adjType;
   CAR&         Serialize(CAR& car);
-  void CrossReference(class CR_LIST* pCRList, class CR_REFERENCE* pCRReference)const;
-  //void         UpdateSkillValue(int baseclassLevel, 
-  //                              double baseVal, 
-  //                              double *pBestBaseclassAdj,
-  //                              bool minimize) const;
-  void         UpdateSkillValue(SKILL_COMPUTATION& SC) const; 
+  double       UpdateSkillValue(int baseclassLevel, double val) const;
   BOOL         operator ==(const SKILL_ADJUSTMENT_BASECLASS& s) const
   {
     return     (skillID==s.skillID)
@@ -1121,9 +1100,7 @@ struct SKILL_ADJUSTMENT_RACE
   short        skillAdj;
   char         adjType;
   CAR&         Serialize(CAR& car);
-  //void         UpdateSkillValue(double val, double *pBestAdjRace) const;
-  void CrossReference(class CR_LIST* pCRList, class CR_REFERENCE* pCRReference)const;
-  void         UpdateSkillValue(SKILL_COMPUTATION& SC) const;
+  double       UpdateSkillValue(double val) const;
   BOOL         operator ==(const SKILL_ADJUSTMENT_RACE& s) const
   {
     return     (skillID==s.skillID)
@@ -1141,7 +1118,6 @@ struct SKILL_ADJUSTMENT_SCRIPT
   CString      specialAbilityName;
   CString      scriptName;
   CAR&         Serialize(CAR& car);
-  void CrossReference(class CR_LIST* pCRList, class CR_REFERENCE* pCRReference)const;
   double       UpdateSkillValue(double val) const;
   BOOL         operator ==(const SKILL_ADJUSTMENT_SCRIPT& s) const
   {
@@ -1230,24 +1206,25 @@ public:
                                   SKILL_ADJUSTMENT_SCRIPT,  /* array data type      */ \
                                   RACE_DATA)                /* type of *this        */
 
-void GetSkillValue(SKILL_COMPUTATION& SC) const;
+int GetSkillValue(const SKILL_ID& skillID) const;
 
-void UpdateSkillValue(SKILL_COMPUTATION& SC) const;
+double UpdateSkillValue(const CHARACTER *pChar, 
+                        const SKILL_ID& skillID,
+                        const BASECLASS_ID *pBaseclassID, // Or NULL for all baseclasses
+                        double val) const;
 
 
   
   SPECIAL_ABILITIES m_specAbs;
   CString RunRaceScripts(LPCSTR     scriptName, 
                          CBRESULT (*fnc)(CBFUNC func, CString *scriptResult, void *pkt), 
-                         void      *pkt,
-                         LPCSTR     comment
+                         void      *pkt
                          ) const
   {
     return m_specAbs.RunScripts(scriptName, 
                                 fnc, 
                                 pkt,
-                                comment,
-                                ScriptSourceType_Race, 
+                                "RACE", 
                                 m_name);
   };
 
@@ -1264,9 +1241,7 @@ public:
   int Serialize(CAR &car, const CString& version);
   void PreSerialize(BOOL IsStoring);
   void PostSerialize(BOOL IsStoring);
-#ifdef UAFEDITOR
-  void CrossReference(class CR_LIST *pCRList) const;
-#endif
+
   //void AddAbilityRequirement(ABILITY_LIMITS& abReq);
   void AddAbilityRequirement(ABILITY_REQ& abReq);
   void AddAllowedClass(const CString& className);
@@ -1316,7 +1291,7 @@ public:
   void Save(CArchive& ar);
   void Restore(CArchive& ar); // Restore to temporary location
   void CommitRestore(void);
-  void CrossReference(class CR_LIST* pCRList);
+
   int GetCount() const 
   { 
     //CSingleLock sLock(&m_CS, TRUE); 
@@ -1411,9 +1386,6 @@ modify = 18
 adjust = -1 * Halfling
 \(END)
 */
-
-const double NoSkillAdj = -987656789.0;
-
 class ABILITY_DATA
 {
   friend class ABILITY_DATA_TYPE;
@@ -1424,7 +1396,6 @@ public:
   DICEPLUS m_roll;
   BYTE     m_modify;  // Ability score to modify.  Like Strength = 18(34)
   SPECIAL_ABILITIES m_specAbs;
-  double bestSkillAdj; // Not serialized.  Used temporarily by GetAdjSkillValue.
   bool operator ==(const ABILITY_DATA& src) const;
   ABILITY_DATA& operator =(const ABILITY_DATA& src);
 public:
@@ -1437,9 +1408,6 @@ public:
   int Serialize(CAR& car, const CString& version);
   void PostSerialize(BOOL IsStoring);
   //void AddAdjust(ADJUSTMENT& adjust);
-#ifdef UAFEDITOR
-  void CrossReference(class CR_LIST* pCRList);
-#endif
   void AddAdjust(CString &name);
   BOOL RollAbility(double &result) const;
 };
@@ -1470,15 +1438,12 @@ public:
   void LoadUADefaults(void);
   void PreSerialize (BOOL IsStoring);
   int Serialize (CAR& car);
-  void CrossReference(class CR_LIST* pCRList);
   void PostSerialize (BOOL IsStoring);
   //unsigned int GetCount() { CSingleLock sLock(&m_CS, TRUE); return m_AbilityData.GetCount(); }
   //unsigned int GetCount() { return m_AbilityData.GetCount(); }
   unsigned int GetCount() { return m_abilityData.GetSize(); }
   int GetDataSize(void);  
-  void ClearAdjustments(double val);
-  double TotalAdjustments(double val);
-  //void UpdateSkillValues(SKILL_COMPUTATION& SC);
+
   //abilityType GetKeyByIndex(int index) const;
   //CString GetName(abilityType type) const;
   //CString GetShortName(abilityType type) const;
@@ -1517,7 +1482,6 @@ struct HIT_DICE_LEVEL_BONUS
   char bonusValues[HIGHEST_CHARACTER_PRIME];
   bool operator ==(const HIT_DICE_LEVEL_BONUS& src) const;
   void Serialize(CAR& car);
-  void CrossReference(class CR_LIST *pCRList, class CR_REFERENCE *CRReference) const;
 };
 
 
@@ -1564,14 +1528,12 @@ public:
   SPECIAL_ABILITIES m_specialAbilities;
   CString RunClassScripts(LPCSTR     scriptName, 
                           CBRESULT (*fnc)(CBFUNC func, CString *scriptResult, void *pkt), 
-                          void      *pkt,
-                          LPCSTR     comment) const
+                          void      *pkt) const
   {
     return m_specialAbilities.RunScripts(scriptName, 
                                          fnc, 
                                          pkt,
-                                         comment,
-                                         ScriptSourceType_Class, 
+                                         "CLASS", 
                                          m_name);
   };
 public:
@@ -1622,10 +1584,7 @@ public:
   void PostSerialize(BOOL IsStoring);
   //ABILITYLIMITS GetAbilityLimits(abilityType abtype) const; // Min/Max allowed for this class
   ABILITYLIMITS GetAbilityLimits(ABILITY_ID abilityID) const; // Min/Max allowed for this class
-#ifdef UAFEDITOR
-  void CrossReference(class CR_LIST* pCRList);
-#endif
-    WORD GetAllowedAlignments(void) const;
+  WORD GetAllowedAlignments(void) const;
 
   int GetCharTHAC0(const CHARACTER *pCharacter) const;
   void ComputeCharSavingThrows(const CHARACTER *, int *ppd, int *rsw, int *pp, int *br, int *sp) const;
@@ -1823,24 +1782,39 @@ public:
                                   CASTING_INFO,    /* array data type      */ \
                                   BASE_CLASS_DATA) /* type of *this        */
 
+// Replaced with skill named SaveVsXxxx
+//private:
+//  CArray<SAVE_VS, SAVE_VS&> m_saveVs;
+//public:
+//  DEFINE_CARRAY_ACCESS_FUNCTIONS(SaveVs,          /* array data name      */ \
+//                                 CString,         /* Search variable type */ \
+//                                 versus,          /* search variable name */ \
+//                                 m_saveVs,        /* array name           */ \
+//                                 SAVE_VS,         /* array data type      */ \
+//                                 BASE_CLASS_DATA) /* type of *this        */
+                                 
 
   char THAC0[HIGHEST_CHARACTER_LEVEL];
 
 
   WORD m_allowedAlignments; // Bitmap of 1 << alignmentType
   SPECIAL_ABILITIES m_specAbs;
+  //SCHOOL_ID  spellSchool;
+  //CString m_primeCasting;  // eg: 'Wisdom' or 'Intelligence'
+  //int     m_turnUndeadLevel;
+  //CString m_backstabAbility;
+  //int     m_backstabLevel;
+  //int     m_rangerBonusLevel;
 public:
                                
   CString RunBaseClassScripts(LPCSTR     scriptName, 
                               CBRESULT (*fnc)(CBFUNC func, CString *scriptResult, void *pkt), 
-                              void      *pkt,
-                              LPCSTR     comment) const
+                              void      *pkt) const
   {
     return m_specAbs.RunScripts(scriptName, 
                                 fnc, 
                                 pkt,
-                                comment,
-                                ScriptSourceType_Baseclass, 
+                                "BASECLASS", 
                                 m_name);
   };
   DICEDATA hitDice[HIGHEST_CHARACTER_LEVEL];
@@ -1897,8 +1871,8 @@ public:
 #ifdef UAFEDITOR
 void AddSkillAdjAbility  (const CString& skillName,
                           const CString& abilityName, 
-                          const char  adjType, 
-                          short      *adjustments,
+                          const char adjType, 
+                          const WORD *adjustments,
                           int   size);
 
 void AddSkillAdjBaseclass(const CString& skillName,
@@ -1919,13 +1893,9 @@ void AddDefaultBonusXP   (const CString& abilityName,
                           int   abilityValue,
                           int   bonusValue);
 #endif
-//void UpdateSkillValue(const CHARACTER *pChar, 
-//                      const SKILL_ID& skillID, 
-//                      double baseVal,
-//                      double *bestRaceAdj,
-//                      double *bestBaseclassAdj,
-//                      bool    minimize) const;
-void UpdateSkillValue(SKILL_COMPUTATION& SC) const;
+double UpdateSkillValue(const CHARACTER *pChar, 
+                        const SKILL_ID& skillID, 
+                        double val) const;
 
 
 
@@ -1941,9 +1911,6 @@ void UpdateSkillValue(SKILL_COMPUTATION& SC) const;
   void PostSerialize (BOOL IsStoring);
   //void AddPrimeReq(const CString& reqName);
   //void AddAbilityRequirement(ABILITY_LIMITS& abReq);
-#ifdef UAFEDITOR
-  void CrossReference(class CR_LIST* pCRList) const;
-#endif
   void AddAbilityRequirement(ABILITY_REQ& abReq);
   //void AddAllowedRace(RACE_REFERENCE& race);
   void AddAllowedRace(const RACE_ID& raceID);
@@ -1961,8 +1928,8 @@ void UpdateSkillValue(SKILL_COMPUTATION& SC) const;
   int  GetMinExpForLevel(int level) const;
   int  GetLevel(DWORD exp) const;
 
-  //void ComputeCharSavingThrow(const CString& versus, int *result, int level) const;
-  void GetSkillValue(SKILL_COMPUTATION& SC) const;
+  void ComputeCharSavingThrow(const CString& versus, int *result, int level) const;
+  int  GetSkillValue(const SKILL_ID& skillName) const;
 
 
   CString m_spellBonusAbility;  // Strength, etc.
@@ -2009,7 +1976,6 @@ public:
   void PreSerialize (BOOL IsStoring);
   int Serialize (CAR& car);
   void PostSerialize (BOOL IsStoring);
-  void CrossReference(class CR_LIST* pCRList);
   //unsigned int GetCount() { CSingleLock sLock(&m_CS, TRUE); return m_BaseclassData.GetCount(); }
   int GetCount() const { return m_baseclassData.GetSize(); }
 
@@ -2103,7 +2069,6 @@ public:
   int Serialize (CAR& car);
   void PostSerialize (BOOL IsStoring);
   //unsigned int GetCount() { /*PRS20120119 CSingleLock sLock(&m_CS, TRUE);*/ return m_ClassData.GetCount(); }
-  void CrossReference(class CR_LIST* pCRList);
   int GetCount() const {return m_ClassData.GetSize(); }
 //  CString Name(classType Class); // can't say "class"
 //  int StatMax(classType Class, int statistic);
@@ -2300,14 +2265,12 @@ enum CASTING_ENVIRONMENT
 
 
 struct SPELL_EFFECTS_DATA;
-struct SAVING_THROW_DATA;
 
 class AttributeScriptContexts
 {
   SCRIPT_CONTEXT m_scriptContexts;
 public:
   AttributeScriptContexts(SPELL_EFFECTS_DATA *pSpellEffectsData);
-  AttributeScriptContexts(SAVING_THROW_DATA *pSavingThrowData);
   ~AttributeScriptContexts(void);
   CAR& Serialize(CAR& car);  //Added 20121208 PRS
 };
@@ -2382,9 +2345,9 @@ struct SPELL_EFFECTS_DATA   // Also used for Timed Special Abilities
   void ClearChangeResult(void);
   bool ExecuteActivationScript(void);
   double ExecuteModificationScript(void);
-  //double ExecuteSavingThrowScript(void);
-  //void ExecuteSavingThrowFailedScript(void);
-  //void ExecuteSavingThrowSucceededScript(void);
+  double ExecuteSavingThrowScript(void);
+  void ExecuteSavingThrowFailedScript(void);
+  void ExecuteSavingThrowSucceededScript(void);
   bool CompileScripts(const CString &basename);
   CString GetEffectActivationFuncName(void);
   CString GetEffectModificationFuncName(void);
@@ -2431,24 +2394,24 @@ struct SPELL_EFFECTS_DATA   // Also used for Timed Special Abilities
   void    SavingThrowScript(const CString& s){m_string6=s;};
 
   CString m_string7; // compiled GPDL script    
-  //const CString& SavingThrowBinary(void) const {return m_string7;}; // compiled GPDL script    
-  //void    SavingThrowBinary(const CString& s){m_string7=s;}; // compiled GPDL script    
+  const CString& SavingThrowBinary(void) const {return m_string7;}; // compiled GPDL script    
+  void    SavingThrowBinary(const CString& s){m_string7=s;}; // compiled GPDL script    
 
   CString m_string8;
   const CString& SavingThrowFailedScript(void) const {return m_string8;};
   void    SavingThrowFailedScript(const CString& s){m_string8=s;};
 
   CString m_string9; // compiled GPDL script    
-  //const CString& SavingThrowFailedBinary(void) const {return m_string9;}; // compiled GPDL script    
-  //void    SavingThrowFailedBinary(const CString& s){m_string9=s;}; // compiled GPDL script    
+  const CString& SavingThrowFailedBinary(void) const {return m_string9;}; // compiled GPDL script    
+  void    SavingThrowFailedBinary(const CString& s){m_string9=s;}; // compiled GPDL script    
 
   CString m_string10;
   const CString& SavingThrowSucceededScript(void) const {return m_string10;};
   void    SavingThrowSucceededScript(const CString& s){m_string10=s;};
 
   CString m_string11; // compiled GPDL script   
-  //const CString& SavingThrowSucceededBinary(void) const {return m_string11;}; // compiled GPDL script    
-  //void    SavingThrowSucceededBinary(const CString& s){m_string11=s;}; // compiled GPDL script    
+  const CString& SavingThrowSucceededBinary(void) const {return m_string11;}; // compiled GPDL script    
+  void    SavingThrowSucceededBinary(const CString& s){m_string11=s;}; // compiled GPDL script    
 
 // ****************
 
@@ -2514,7 +2477,7 @@ public:
   DWORD           SourceInteger_ID(void){return m_sourceOfEffect;};
 #endif
 
-  DWORD parent; // key from activeSpellList (identifies the spell that caused this effect)
+  DWORD parent; // key from global list of active spells
                 // Or TIME_UNITS
   DWORD StopTime; // stop time (elapsed game minutes) if not same
                   // as parent spell (Stinking Cloud).
@@ -2566,9 +2529,6 @@ public:
   void PreSerialize(BOOL IsStoring);
   int Serialize(CAR& car, CString& version);
   void PostSerialize(BOOL IsStoring);
-#ifdef UAFEDITOR
-  void CrossReference(class CR_LIST* pCRList);
-#endif
   void AddSpell(const SPELL_ID& spellID);
   void AddSpellgroup(const SPELLGROUP_REFERENCE& spellgroupReference);
 };
@@ -2603,7 +2563,6 @@ public:
   int Serialize (CAR& car);
   void PostSerialize (BOOL IsStoring);
   //unsigned int GetCount() { CSingleLock sLock(&m_CS, TRUE); return m_SpellgroupData.GetCount(); }
-  void CrossReference(class CR_LIST* pCRList);
   unsigned int GetCount() { return m_spellgroups.GetSize(); }
 
   //spellgroupType GetNextSpellgroup();

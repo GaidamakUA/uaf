@@ -21,7 +21,7 @@
 
 //#include "char.h"
 #include "class.h"
-#include "gameevent.h"
+#include "GameEvent.h"
 
 /*
 Valid Classes
@@ -165,6 +165,8 @@ enum charStatusType
 };
 
 
+//enum spellSaveEffectType;
+//enum spellSaveVsType;
 enum creatureSizeType;
 
 extern int START_AGE;
@@ -327,8 +329,8 @@ enum TargetingType {  NowSelf,
 enum spellSaveEffectType { NoSave, SaveNegates, SaveForHalf, UseTHAC0 };
 const int NUM_SAVE_EFFECT_TYPES = 4;
 
-enum spellSaveVersusType { ParPoiDM, PetPoly, RodStaffWand, Sp, BreathWeapon };
-const int  NUM_SAVE_VERSUS_TYPES = 5;
+enum spellSaveVsType { ParPoiDM, PetPoly, RodStaffWand, Sp, BreathWeapon };
+const int  NUM_SAVE_VS_TYPES = 5;
 
 enum spellDurationType { inRounds, byDamageTaken, inHours, inDays, Permanent, byNbrAttacks };
 const int NUM_SPELL_DURATION_TYPES = 6;

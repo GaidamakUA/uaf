@@ -16,20 +16,20 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ******************************************************************************/
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 //#include "..\Shared\Version.h"
 
 #include "RunTimeIF.h"
 
 #include "Char.h"
 #ifdef UAFEngine
-#include "..\UAFWin\combatants.h"
+#include "../UAFWin/Combatants.h"
 #endif
-#include "monster.h"
+#include "Monster.h"
 #include "Level.h"
-#include "party.h"
+#include "Party.h"
 #include "GlobalData.h"
-#include "SpecAb.h"
+#include "Specab.h"
 
 #ifdef UAFEngine
 void die(int);
@@ -72,8 +72,8 @@ ActorType targetContext=NULL_ACTOR;
 CHARACTER NULL_CHAR;
 #ifdef UAFEngine
 COMBATANT NULL_COMBATANT;
-#endif
 CHARACTER FakeCharacter;
+#endif
 
 mCList <ActorType, ActorType> charContextStack;
 //extern "C"
@@ -97,9 +97,7 @@ ActorType GetCharContext(void)
     return *charContextStack.GetHead(); 
   else
   {
-    debugSeverity = 5;
     WriteDebugString("Returning NULL_CHAR in RTI GetCharContext() (empty stack)\n");
-    if (pScriptContext != NULL) pScriptContext->MsgBoxErrorAlert("Missing Character Context");
     return NULL_ACTOR;
   }
 }
@@ -179,45 +177,130 @@ IF_KEYWORD_DATA CHARACTER_IF[MAX_CHARACTER_IF] =
   DEFCHARIF( UNDEAD,       STRING, 0),//25
   DEFCHARIF( SIZE,         BYTE, 0),  //26
   DEFCHARIF( MAGICRESIST,  DWORD, 0), //27
+  //DEFCHARIF( SAVEVSPPDM,   DWORD, 0),
+  //DEFCHARIF( SAVEVSPP,     DWORD, 0),
+  //DEFCHARIF( SAVEVSRSW,    DWORD, 0),
+  //DEFCHARIF( SAVEVSBR,     DWORD, 0),
+  //DEFCHARIF( SAVEVSSP,     DWORD, 0),
+  //DEFCHARIF( CLERICLVL,    DWORD, 1),
+  //DEFCHARIF( FIGHTERLVL,   DWORD, 1),
+  //DEFCHARIF( RANGERLVL,    DWORD, 1),
+  //DEFCHARIF( DRUIDLVL,     DWORD, 1),
+  //DEFCHARIF( PALADINLVL,   DWORD, 1),
+  //DEFCHARIF( THIEFLVL,     DWORD, 1),
+  //DEFCHARIF( MAGICUSERLVL,   DWORD, 1),
+  //DEFCHARIF( CLERICPREVLVL,  DWORD, 1),
+  //DEFCHARIF( FIGHTERPREVLVL, DWORD, 1),
+  //DEFCHARIF( RANGERPREVLVL,  DWORD, 1),
+  //DEFCHARIF( DRUIDPREVLVL,   DWORD, 1),
+  //DEFCHARIF( PALADINPREVLVL, DWORD, 1),
+  //DEFCHARIF( THIEFPREVLVL,   DWORD, 1),
+  //DEFCHARIF( MAGUSERPREVLVL, DWORD, 1),
+  //DEFCHARIF( CLERICPDLVL,    DWORD, 1),
+  //DEFCHARIF( FIGHTERPDLVL,   DWORD, 1),
+  //DEFCHARIF( RANGERPDLVL,  DWORD, 1),
+  //DEFCHARIF( DRUIDPDLVL,   DWORD, 1),
+  //DEFCHARIF( PALADINPDLVL, DWORD, 1),
+  //DEFCHARIF( THIEFPDLVL,   DWORD, 1),
+  //DEFCHARIF( MAGUSERPDLVL, DWORD, 1),
   DEFCHARIF( NBRHITDICE,   FLOAT, 1),  //28
   DEFCHARIF( NBRATTACKS,   FLOAT, 1),  //29
   DEFCHARIF( MORALE,       DWORD, 0),  //30
+  //DEFCHARIF( OPENDOORS,    BYTE, 0),
+  //DEFCHARIF( OPENMAGICDOORS, BYTE, 0),
+  //DEFCHARIF( BENDLIFT,     BYTE, 0),
+  //DEFCHARIF( PICKPOCKETS,  DWORD, 0),
+  //DEFCHARIF( OPENLOCKS,    DWORD, 0),
+  //DEFCHARIF( FINDTRAPS,    DWORD, 0),
+  //DEFCHARIF( MOVESILENT,   DWORD, 0),
+  //DEFCHARIF( HIDESHADOWS,  DWORD, 0),
+  //DEFCHARIF( HEARNOISE,    DWORD, 0),
+  //DEFCHARIF( CLIMBWALLS,   DWORD, 0),
+  //DEFCHARIF( READLANG,     DWORD, 0),
   DEFCHARIF( ALLOWPLAYERCONTROL, BYTE, 0), //31
-  DEFCHARIF( DETECTINVISIBLE, BYTE, 0),    //32
-  DEFCHARIF( DETECTTRAPS, BYTE, 0),        //33
-  DEFCHARIF( DAMAGEBONUS, BYTE, 0),        //34
-  DEFCHARIF( CHARTYPE, CHARTYPE, 1),   //35
-  DEFCHARIF( COINAMOUNT1, DWORD, 0),   //36
-  DEFCHARIF( COINAMOUNT2, DWORD, 0),   //37
-  DEFCHARIF( COINAMOUNT3, DWORD, 0),   //38
-  DEFCHARIF( COINAMOUNT4, DWORD, 0),   //39
-  DEFCHARIF( COINAMOUNT5, DWORD, 0),   //40
-  DEFCHARIF( COINAMOUNT6, DWORD, 0),   //41
-  DEFCHARIF( COINAMOUNT7, DWORD, 0),   //42
-  DEFCHARIF( COINAMOUNT8, DWORD, 0),   //43
-  DEFCHARIF( COINAMOUNT9, DWORD, 0),   //44
-  DEFCHARIF( COINAMOUNT10, DWORD, 0),  //45
-  DEFCHARIF( GEMAMOUNT, DWORD, 0),     //46
-  DEFCHARIF( JEWELRYAMOUNT, DWORD, 0), //47
-  DEFCHARIFV( ISMAMMAL, BYTE, 1),            //48
-  DEFCHARIFV( ISANIMAL, BYTE, 1),            //49
-  DEFCHARIFV( ISSNAKE, BYTE, 1),             //50
-  DEFCHARIFV( ISGIANT, BYTE, 1),             //51
-  DEFCHARIFV( ISALWAYSLARGE, BYTE, 1),       //52
-  DEFCHARIFV( HASDWARFACPENALTY, BYTE, 1),   //53
-  DEFCHARIFV( HASGNOMEACPENALTY, BYTE, 1),   //54
-  DEFCHARIFV( HASDWARFTHAC0PENALTY, BYTE, 1),//55
-  DEFCHARIFV( HASGNOMETHAC0PENALTY, BYTE, 1),//56
-  DEFCHARIFV( HASRANGERDMGPENALTY, BYTE, 1), //57
-  DEFCHARIFV( HASPOISONIMMUNITY, BYTE, 1),   //58
-  DEFCHARIFV( HASDEATHIMMUNITY, BYTE, 1),    //59
-  DEFCHARIFV( HASCONFUSIONIMMUNITY, BYTE, 1),//60
-  DEFCHARIFV( HASVORPALIMMUNITY, BYTE, 1),   //61
-  DEFCHARIFV( CANBEHELDORCHARMED, BYTE, 1),  //62
-  DEFCHARIFV( AFFECTEDBYDISPELEVIL, BYTE, 1),//63
-  DEFCHARIF(  HITBONUS, BYTE, 0),            //64
+  DEFCHARIFV( DETECTMAGIC, BYTE, 0),       //32
+  DEFCHARIF( DETECTINVISIBLE, BYTE, 0),    //33
+  DEFCHARIF( DETECTTRAPS, BYTE, 0),        //34
+  DEFCHARIF( DAMAGEBONUS, BYTE, 0),        //35
+  //DEFCHARIFV( BLESS, BYTE, 0),
+  //DEFCHARIFV( CURSE, BYTE, 0),
+  //DEFCHARIFV( UNDEADFEAR, BYTE, 0),
+  //DEFCHARIFV( ENLARGE, BYTE, 0),
+  //DEFCHARIFV( REDUCE, BYTE, 0),
+  //DEFCHARIFV( CHARMPERSON, BYTE, 0),
+  //DEFCHARIFV( REFLECTGAZEATTACK, BYTE, 0),
+  //DEFCHARIFV( PROTFROMEVIL, BYTE, 0),
+  //DEFCHARIFV( PROTFROMGOOD, BYTE, 0),
+  //DEFCHARIFV( SHIELD, BYTE, 0),
+  //DEFCHARIFV( SLEEP, BYTE, 0),
+  //DEFCHARIFV( FOG, BYTE, 0),
+  //DEFCHARIFV( ENTANGLE, BYTE, 0),
+  //DEFCHARIFV( INVISIBLETOANIMALS, BYTE, 0),
+  //DEFCHARIFV( INVISIBLETOUNDEAD, BYTE, 0),
+  //DEFCHARIFV( NONUNDEADFEAR, BYTE, 0),
+  //DEFCHARIFV( SANCTUARY, BYTE, 0),
+  //DEFCHARIFV( SHILLELAGH, BYTE, 0),
+  //DEFCHARIFV( DISPLACEMENT, BYTE, 0),
+  //DEFCHARIFV( WIZARDRY, BYTE, 0),
+  DEFCHARIF( CHARTYPE, CHARTYPE, 1),   //36
+  //DEFCHARIFV( VORPALATTACK, BYTE, 0),
+  DEFCHARIF( COINAMOUNT1, DWORD, 0),   //37
+  DEFCHARIF( COINAMOUNT2, DWORD, 0),   //38
+  DEFCHARIF( COINAMOUNT3, DWORD, 0),   //39
+  DEFCHARIF( COINAMOUNT4, DWORD, 0),   //40
+  DEFCHARIF( COINAMOUNT5, DWORD, 0),   //41
+  DEFCHARIF( COINAMOUNT6, DWORD, 0),   //42
+  DEFCHARIF( COINAMOUNT7, DWORD, 0),   //43
+  DEFCHARIF( COINAMOUNT8, DWORD, 0),   //44
+  DEFCHARIF( COINAMOUNT9, DWORD, 0),   //45
+  DEFCHARIF( COINAMOUNT10, DWORD, 0),  //46
+  DEFCHARIF( GEMAMOUNT, DWORD, 0),     //47
+  DEFCHARIF( JEWELRYAMOUNT, DWORD, 0), //48
+  //DEFCHARIFV( HOLDPERSON, BYTE, 0),
+  //DEFCHARIFV( SILENCE, BYTE, 0),
+  DEFCHARIFV( ISMAMMAL, BYTE, 1),            //49
+  DEFCHARIFV( ISANIMAL, BYTE, 1),            //50
+  DEFCHARIFV( ISSNAKE, BYTE, 1),             //51
+  DEFCHARIFV( ISGIANT, BYTE, 1),             //52
+  DEFCHARIFV( ISALWAYSLARGE, BYTE, 1),       //53
+  DEFCHARIFV( HASDWARFACPENALTY, BYTE, 1),   //54
+  DEFCHARIFV( HASGNOMEACPENALTY, BYTE, 1),   //55
+  DEFCHARIFV( HASDWARFTHAC0PENALTY, BYTE, 1),//56
+  DEFCHARIFV( HASGNOMETHAC0PENALTY, BYTE, 1),//57
+  DEFCHARIFV( HASRANGERDMGPENALTY, BYTE, 1), //58
+  DEFCHARIFV( HASPOISONIMMUNITY, BYTE, 1),   //59
+  DEFCHARIFV( HASDEATHIMMUNITY, BYTE, 1),    //60
+  DEFCHARIFV( HASCONFUSIONIMMUNITY, BYTE, 1),//61
+  DEFCHARIFV( HASVORPALIMMUNITY, BYTE, 1),   //62
+  DEFCHARIFV( CANBEHELDORCHARMED, BYTE, 1),  //63
+  DEFCHARIFV( AFFECTEDBYDISPELEVIL, BYTE, 1),//64
+  //DEFCHARIFV( POISONED, BYTE, 0),
+  //DEFCHARIFV( SLOWPOISON, BYTE, 0),
+  //DEFCHARIFV( MIRRORIMAGE, BYTE, 0),
+  //DEFCHARIFV( INVISIBLE, BYTE, 0),
+  //DEFCHARIFV( ENFEEBLED, BYTE, 0),
+  DEFCHARIF(  HITBONUS, BYTE, 0),            //65
+  //DEFCHARIFV( BLINDNESS, BYTE, 0),
+  //DEFCHARIFV( DISEASED, BYTE, 0)
 
-  DEFCHARIF( MIRRORIMAGE,          BYTE,  0), //65
+  /*
+  DEFCHARIF( xLIMITED_STR,          DWORD, 0), //66
+  DEFCHARIF( xLIMITED_STRMOD,       DWORD, 0), //67
+  DEFCHARIF( xLIMITED_INT,          DWORD, 0), //68
+  DEFCHARIF( xLIMITED_WIS,          DWORD, 0), //69
+  DEFCHARIF( xLIMITED_DEX,          DWORD, 0), //70
+  DEFCHARIF( xLIMITED_CON,          DWORD, 0), //71
+  DEFCHARIF( xLIMITED_CHA,          DWORD, 0), //72
+  DEFCHARIF( xPERM_STR,             DWORD, 0), //73
+  DEFCHARIF( xPERM_STRMOD,          DWORD, 0), //74
+  DEFCHARIF( xPERM_INT,             DWORD, 0), //75
+  DEFCHARIF( xPERM_WIS,             DWORD, 0), //76
+  DEFCHARIF( xPERM_DEX,             DWORD, 0), //77
+  DEFCHARIF( xPERM_CON,             DWORD, 0), //78
+  DEFCHARIF( xPERM_CHA,             DWORD, 0), //79
+*/
+
+  DEFCHARIF( MIRRORIMAGE,          BYTE,  0), //66
 };
 
 extern const unsigned int char_HITPOINTS = 3;
@@ -502,12 +585,11 @@ extern "C" char IsVirtualTrait(const unsigned long keyword)
 
 //#ifdef UAFEngine
 
-/*extern "C" */CHARACTER &GetCharacterContext(ActorType X, const char *msg)
+/*extern "C" */CHARACTER &GetCharacterContext(ActorType X)
 {
   ASSERT ((X.Flags & FLAG_COMBAT)==0);
   if ((X.Flags & FLAG_COMBAT) > 0)
   {
-    debugSeverity = 5;
     WriteDebugString("Returning NULL_CHAR in RTI GetCharacterContext() (combat flag set)\n");
     return NULL_CHAR;
   }
@@ -547,35 +629,26 @@ extern "C" char IsVirtualTrait(const unsigned long keyword)
         return NULL_CHAR;
       }      
       //MONSTER_DATA *pchar = monsterData.GetMonsterData(X.Instance);
-      die(0xab530);
+      ASSERT(FALSE);
       return NULL_CHAR;
     }
     else if (X.IsCreatedCharacterSrc())
     {
-      return *pScriptContext->GetCreatedCharacterContext(msg);
+      return *pScriptContext->GetCreatedCharacterContext();
     };
   }
 #ifndef UAFEDITOR
-  debugSeverity = 5;
   WriteDebugString("Returning NULL_CHAR in RTI GetCharacterContext()\n");
-  //die(0xab531);
+  ASSERT(FALSE);
 #endif
   return NULL_CHAR;
 }
 
-CHARACTER *GetCurrentlyActiveContext(const ActorType *pActor, const char *msg)
+/*extern "C" */CHARACTER *GetCurrentlyActiveContext(ActorType *pActor)
 {
   CHARACTER *pChar=NULL;
 #ifdef UAFEngine
   if (pActor->Flags & FLAG_FAKE_CHARACTER)
-  {
-    return &FakeCharacter;
-  };
-  if (pActor->Flags & FLAG_FAKE_COMBATANT)
-  {
-    return &FakeCharacter;
-  };
-  if (pActor->instanceType == InstanceType_Invalid)
   {
     return &FakeCharacter;
   };
@@ -584,10 +657,18 @@ CHARACTER *GetCurrentlyActiveContext(const ActorType *pActor, const char *msg)
   {
 #ifdef UAFEngine
     if (pActor==NULL)
+#ifdef newCombatant
       pChar = GetCombatCharacterContext(GetCharContext()).m_pCharacter;
+#else
+      pChar = &GetCombatCharacterContext(GetCharContext());
+#endif
     else
+#ifdef newCombatant
 
       pChar = GetCombatCharacterContext(*pActor).m_pCharacter;
+#else
+      pChar = &GetCombatCharacterContext(*pActor);
+#endif
 #else
     return NULL;
 #endif
@@ -595,9 +676,9 @@ CHARACTER *GetCurrentlyActiveContext(const ActorType *pActor, const char *msg)
   else
   {
     if (pActor==NULL)      
-      pChar = &GetCharacterContext(GetCharContext(), NULL);
+      pChar = &GetCharacterContext(GetCharContext());
     else
-      pChar = &GetCharacterContext(*pActor, NULL);
+      pChar = &GetCharacterContext(*pActor);
   }
 #ifdef UAFEngine
   ASSERT(pChar!=NULL);
@@ -607,12 +688,11 @@ CHARACTER *GetCurrentlyActiveContext(const ActorType *pActor, const char *msg)
 }
 
 #ifdef UAFEngine
-COMBATANT &GetCombatCharacterContext(const ActorType& X)
+/*extern "C" */COMBATANT &GetCombatCharacterContext(const ActorType& X)
 {
   ASSERT (X.Flags & FLAG_COMBAT);
   if ((X.Flags & FLAG_COMBAT) == 0)
   {
-    debugSeverity = 5;
     WriteDebugString("Returning NULL_CHAR in RTI GetCombatCharContext() (no combat flag)\n");
     return NULL_COMBATANT;
   }
@@ -622,13 +702,11 @@ COMBATANT &GetCombatCharacterContext(const ActorType& X)
   }
   else
   {
-    if (X.Flags & FLAG_FAKE_COMBATANT)
+    if (X.Flags & FLAG_FAKE_CHARACTER)
     {
       return NULL_COMBATANT;
     };
-    if (!debugStrings.AlreadyNoted("NCRTI"))
-    die(0xab532);
-    debugSeverity = 5;
+    ASSERT(FALSE);
     WriteDebugString("Returning NULL_CHAR in RTI GetCombatCharContext()\n");
     return NULL_COMBATANT;
   }
@@ -637,7 +715,7 @@ COMBATANT &GetCombatCharacterContext(const ActorType& X)
 
 /*extern "C" */CHARACTER &GetTargetCharacterContext()
 {
-  CHARACTER *pChar = GetCurrentlyActiveContext(&targetContext,"GetTargetCharacterContext");
+  CHARACTER *pChar = GetCurrentlyActiveContext(&targetContext);
   if (pChar !=NULL)
     return *pChar;
   else
@@ -648,7 +726,7 @@ COMBATANT &GetCombatCharacterContext(const ActorType& X)
 const char *GetCharacterSTRING(const IF_KEYWORD_DATA *pData,ActorType *pActor)
 {
   //CHARACTER &dude = GetCharacterContext();
-  CHARACTER *pDude = GetCurrentlyActiveContext(pActor,"GetCharacterSTRING");
+  CHARACTER *pDude = GetCurrentlyActiveContext(pActor);
   if (pDude==NULL) return NULL;
 
   switch (pData->keyindex)
@@ -660,15 +738,15 @@ const char *GetCharacterSTRING(const IF_KEYWORD_DATA *pData,ActorType *pActor)
   return NULL;
 }
 
-const char GetCharacterBYTE(const IF_KEYWORD_DATA *pData,ActorType *pActor, LPCSTR comment)
+const char GetCharacterBYTE(const IF_KEYWORD_DATA *pData,ActorType *pActor)
 {
   //CHARACTER &dude = GetCharacterContext();
-  CHARACTER *pDude = GetCurrentlyActiveContext(pActor,"GetCharacterBYTE");
+  CHARACTER *pDude = GetCurrentlyActiveContext(pActor);
   if (pDude==NULL) return NULL;
 
   switch (pData->keyindex)
   {
-  case CHAR_MAXMOVE: return pDude->GetAdjMaxMovement(DEFAULT_SPELL_EFFECT_FLAGS, comment); 
+  case CHAR_MAXMOVE: return pDude->GetAdjMaxMovement(); 
 
   case CHAR_GENDER: return pDude->GetAdjGender();
   //case CHAR_CLASS: return pDude->GetAdjClass();
@@ -737,7 +815,7 @@ const long GetCharacterDWORD(const IF_KEYWORD_DATA *pData,ActorType *pActor)
 {
 
   //CHARACTER &dude = GetCharacterContext();
-  CHARACTER *pDude = GetCurrentlyActiveContext(pActor,"GetCharacterDWORD");
+  CHARACTER *pDude = GetCurrentlyActiveContext(pActor);
   if (pDude==NULL) return NULL;
 
   switch (pData->keyindex)
@@ -757,12 +835,53 @@ const long GetCharacterDWORD(const IF_KEYWORD_DATA *pData,ActorType *pActor)
   case CHAR_THAC0:          return pDude->GetTHAC0(); ;
   case CHAR_ADJTHAC0:       return pDude->GetAdjTHAC0(); ;
   case CHAR_RDYTOTRAIN:     return pDude->GetAdjReadyToTrain(); ;
+  //case CHAR_CLERICEXP:      return pDude->GetAdjClericExp(); ;
+  //case CHAR_MAGICUSEREXP:   return pDude->GetAdjMagicUserExp(); ;
+  //case CHAR_FIGHTEREXP:     return pDude->GetAdjFighterExp(); ;
+  //case CHAR_RANGEREXP:      return pDude->GetAdjRangerExp(); ;
+  //case CHAR_THIEFEXP:       return pDude->GetAdjThiefExp(); ;
+  //case CHAR_DRUIDEXP:       return pDude->GetAdjDruidExp(); ;
+  //case CHAR_PALADINEXP:     return pDude->GetAdjPaladinExp(); ;
   case CHAR_AGE:            return pDude->GetAdjAge(); ;
   case CHAR_MAXAGE:         return pDude->GetAdjMaxAge(); ;
   case CHAR_MAXENC:         return pDude->GetAdjMaxEncumbrance(); ;
   case CHAR_ENC:            return pDude->GetEncumbrance(); ;
   case CHAR_MAGICRESIST:    return pDude->GetAdjMagicResistance(); ;
+  //case CHAR_SAVEVSPPDM:     return pDude->GetAdjSaveVsPPDM(); ;
+  //case CHAR_SAVEVSPP:       return pDude->GetAdjSaveVsPP(); ;
+  //case CHAR_SAVEVSRSW:      return pDude->GetAdjSaveVsRSW(); ;
+  //case CHAR_SAVEVSBR:       return pDude->GetAdjSaveVsBr(); ;
+  //case CHAR_SAVEVSSP:       return pDude->GetAdjSaveVsSp(); ;
+  //case CHAR_CLERICLVL:      return pDude->GetCurrentLevel(ClericFlag); ;
+  //case CHAR_FIGHTERLVL:     return pDude->GetCurrentLevel(FighterFlag); ;
+  //case CHAR_RANGERLVL:      return pDude->GetCurrentLevel(RangerFlag); ;
+  //case CHAR_DRUIDLVL:       return pDude->GetCurrentLevel(DruidFlag); ;
+  //case CHAR_PALADINLVL:     return pDude->GetCurrentLevel(PaladinFlag); ;
+  //case CHAR_THIEFLVL:       return pDude->GetCurrentLevel(ThiefFlag); ;
+  //case CHAR_MAGICUSERLVL:   return pDude->GetCurrentLevel(MagicUserFlag); ;
+  //case CHAR_CLERICPREVLVL:  return pDude->GetPrevLevel(ClericFlag); ;
+  //case CHAR_FIGHTERPREVLVL: return pDude->GetPrevLevel(FighterFlag); ;
+  //case CHAR_RANGERPREVLVL:  return pDude->GetPrevLevel(RangerFlag); ;
+  //case CHAR_DRUIDPREVLVL:   return pDude->GetPrevLevel(DruidFlag); ;
+  //case CHAR_PALADINPREVLVL: return pDude->GetPrevLevel(PaladinFlag); ;
+  //case CHAR_THIEFPREVLVL:   return pDude->GetPrevLevel(ThiefFlag); ;
+  //case CHAR_MAGUSERPREVLVL: return pDude->GetPrevLevel(MagicUserFlag); ;
+  //case CHAR_CLERICPDLVL:    return pDude->GetPreDrainLevel(ClericFlag); ;
+  //case CHAR_FIGHTERPDLVL:   return pDude->GetPreDrainLevel(FighterFlag); ;
+  //case CHAR_RANGERPDLVL:    return pDude->GetPreDrainLevel(RangerFlag); ;
+  //case CHAR_DRUIDPDLVL:     return pDude->GetPreDrainLevel(DruidFlag); ;
+  //case CHAR_PALADINPDLVL:   return pDude->GetPreDrainLevel(PaladinFlag); ;
+  //case CHAR_THIEFPDLVL:     return pDude->GetPreDrainLevel(ThiefFlag); ;
+  //case CHAR_MAGUSERPDLVL:   return pDude->GetPreDrainLevel(MagicUserFlag); ;
   case CHAR_MORALE:         return pDude->GetAdjMorale(); ;
+//  case CHAR_PICKPOCKETS:    return pDude->GetAdjPickPockets(); ;
+//  case CHAR_OPENLOCKS:      return pDude->GetAdjOpenLocks(); ;
+//  case CHAR_FINDTRAPS:      return pDude->GetAdjFindTraps(); ;
+//  case CHAR_MOVESILENT:     return pDude->GetAdjMoveSilent(); ;
+//  case CHAR_HIDESHADOWS:    return pDude->GetAdjHideInShadows(); ;
+//  case CHAR_HEARNOISE:      return pDude->GetAdjHearNoise(); ;
+//  case CHAR_CLIMBWALLS:     return pDude->GetAdjClimbWalls(); ;
+//  case CHAR_READLANG:       return pDude->GetAdjReadLanguages(); ;
   case CHAR_COINAMOUNT1:    return pDude->money.GetCoinAmount(PlatinumType); ;
   case CHAR_COINAMOUNT2:    return pDude->money.GetCoinAmount(GoldType); ;
   case CHAR_COINAMOUNT3:    return pDude->money.GetCoinAmount(ElectrumType); ;
@@ -787,7 +906,7 @@ const unsigned long GetCharacterUDWORD(const IF_KEYWORD_DATA *pData,ActorType *p
 const float GetCharacterFLOAT(const IF_KEYWORD_DATA *pData,ActorType *pActor)
 {
   //CHARACTER &dude = GetCharacterContext();
-  CHARACTER *pDude = GetCurrentlyActiveContext(pActor,"GetCharacterFLOAT");
+  CHARACTER *pDude = GetCurrentlyActiveContext(pActor);
   if (pDude==NULL) return NULL;
 
   switch (pData->keyindex)
@@ -801,7 +920,7 @@ const float GetCharacterFLOAT(const IF_KEYWORD_DATA *pData,ActorType *pActor)
 void SetCharacterSTRING(const IF_KEYWORD_DATA *pData, const char *data,ActorType *pActor)
 {
   //CHARACTER &dude = GetCharacterContext();
-  CHARACTER *pDude = GetCurrentlyActiveContext(pActor,"SetCharacterSTRING");
+  CHARACTER *pDude = GetCurrentlyActiveContext(pActor);
   if (pDude==NULL) return;
 
   switch (pData->keyindex)
@@ -814,7 +933,7 @@ void SetCharacterSTRING(const IF_KEYWORD_DATA *pData, const char *data,ActorType
 void SetCharacterBYTE(const IF_KEYWORD_DATA *pData, char data,ActorType *pActor)
 {
   //CHARACTER &dude = GetCharacterContext();
-  CHARACTER *pDude = GetCurrentlyActiveContext(pActor,"SetCharacterBYTE");
+  CHARACTER *pDude = GetCurrentlyActiveContext(pActor);
   if (pDude==NULL) return;
 
 
@@ -822,6 +941,20 @@ void SetCharacterBYTE(const IF_KEYWORD_DATA *pData, char data,ActorType *pActor)
   {
     // these auto-validate the new data
   case CHAR_MAXMOVE: pDude->SetMaxMovement(data); break;
+  ////case CHAR_STR: pDude->SetStr(data); break;
+  //case CHAR_STR: pDude->SetAdjStr(data); break;
+  ////case CHAR_STRMOD: pDude->SetStrMod(data); break;
+  //case CHAR_STRMOD: pDude->SetAdjStrMod(data); break;
+  ////case CHAR_INT: pDude->SetInt(data); break;
+  //case CHAR_INT: pDude->SetAdjInt(data); break;
+  ////case CHAR_WIS: pDude->SetWis(data); break;
+  //case CHAR_WIS: pDude->SetAdjWis(data); break;
+  ////case CHAR_DEX: pDude->SetDex(data); break;
+  //case CHAR_DEX: pDude->SetAdjDex(data); break;
+  ////case CHAR_CON: pDude->SetCon(data); break;
+  //case CHAR_CON: pDude->SetAdjCon(data); break;
+  ////case CHAR_CHA: pDude->SetCha(data);break;
+  //case CHAR_CHA: pDude->SetAdjCha(data);break;
 
     // these don't auto validate the new data
   case CHAR_GENDER: 
@@ -830,6 +963,12 @@ void SetCharacterBYTE(const IF_KEYWORD_DATA *pData, char data,ActorType *pActor)
         pDude->SetGender((genderType)data);
     }
     break;
+  //case CHAR_CLASS: 
+  //  {
+  //    if ((data>=0)&&(data<NUM_CLASS_TYPES))
+  //      pDude->SetClass((classType)data);
+  //  }
+  //  break;
   case CHAR_ALIGNMENT: 
     {
       if ((data>=0)&&(data<NUM_ALIGNMENT_TYPES))
@@ -856,6 +995,14 @@ void SetCharacterBYTE(const IF_KEYWORD_DATA *pData, char data,ActorType *pActor)
     }
     break;
 
+//  case CHAR_OPENDOORS: pDude->SetOpenDoors(data); break;
+//  case CHAR_OPENMAGICDOORS: pDude->SetOpenMagicDoors(data); break;
+//  case CHAR_BENDLIFT: pDude->SetBendBarsLiftGates(data); break;
+//  case CHAR_ALLOWPLAYERCONTROL: pDude->SetAllowPlayerControl(data); break;
+//  case CHAR_DETECTMAGIC: pDude->SetSpecAb(SA_DetectMagic,data,SPELL_EFFECTS_DATA::EFFECT_SPELLSPECAB); break;
+//  case CHAR_DETECTINVISIBLE: pDude->SetDetectingInvisible(data); break;
+//  case CHAR_DETECTTRAPS: pDude->SetDetectingTraps(data); break; 
+//  case CHAR_DAMAGEBONUS: pDude->SetDmgBonus(data); break;
   case CHAR_HITBONUS: pDude->SetHitBonus(data); break;
 
   }
@@ -876,20 +1023,76 @@ void SetCharacterUWORD(const IF_KEYWORD_DATA *pData, unsigned short data,ActorTy
 void SetCharacterDWORD(const IF_KEYWORD_DATA *pData, long data,ActorType *pActor)
 {
   //CHARACTER &dude = GetCharacterContext();
-  CHARACTER *pDude = GetCurrentlyActiveContext(pActor,"SetCharacterDWORD");
+  CHARACTER *pDude = GetCurrentlyActiveContext(pActor);
   if (pDude==NULL) return;
   switch (pData->keyindex)
   {
+  ////case CHAR_STR: pDude->SetStr(data); break;
+  //case CHAR_PERM_STR: pDude->SetPermStr(data); break;
+  ////case CHAR_STRMOD: pDude->SetStrMod(data); break;
+  //case CHAR_PERM_STRMOD: pDude->SetPermStrMod(data); break;
+  ////case CHAR_INT: pDude->SetInt(data); break;
+  //case CHAR_PERM_INT: pDude->SetPermInt(data); break;
+  ////case CHAR_WIS: pDude->SetWis(data); break;
+  //case CHAR_PERM_WIS: pDude->SetPermWis(data); break;
+  ////case CHAR_DEX: pDude->SetDex(data); break;
+  //case CHAR_PERM_DEX: pDude->SetPermDex(data); break;
+  ////case CHAR_CON: pDude->SetCon(data); break;
+  //case CHAR_PERM_CON: pDude->SetPermCon(data); break;
+  ////case CHAR_CHA: pDude->SetCha(data);break;
+  //case CHAR_PERM_CHA: pDude->SetPermCha(data);break;
+
   case CHAR_AC:             pDude->SetAC(data);                     break;
   case CHAR_HITPOINTS:      pDude->SetHitPoints(data,0,pActor->m_canFinishCasting);  break;
   case CHAR_THAC0:          pDude->SetTHAC0(data);                  break;
   case CHAR_RDYTOTRAIN:     pDude->SetReadyToTrain(data);           break;
+  //case CHAR_CLERICEXP:      NotImplemented(0xde4110, false); //pDude->SetCurrExp(ClericFlag, data);    break;
+  //case CHAR_MAGICUSEREXP:   NotImplemented(0xde4110, false); //pDude->SetCurrExp(MagicUserFlag, data); break;
+  //case CHAR_FIGHTEREXP:     NotImplemented(0xde4110, false); //pDude->SetCurrExp(FighterFlag, data);   break;
+  //case CHAR_RANGEREXP:      NotImplemented(0xde4110, false); //pDude->SetCurrExp(RangerFlag, data);    break;
+  //case CHAR_THIEFEXP:       NotImplemented(0xde4110, false); //pDude->SetCurrExp(ThiefFlag, data);     break;
+  //case CHAR_DRUIDEXP:       NotImplemented(0xde4110, false); //pDude->SetCurrExp(DruidFlag, data);     break;
+  //case CHAR_PALADINEXP:     NotImplemented(0xde4110, false); //pDude->SetCurrExp(PaladinFlag, data);   break;
   case CHAR_AGE:            pDude->SetAge(data);                    break;
   case CHAR_MAXAGE:         pDude->SetMaxAge(data);                 break;
   case CHAR_MAXENC:         pDude->SetMaxEncumbrance(data);          break;
-  case CHAR_ENC:            die(0xab533);                           break; // read-only curr encumbrance
+  case CHAR_ENC:            ASSERT(FALSE);                          break; // read-only curr encumbrance
   case CHAR_MAGICRESIST:    pDude->SetMagicResistance(data);        break;
+//  case CHAR_SAVEVSPPDM:     pDude->SetSaveVsPPDM(data);             break;
+//  case CHAR_SAVEVSPP:       pDude->SetSaveVsPP(data);               break;
+//  case CHAR_SAVEVSRSW:      pDude->SetSaveVsRSW(data);              break;
+//  case CHAR_SAVEVSBR:       pDude->SetSaveVsBr(data);               break;
+//  case CHAR_SAVEVSSP:       pDude->SetSaveVsSp(data);               break;
+  //case CHAR_CLERICLVL:      NotImplemented(0xde4110, false); //pDude->SetLevel(ClericFlag, data);      break; // read-only curr level
+  //case CHAR_FIGHTERLVL:     NotImplemented(0xde4110, false); //pDude->SetLevel(FighterFlag, data);     break; // read-only
+  //case CHAR_RANGERLVL:      NotImplemented(0xde4110, false); //pDude->SetLevel(RangerFlag, data);      break; // read-only
+  //case CHAR_DRUIDLVL:       NotImplemented(0xde4110, false); //pDude->SetLevel(DruidFlag, data);       break; // read-only
+  //case CHAR_PALADINLVL:     NotImplemented(0xde4110, false); //pDude->SetLevel(PaladinFlag, data);     break; // read-only
+  //case CHAR_THIEFLVL:       NotImplemented(0xde4110, false); //pDude->SetLevel(ThiefFlag, data);       break; // read-only
+  //case CHAR_MAGICUSERLVL:   NotImplemented(0xde4110, false); //pDude->SetLevel(MagicUserFlag, data);   break; // read-only
+  //case CHAR_CLERICPREVLVL:  ASSERT(FALSE);                          break; // read-only prev level
+  //case CHAR_FIGHTERPREVLVL: ASSERT(FALSE);                          break; // read-only
+  //case CHAR_RANGERPREVLVL:  ASSERT(FALSE);                          break; // read-only
+  //case CHAR_DRUIDPREVLVL:   ASSERT(FALSE);                          break; // read-only
+  //case CHAR_PALADINPREVLVL: ASSERT(FALSE);                          break; // read-only
+  //case CHAR_THIEFPREVLVL:   ASSERT(FALSE);                          break; // read-only
+  //case CHAR_MAGUSERPREVLVL: ASSERT(FALSE);                          break; // read-only
+  //case CHAR_CLERICPDLVL:    ASSERT(FALSE);                          break; // read-only pre-drain level
+  //case CHAR_FIGHTERPDLVL:   ASSERT(FALSE);                          break; // read-only
+  //case CHAR_RANGERPDLVL:    ASSERT(FALSE);                          break; // read-only
+  //case CHAR_DRUIDPDLVL:     ASSERT(FALSE);                          break; // read-only
+  //case CHAR_PALADINPDLVL:   ASSERT(FALSE);                          break; // read-only
+  //case CHAR_THIEFPDLVL:     ASSERT(FALSE);                          break; // read-only
+  //case CHAR_MAGUSERPDLVL:   ASSERT(FALSE);                          break; // read-only
   case CHAR_MORALE:         pDude->SetMorale(data);                 break;
+//  case CHAR_PICKPOCKETS:    pDude->SetPickPockets(data);            break;
+//  case CHAR_OPENLOCKS:      pDude->SetOpenLocks(data);              break;
+//  case CHAR_FINDTRAPS:      pDude->SetFindTraps(data);              break;
+//  case CHAR_MOVESILENT:     pDude->SetMoveSilent(data);             break;
+//  case CHAR_HIDESHADOWS:    pDude->SetHideInShadows(data);          break;
+//  case CHAR_HEARNOISE:      pDude->SetHearNoise(data);              break;
+//  case CHAR_CLIMBWALLS:     pDude->SetClimbWalls(data);             break;
+//  case CHAR_READLANG:       pDude->SetReadLanguages(data);          break;
   case CHAR_COINAMOUNT1:    pDude->money.Add(PlatinumType, data);   break;
   case CHAR_COINAMOUNT2:    pDude->money.Add(GoldType, data);       break;
   case CHAR_COINAMOUNT3:    pDude->money.Add(ElectrumType, data);   break;
@@ -913,8 +1116,8 @@ void SetCharacterFLOAT(const IF_KEYWORD_DATA *pData, float data,ActorType *pActo
 {
   switch (pData->keyindex)
   {
-  case CHAR_NBRHITDICE: die(0xab534); break; // read-only nbr hitdice
-  case CHAR_NBRATTACKS: die(0xab535); break; // read-only nbr attacks
+  case CHAR_NBRHITDICE: ASSERT(FALSE); break; // read-only nbr hitdice
+  case CHAR_NBRATTACKS: ASSERT(FALSE); break; // read-only nbr attacks
   }
 }
 
@@ -1163,19 +1366,19 @@ const char *GetSTRING(const IF_KEYWORD_DATA *pData,ActorType *pActor)
   return NULL;
 }
 
-const char GetBYTE(const IF_KEYWORD_DATA *pData,ActorType *pActor, LPCSTR comment)
+const char GetBYTE(const IF_KEYWORD_DATA *pData,ActorType *pActor)
 {
   if (pData==NULL) return 0;
   switch (pData->iftype)
   {
-  case CHAR_IF_TYPE:  return GetCharacterBYTE(pData,pActor,comment);
+  case CHAR_IF_TYPE:  return GetCharacterBYTE(pData,pActor);
   case PARTY_IF_TYPE: return GetPartyBYTE(pData);
   case GAME_IF_TYPE:  return GetGameBYTE(pData);
   }
   return 0;
 }
 
-const CString GetCHARTYPE(const IF_KEYWORD_DATA *pData,ActorType *pActor, LPCSTR comment)
+const CString GetCHARTYPE(const IF_KEYWORD_DATA *pData,ActorType *pActor)
 {
   if (pData==NULL) return "";
   switch(pData->iftype)
@@ -1183,7 +1386,7 @@ const CString GetCHARTYPE(const IF_KEYWORD_DATA *pData,ActorType *pActor, LPCSTR
   case CHAR_IF_TYPE:  
     {
       int typeIndex;
-      typeIndex = GetCharacterBYTE(pData, pActor, comment);
+      typeIndex = GetCharacterBYTE(pData, pActor);
       switch(typeIndex)
       {
       case 1: return "@PC@";
@@ -1191,7 +1394,7 @@ const CString GetCHARTYPE(const IF_KEYWORD_DATA *pData,ActorType *pActor, LPCSTR
       case 3:
         {
           //const MONSTER_DATA *pMonsterData;
-          CHARACTER *pDude = GetCurrentlyActiveContext(pActor,comment);
+          CHARACTER *pDude = GetCurrentlyActiveContext(pActor);
           if (pDude==NULL) return "";
           //pMonsterData = monsterData.PeekMonster(pDude->monsterID);
           //if (pMonsterData == NULL) return "";
@@ -1438,7 +1641,7 @@ double CHARACTER::ModifyByDouble(IF_KEYWORD_INDEX ifKey, double modification)
     case CHAR_MAXENC:
       SetMaxEncumbrance(GetMaxEncumbrance() + modification);
       return GetMaxEncumbrance();
-    //case CHAR_ENC:            ASS ERT(FALSE);                          break; // read-only curr encumbrance
+    //case CHAR_ENC:            ASSERT(FALSE);                          break; // read-only curr encumbrance
     case CHAR_MAGICRESIST:
       SetMagicResistance(GetMagicResistance()+modification);
       return GetMagicResistance();
@@ -1461,7 +1664,7 @@ double CHARACTER::ModifyByDouble(IF_KEYWORD_INDEX ifKey, double modification)
       // Fakeroo....a do-nothing entry for bookkeeping purposes
       return 0;
     default:
-      /* Really */ NotImplemented(0x441b, false);
+      NotImplemented(0x441b, false);
       return 0.0;
   };
 }
@@ -1508,11 +1711,11 @@ const char *GetDataSTRING(const unsigned long keyword,ActorType *pActor)
   return NULL;
 }
 
-char GetDataBYTE(const unsigned long keyword,ActorType *pActor, LPCSTR comment)
+char GetDataBYTE(const unsigned long keyword,ActorType *pActor)
 {
   IF_KEYWORD_DATA *pData = LocateKeywordData(keyword);
   if ((pData != NULL) && (pData->type == IF_TYPE_BYTE))
-    return GetBYTE(pData,pActor, comment);
+    return GetBYTE(pData,pActor);
   return 0;
 }
 

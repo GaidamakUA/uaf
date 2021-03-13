@@ -17,11 +17,11 @@
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ******************************************************************************/
 
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 #ifdef UAFEDITOR
 #include "resource.h"
 #else
-#include "..\UAFWin\resource.h"
+#include "../UAFWin/resource.h"
 #endif
 
 //#include "Externs.h"

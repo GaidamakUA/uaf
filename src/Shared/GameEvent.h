@@ -21,17 +21,15 @@
 
 //lint -e1411
 
-#include "items.h" 
+#include "Items.h" 
 #include "Money.h"
 #include "SoundMgr.h"
-
-#define EARLY_WALL_SOUNDS
 
 //#include "spell.h"
 // Replaced spell.h with the following:
 
 struct spellBookType;
-enum spellSaveVersusType;
+enum spellSaveVsType;
 enum spellSaveEffectType;
 enum key_code;
 enum TASKSTATE;
@@ -60,14 +58,8 @@ enum EventSourceType { LevelEventSrc=0, GlobalEventSrc=1, CopyEventSrc=2 };
 const int NoUserResult  = 0;
 enum eventLocationRestriction { AllowAnywhere, AllowInWilderness, AllowInCities };
 
-enum eventDistType { UpClose, 
-                     Nearby, 
-                     FarAway,
-                     AutoFarAway,    
-                     AutoUpClose,  // These last two are only used internally
-                     AutoNearby,   // by the TEXT_EVENT to provide AutoApproach
-                     };
-const int NUM_DIST_TYPES = 4;
+enum eventDistType { UpClose, Nearby, FarAway };
+const int NUM_DIST_TYPES = 3;
 
 enum eventFacingType { FaceNorth, FaceEast, FaceSouth, FaceWest, FaceUnchanged };
 const int NUM_FACING_TYPES = 5;
@@ -186,7 +178,6 @@ enum eventType        // implementation status
    RandomEvent,       //  x     x     x
    PlayMovieEvent,    //  x     x     -
    JournalEvent,      //  x     x     -
-   FlowControl,       //  x     x     -
 
    // The rest are runtime-generated 'fake' events for control purposes
    // These values are in save files and must not change.
@@ -268,9 +259,9 @@ enum eventType        // implementation status
    CONTROL_BeginTimeEvent,
    CONTROL_ScriptChoice,
    CONTROL_CombatSpecialAction,
-   CONTROL_ChooseFromList,
+   CONTROL_OverrideSpellSelection,
 };
-const int NUM_EVENT_TYPES = 45; // doesn't include CONTROL_* types
+const int NUM_EVENT_TYPES = 44; // doesn't include CONTROL_* types
 
 enum eventTurnUndeadModType { None, Hard, Difficult, Impossible };
 const int NUM_TURN_MOD_TYPES = 4;
@@ -298,7 +289,6 @@ enum eventTriggerType
    BaseclassInParty, BaseclassNotInParty,
    PartyHaveSpecialItem, PartyNotHaveSpecialItem,
    PartyHaveSpecialKey, PartyNotHaveSpecialKey,
-   QuestStageEqual, QuestStageNotEqual,
    LAST_EVENT_TRIGGER
 };
 
@@ -346,8 +336,6 @@ enum taleOrderType { InOrderTales, RandomTales };
 const int NUM_TALEORDER_TYPES = 2;
 const int NUM_LITERALORPERCENT_TYPES = 3;
 
-int GetCurrentLevel(void);
-
 class TRANSFER_DATA //: public CObject
 {
 public:
@@ -355,15 +343,7 @@ public:
    TRANSFER_DATA() { Clear(); }
    virtual ~TRANSFER_DATA() {  }
    TRANSFER_DATA(const TRANSFER_DATA& src) { *this = src; }
-   void Clear() 
-   {
-     execEvent=TRUE;
-     m_facing=FaceNorth;
-     destEP=-1;
-     destLevel=GetCurrentLevel();
-     destX=0;
-     destY=0;
-   };
+   void Clear() {execEvent=TRUE;m_facing=FaceNorth;destEP=-1;destLevel=0;destX=0;destY=0;}
    void Serialize(CArchive &ar);
    void Serialize(CAR &ar);
    TRANSFER_DATA& operator =(const TRANSFER_DATA& src);
@@ -391,15 +371,7 @@ public:
    virtual ~MONSTER_EVENT() {  }
    void Clear() 
    { 
-     moraleAdj=0;    // This is no longer used.
-                     // Originally, this was designed such that the editor set
-                     // moraleAdj for each monster in the combat.
-                     // But now, the runtime engine determines the moraleAdj
-                     // when the combat begins.  Otherwise, a designer who changed
-                     // the morale of a monster would have to re-edit each combat
-                     // event that included the modified monster.
-                     // Now we do this adjustment at runtime to always use the latest
-                     // values for the monsters.
+     moraleAdj=0;
      qty=0;
      m_type=MONSTER_TYPE;
      //monster=NO_MONSTER;
@@ -436,15 +408,7 @@ public:
    CHARACTER_ID characterID;
    int m_type;    // monster or npc
    BOOL friendly; // whose side is monster on?
-   int moraleAdj;    // This is no longer used.
-                     // Originally, this was designed such that the editor set
-                     // moraleAdj for each monster in the combat.
-                     // But now, the runtime engine determines the moraleAdj
-                     // when the combat begins.  Otherwise, a designer who changed
-                     // the morale of a monster would have to re-edit each combat
-                     // event that included the modified monster.
-                     // Now we do this adjustment at runtime to always use the latest
-                     // values for the monsters.
+   int moraleAdj; // 
    MONEY_SACK money; // goodies in monster's inventory
    ITEM_LIST items;
 };
@@ -742,42 +706,39 @@ class CR_EVENT_INFO;
 
 // same event can be triggered in more than one
 // zone.
-class STEP_EVENT_DATA //: public CObject
+class STEP_EVENT //: public CObject
 {
 public:
 //   DECLARE_SERIAL( STEP_EVENT )
-   STEP_EVENT_DATA() :
+   STEP_EVENT() :
     // ASLs are named "STEPEVENT_ATTR"
     stepevent_asl(),
     temp_asl(),
     stepEvent(0)
    { Clear(); }
-   virtual ~STEP_EVENT_DATA() {  }
-   //void Clear() { stepEvent=0;stepCount=0; for(int i=0;i<MAX_ZONES;i++) stepTrigger[i]=FALSE; }
-   void Clear() { stepEvent=0;stepCount=0; zoneMask=0; name.Empty();}
+   virtual ~STEP_EVENT() {  }
+   void Clear() { stepEvent=0;stepCount=0; for(int i=0;i<MAX_ZONES;i++) stepTrigger[i]=FALSE; }
    void Serialize(CArchive &ar, double version);
    void Serialize(CAR &ar, double version);
    void PreSerialize(BOOL IsStoring);
-   void PostSerialize(BOOL IsStoring, double version);
+   void PostSerialize(BOOL IsStoring);
    void CrossReference(CR_EVENT_INFO *crEI);
-   STEP_EVENT_DATA& operator =(const STEP_EVENT_DATA& src);
+   STEP_EVENT& operator =(const STEP_EVENT& src);
 #ifdef UAFEDITOR
    void Export(JWriter& jw);
    void Import(JReader& jr);
-   bool operator ==(const STEP_EVENT_DATA& src)const;
+   bool operator ==(const STEP_EVENT& src);
 #endif
 
    DWORD stepEvent;
    int stepCount;
-   int zoneMask;
-   CString name;
-   //BOOL stepTrigger[MAX_ZONES];
+   BOOL stepTrigger[MAX_ZONES];
 
   A_ASLENTRY_L stepevent_asl;
   A_ASLENTRY_L temp_asl;
 };
 
-class TIME_EVENT_DATA //: public CObject
+class TIME_EVENT //: public CObject
 {
 public:
 //  DECLARE_SERIAL( TIME_EVENT )
@@ -788,7 +749,7 @@ public:
     REPEAT_TIME     // trigger event every multiple of specified time
   };
 
-    TIME_EVENT_DATA() :
+    TIME_EVENT() :
     // ASLs are named "TIME_EVENT_ATTR"
     timeevent_asl(),
     temp_asl(),
@@ -797,13 +758,13 @@ public:
     hour(-1),
     minute(-1)
   { Clear(); }
-  virtual ~TIME_EVENT_DATA() {  }
+  virtual ~TIME_EVENT() {  }
   void Clear() { timeEvent=0; day=-1;hour=-1;minute=-1;dayCounter=-1;hourCounter=-1;minuteCounter=-1; }
   void Serialize(CArchive &ar, double version);
   void Serialize(CAR &ar, double version);
   void PreSerialize(BOOL IsStoring);
   void PostSerialize(BOOL IsStoring);
-  TIME_EVENT_DATA& operator =(const TIME_EVENT_DATA& src);    
+  TIME_EVENT& operator =(const TIME_EVENT& src);    
 
   DWORD timeEvent;
 
@@ -867,7 +828,7 @@ public:
 #endif
    void Clear();  
 #ifdef UAFEngine
-   BOOL EventShouldTrigger(DWORD id, int level, int x, int y); 
+   BOOL EventShouldTrigger(DWORD id); 
 #endif
    
    BOOL onceOnly;
@@ -910,13 +871,11 @@ class CR_EVENT_INFO;
 
 
 class TEXT_EVENT_DATA;
-struct SELECTION_PAGE_FORMAT;
 
 void die(int);
 
 class GameEvent //: public CObject
 {
-  friend class GameEventList;
 public:
 //  DECLARE_SERIAL( GameEvent )
   GameEvent();
@@ -928,14 +887,14 @@ public:
 #ifdef UAFEDITOR
           bool Equals(const GameEvent& src) const;
           virtual bool operator ==(const GameEvent& src) const;
-  CString Name(void) const;
+  CString Name(void);
   virtual void Export(JWriter& jw);
           void ExportEvent(JWriter& jw);
   virtual bool Import(JReader& jr);
           bool ImportEvent(JReader& jr);
 
 #else
-  const char *Name(void) const;
+  const char *Name(void);
 #endif
 
   virtual void Serialize( CArchive& archive, double version );
@@ -965,9 +924,9 @@ public:
 
 #if (defined UAFEDITOR)
   // helper functions for CEventViewer
-  virtual void GetEVRootText(char *pText) { strcpy(pText, GetEventIdDescription(id,GetEventSource())); }
+  virtual void GetEVRootText(char *text) { strcpy(text, GetEventIdDescription(id,GetEventSource())); }
   virtual BOOL GetEVChainText(int num, char *text);
-  virtual BOOL GetEVChain(int num, DWORD &ID) { return (num==0)&&GameEvent::GetChainedEvent(ID); }
+  virtual BOOL GetEVChain(int num, DWORD &id) { return (num==0)&&GameEvent::GetChainedEvent(id); }
   virtual void ChainToEventId(int num, DWORD id);  
   virtual int UnchainToEventId(int num, DWORD id);
   virtual BOOL Validate(FILE *pFile); 
@@ -986,18 +945,16 @@ public:
   virtual BOOL AllowDestEventExecute() { return TRUE; }
   
   EVENT_CONTROL &GetEventControl() { return control; }
-  const eventType &GetEventType() const { return event; }
-  const virtual char *GetEventTypeName(void) const {return Name();};
+  eventType &GetEventType() { return event; }
+#ifdef TASKTRACE
+  const virtual char *GetEventTypeName(void){return Name();};
+#endif
   DWORD &GetEventId()  { return id; }
   PIC_DATA &GetEventPic()  { return pic; }
   PIC_DATA &GetEventPic2()  { return pic2; }
-#ifdef UAFEngine
-  virtual CString &GetEventText();
+  virtual CString &GetEventText()  { return text; }
   CString &GetEventText2()  { return text2; }
   CString &GetEventText3()  { return text3; }
-  CString FindEventAttribute(const CString& name) const;
-#endif
-  void SetEventText(const CString& t) {text = t;};
   int &GetEventX()  { return x; }
   int &GetEventY()  { return y; }
 
@@ -1007,17 +964,14 @@ public:
   EventSourceType GetEventSource() const { return m_source; }
   BOOL IsAChainEvent() const { return ((x == -1) && (y == -1)); }
   BOOL IsValidEvent() const { return ((event != NoEvent) && (id > 0)); }
-  CString getGlobalEventMessage(CString defaultMessage, CString hookName, HOOK_PARAMETERS hookParameters, CString attributeName, EVENT_CONTROL control);
+
 #ifdef UAFEngine  
   BOOL IsGlobalEvent() const { return (m_source==GlobalEventSrc); }
   GameEvent *EventType2EventPointer (eventType evType, unsigned int id);
   void StandardMenuKeyboardAction(key_code key, char ascii);
   void StandardKeyboardShortcutAction(key_code key, char ascii);
   void HMenuVPartyKeyboardAction(key_code key, char ascii);
-  void HMenuVItemsKeyboardAction(key_code key, 
-                                 char ascii, 
-                                 void (*prev)(void), 
-                                 void (*next)(void));
+  void HMenuVItemsKeyboardAction(key_code key, char ascii, void (*prev)(void), void (*next)(void));
   void HMenuVInventoryKeyboardAction(key_code key, char ascii, void (*prev)(void), void (*next)(void));
   void VMenuHPartyKeyboardAction(key_code key, char ascii);
   void StandardMenuDraw(void);
@@ -1136,7 +1090,6 @@ public:
   // from saveArea.
   virtual int OnSaveGame(unsigned int *saveArea); // Return # used
   virtual int OnLoadGame(unsigned int *saveArea); // Return # used
-  void RunEventScript(LPCSTR scriptname);
 #endif  // UAFEngine
 
   eventType event;
@@ -1145,15 +1098,10 @@ public:
   EVENT_CONTROL control;
   PIC_DATA pic;
   PIC_DATA pic2;
-#ifdef UAFEngine
-private:
-#endif
   CString text;
   CString text2;
   CString text3;
-#ifdef UAFEngine
-public:
-#endif
+
   DWORD chainEventHappen;
   DWORD chainEventNotHappen;
 
@@ -1233,7 +1181,6 @@ public:
   int AddEventWithCurrKey(GameEvent *data);
 
   GameEvent *GetFirstEvent(int x, int y);
-//  GameEvent *FindMarker(const CString& markerName, int thisChainRoot, int *markerRoot, int *markerID);
   GameEvent *GetEvent(DWORD id);
   BOOL IsChained(GameEvent *event);
 #ifdef UAFEDITOR
@@ -1245,9 +1192,7 @@ public:
   BOOL IsValidEvent(DWORD num);
   BOOL IsValidEventChainWord(DWORD num);
   BOOL IsValidEvent(GameEvent *event) const; 
-#ifdef UAFEDITOR
-  void BuildMarkerIndex(void);
-#endif
+
   void Serialize( CArchive& archive, double version );
   void Serialize( CAR& archive, double version );
   void Restore(CArchive& ar);
@@ -1273,7 +1218,7 @@ public:
   BOOL HasEventHappened(DWORD id);
 
   EVENT_CONTROL &GetEventControl(DWORD id) ;  
-  const eventType &GetEventType(DWORD id) const;  
+  eventType &GetEventType(DWORD id);  
   PIC_DATA &GetEventPic(DWORD id);  
   PIC_DATA &GetEventPic2(DWORD id);  
   CString &GetEventText(DWORD id);  
@@ -1424,7 +1369,7 @@ public:
     void OnInitialEvent(void);
     void OnReturnToTopOfQueue(void);
     void OnKeypress(key_code key, char ascii) { /* ignore all input */ }
-    void OnMouseClickLeft(int mouseX, int mouseY) { /*no input allowed*/ }
+    void OnMouseClickLeft(int x, int y) { /*no input allowed*/ }
     int OnSaveGame(unsigned int *saveArea) { return 0; }
     int OnLoadGame(unsigned int *saveArea) { return 0; }
 #endif
@@ -1815,7 +1760,7 @@ public:
 
   spellSaveEffectType eventSave;
 
-  spellSaveVersusType spellSave;
+  spellSaveVsType spellSave;
 
   eventPartyAffectType who;
 
@@ -2000,7 +1945,7 @@ class TEXT_EVENT_DATA : public GameEvent
 {
 public:
 //  DECLARE_SERIAL( TEXT_EVENT_DATA )
-  TEXT_EVENT_DATA(bool displaySpecialGraphics) : GameEvent() { Clear(); m_displaySpecialGraphics=displaySpecialGraphics; event=TextStatement;}
+  TEXT_EVENT_DATA() : GameEvent() { Clear(); event=TextStatement;}
   virtual ~TEXT_EVENT_DATA() { }
   void Clear();
   void Serialize(CArchive &ar, double version);
@@ -2018,7 +1963,6 @@ public:
     void OnInitialEvent(void);
     void OnUpdateUI(void);
     BOOL WaitUntilReturnPressed();
-    bool OnTimer(UINT timerID);
 #endif
 #ifdef UAFEDITOR
     void DetailedCrossReference(CR_EVENT_INFO *pCREI);
@@ -2036,86 +1980,6 @@ public:
   eventDistType distance;  
 #ifdef TASKTRACE
   const char *GetEventTypeName(void){return "TEXT_EVENT_DATA";};
-#endif
-  bool m_displaySpecialGraphics;  // temporary; not serialized
-};
-
-enum VALUE_MODIFICATION
-{
-  MODIFICATION_ILLEGAL = 0,
-  NO_CHANGE,
-  SET_VARIABLE,
-  INCREMENT_VARIABLE,
-  DECREMENT_VARIABLE
-};
-const int NUM_VALUE_MODIFICATION_TYPES = 5;
-
-enum ACTION
-{
-  ACTION_ILLEGAL = 0,
-  ACTION_NONE,
-  ACTION_GOTO,
-  ACTION_CALL,
-  ACTION_RETURN,
-  ACTION_POP
-};
-const int NUM_ACTION_TYPES = 6;
-
-enum ACTION_CONDITION
-{
-  CONDITION_ILLEGAL = 0,
-  CONDITION_ALWAYS,
-  CONDITION_EQUALS,
-  CONDITION_NOTEQUALS
-};
-const int NUM_ACTION_CONDITION_TYPES = 4;
-
-enum FLOW_CONTROL_FLAGS
-{
-  FCF_LocalChainOnly = 0x00000001,
-};
-
-class FLOW_CONTROL_EVENT_DATA : public GameEvent
-{
-public:
-  FLOW_CONTROL_EVENT_DATA() : GameEvent() { Clear(); event = FlowControl; }
-  virtual ~FLOW_CONTROL_EVENT_DATA() { }
-  void Clear();
-  //void Serialize(CArchive &ar, double version);
-  void Serialize(CAR &ar, double version);
-  FLOW_CONTROL_EVENT_DATA& operator =(const FLOW_CONTROL_EVENT_DATA& src);
-
-#ifdef UAFEngine
-//  void OnKeypress(key_code key, char ascii);
-//  void OnDraw(void);
-  void OnInitialEvent(void);
-//  void OnUpdateUI(void);
-//  BOOL WaitUntilReturnPressed();
-#endif
-#ifdef UAFEDITOR
-  void DetailedCrossReference(CR_EVENT_INFO *pCREI);
-  void Export(JWriter& jw);
-  bool Import(JReader& jr);
-  bool operator ==(const GameEvent& src) const;
-#endif
-
-  CString entryMarkerName;
-  CString exitMarkerName;
-  CString destinationMarkerName;
-  CString globalVariableName;
-  CString value;
-  DWORD   flags;  // FLOW_CONTROL_FLAGS
-  DWORD   destID; // The editor ignores this when reading a level.
-                  // THe editor computes this at the last instant
-                  //    when writing a level
-                  // The editor computes this to save the engine
-                  //    from having to do it.
-  VALUE_MODIFICATION valueModification;
-  ACTION_CONDITION   actionCondition;
-  ACTION action;
-
-#ifdef TASKTRACE
-  const char *GetEventTypeName(void) { return "FLOW_CONTROL_EVENT_DATA"; };
 #endif
 };
 
@@ -2298,7 +2162,7 @@ public:
     void OnInitialEvent(void);
     bool OnIdle(void);
     void OnKeypress(key_code key, char ascii) { /*ignore all input*/ }
-    void OnMouseClickLeft(int mouseX, int mouseY) { /*no input allowed*/ }
+    void OnMouseClickLeft(int x, int y) { /*no input allowed*/ }
 #endif
 #ifdef UAFEDITOR
    void DetailedCrossReference(CR_EVENT_INFO *pCREI);
@@ -2400,16 +2264,16 @@ private: // PRS July 2009 - Encode quest type in top 4 bits (quest, item, key)
          // These four functions are sufficient to manipulate m_quest.
   int m_quest;
 public:
-  inline int EncodeQuestTypeAndID(QUEST_TYPE type, int questID){return ((type&7)<<28)|questID;};
-  inline void SetQuestTypeAndID(QUEST_TYPE type, int questID)
+  inline int EncodeQuestTypeAndID(QUEST_TYPE type, int id){return ((type&7)<<28)|id;};
+  inline void SetQuestTypeAndID(QUEST_TYPE type, int id)
   {
-    if (questID < 0) 
+    if (id < 0) 
     {
       m_quest = -1;
     }
     else
     {
-      m_quest=EncodeQuestTypeAndID(type,questID);
+      m_quest=EncodeQuestTypeAndID(type,id);
     };
   };
 //  inline void SetQuestTypeAndID(int taid){m_quest=taid;};
@@ -2921,7 +2785,7 @@ public:
     void OnInitialEvent(void);
     bool OnTestTrigger(bool allowForwardStep);
     void OnKeypress(key_code key, char ascii) { /* ignore all input */ }
-    void OnMouseClickLeft(int mouseX, int mouseY) { /*no input allowed*/ }
+    void OnMouseClickLeft(int x, int y) { /*no input allowed*/ }
 #endif
 
   BOOL IsChained();
@@ -2959,7 +2823,7 @@ public:
 #ifdef UAFEngine
     void OnInitialEvent(void);
     void OnKeypress(key_code key, char ascii) { /* ignore all input */ }
-    void OnMouseClickLeft(int mouseX, int mouseY) { /*no input allowed*/ }
+    void OnMouseClickLeft(int x, int y) { /*no input allowed*/ }
 #endif
 #ifdef UAFEDITOR
    void DetailedCrossReference(CR_EVENT_INFO *pCREI);
@@ -2995,7 +2859,7 @@ public:
     void OnInitialEvent(void);
     bool OnIdle(void);
     void OnKeypress(key_code key, char ascii) { /*ignore all input*/ }
-    void OnMouseClickLeft(int mouseX, int mouseY) { /*no input allowed*/ }
+    void OnMouseClickLeft(int x, int y) { /*no input allowed*/ }
 #endif
 #ifdef UAFEDITOR
    void DetailedCrossReference(CR_EVENT_INFO *pCREI);
@@ -3177,20 +3041,14 @@ public:
   BOOL GetEVChain(int num, DWORD &cid);
   void DetailedCrossReference(CR_EVENT_INFO *pCREI);
   void Export(JWriter& jw);
-  void ExportInput(JWriter& jw, char c, BYTE& type, CString& value);
-  void ExportGate(JWriter& jw, char c, BYTE& type, BYTE *negate);
-  void ExportAction(JWriter& jw, const CString& name, BYTE& type, BYTE& cond, CString& value);
   bool Import(JReader& jr);
-  void ImportInput(JReader& jw, char c, BYTE& type, CString& value);
-  void ImportGate(JReader& jw, char c, BYTE& type, BYTE *negate);
-  void ImportAction(JReader& jw, const CString& name, BYTE& type, BYTE& cond, CString& value);
   bool operator ==(const GameEvent& src) const;
 #endif
 
 #ifdef UAFEngine
     void OnInitialEvent(void);
     void OnKeypress(key_code key, char ascii) { /*no input allowed*/ }
-    void OnMouseClickLeft(int mouseX, int mouseY) { /*no input allowed*/ }
+    void OnMouseClickLeft(int x, int y) { /*no input allowed*/ }
     bool OnIdle(void);
 #endif
 
@@ -3237,15 +3095,6 @@ public:
 };
 
 class GPDL;
-class A_CStringPAIR_L;
-enum GPDL_STATE;
-
-class SHAZAM_CACHE
-{
-  A_CStringPAIR_L cache;
-public:
-  GPDL_STATE LoadBinary(const CString& eventText, GPDL *talkGPDL);
-};
 
 class GPDL_EVENT : public GameEvent
 {
@@ -3301,11 +3150,10 @@ class SPLASH_DATA : public GameEvent
   CString GameVersionInfo;
   POSITION currPos;
   bool IsFirstScreen;
-  bool intro;
+  bool LoadNextScreen();
   void EndSplash();
 public:
-    SPLASH_DATA(void) { event = CONTROL_Splash; hImage = -1; currPos = NULL; IsFirstScreen = true; intro = true; }
-    SPLASH_DATA(bool _intro) { event = CONTROL_Splash; hImage = -1; currPos = NULL; IsFirstScreen = true; intro = _intro; }
+  SPLASH_DATA(void) { event=CONTROL_Splash;hImage=-1;currPos=NULL;IsFirstScreen=true; }
   virtual ~SPLASH_DATA() {  }
   void OnKeypress(key_code key, char ascii);
   void OnMouseClickLeft(int x, int y);
@@ -3320,9 +3168,6 @@ public:
 #ifdef TASKTRACE
   const char *GetEventTypeName(void){return "SPLASH_DATA";};
 #endif
-protected:
-    void* mScreens;
-    bool LoadNextScreen();
 };
 
 class START_MENU_DATA : public GameEvent
@@ -3521,30 +3366,22 @@ private:
 #endif
 };
 
-class EXIT_DATA : public SPLASH_DATA
+class EXIT_DATA : public GameEvent
 {
-    LONGLONG splashScreenStart;
+  LONGLONG splashScreenStart;
 public:
-    EXIT_DATA(void) : SPLASH_DATA(false) { event = CONTROL_Exit; splashScreenStart = 0; }
-    virtual ~EXIT_DATA() { }
-    bool OnIdle(void);
-    void OnDraw(void) { }
-    void OnInitialEvent(void);
-    void OnKeypress(key_code key, char ascii);
-    int  OnSaveGame(unsigned int* saveArea);
-    int  OnLoadGame(unsigned int* saveArea);
-    unsigned int OnTaskMessage(TASKMESSAGE msg, TASKSTATE taskState);
+  EXIT_DATA(void) { event=CONTROL_Exit; splashScreenStart=0; }
+  virtual ~EXIT_DATA() { }
+  bool OnIdle(void);
+  void OnDraw(void) { }
+  void OnInitialEvent(void);
+  void OnKeypress(key_code key, char ascii);
+  int  OnSaveGame(unsigned int *saveArea);
+  int  OnLoadGame(unsigned int *saveArea);
+  unsigned int OnTaskMessage(TASKMESSAGE msg, TASKSTATE taskState);
 #ifdef TASKTRACE
-    const char* GetEventTypeName(void) { return "EXIT_DATA"; };
+  const char *GetEventTypeName(void){return "EXIT_DATA";};
 #endif
-};
-
-
-enum BackupStatus
-{
-  Backup_None = 0,
-  Backup_PreMove,    // The party was prevented from moving into the next aquare
-  Backup_PostEvent   // The party needs to backup at the end of event chain. 
 };
 
 class ADVENTURE_MENU_DATA : public GameEvent
@@ -3553,25 +3390,13 @@ private:
   int m_relDir; // set when move attempted
   int m_origPartyX;
   int m_origPartyY;
-  int m_BackupStatus;
+  BOOL m_BackupPerformed;
   CHARACTER *m_pOpenSpellChar;
   SPELL_ID   m_openSpellID;
 
 public:
-  ADVENTURE_MENU_DATA(void) 
-  { 
-    event=CONTROL_Adventure;
-    m_relDir=m_origPartyX=m_origPartyY=-1;
-    m_BackupStatus=Backup_None;
-  };
-  ADVENTURE_MENU_DATA(int partyX, int partyY)
-  { 
-    event=CONTROL_Adventure;
-    m_relDir=-1;
-    m_BackupStatus=Backup_None;
-    m_origPartyX=partyX;
-    m_origPartyY=partyY;
-  };
+  ADVENTURE_MENU_DATA(void) { event=CONTROL_Adventure;m_relDir=m_origPartyX=m_origPartyY=-1;m_BackupPerformed=FALSE;}
+  ADVENTURE_MENU_DATA(int partyX, int partyY) { event=CONTROL_Adventure;m_relDir=-1;m_BackupPerformed=FALSE;m_origPartyX=partyX;m_origPartyY=partyY;}
   virtual ~ADVENTURE_MENU_DATA() { }
   void OnInitialEvent(void);
   bool OnCycle(void);
@@ -3587,7 +3412,7 @@ public:
   void ProcessMenuRequest(key_code key, char ascii);
   void ProcessDungeonMoveRequest(key_code key, char ascii);
   void ProcessOverlandMoveRequest(key_code key, char ascii);
-  void QueueMapEvents(bool execute_XY_events, bool execute_Step_events);
+  void QueueMapEvents(bool execute_XY_events);
   //void PerformWarp(void);
 #ifdef TASKTRACE
   const char *GetEventTypeName(void){return "ADVENTURE_MENU_DATA";};
@@ -3982,19 +3807,13 @@ class COMBAT_SPELL_AIM_MENU_DATA : public GameEvent
 {
 private:
   COMBATANT *m_pCaster;
-  COMBATANT *m_pTarget;
   SPELL_DATA *m_pSpell;
-  bool m_choosingTarget;
-  bool m_selectingUnits;
-  CString m_chooseTargetResult;
 public:
   COMBAT_SPELL_AIM_MENU_DATA( COMBATANT *pCaster, SPELL_DATA *pSpell)
   { 
     event=CONTROL_CombatSpellAimAuto; 
     m_pCaster=pCaster; 
-    m_pTarget = NULL;
     m_pSpell = pSpell;
-    m_choosingTarget = false;
   };
   virtual ~COMBAT_SPELL_AIM_MENU_DATA() { }
   void OnKeypress(key_code key, char ascii);
@@ -4012,25 +3831,18 @@ class COMBAT_SPELL_AIM_MANUAL_MENU_DATA : public GameEvent
 {
 private:
   COMBATANT *m_pCaster;
-  COMBATANT *m_pTarget;
   SPELL_DATA *m_pSpell;
   char m_isValidTarget;  // This is the response from the "IsValidTarget" script.
                          // Interesting values are 'Y', 'N' and ' '.
   int m_maxRange;
-  bool m_choosingTarget;
-  bool m_selectingUnits;
-  CString m_chooseTargetResult;
 
 public:
   COMBAT_SPELL_AIM_MANUAL_MENU_DATA( COMBATANT *pCaster, SPELL_DATA *pSpell ) 
   {
     event=CONTROL_CombatSpellAimManual; 
     m_pCaster=pCaster;
-    m_pTarget = NULL;
     m_isValidTarget = ' ';
     m_pSpell = pSpell;
-    m_choosingTarget = false;
-    m_selectingUnits = false;
   };
   virtual ~COMBAT_SPELL_AIM_MANUAL_MENU_DATA() { }
   void OnKeypress(key_code key, char ascii);
@@ -4038,7 +3850,6 @@ public:
   void OnDraw(void);
   void OnUpdateUI(void);
   void OnMouseClickLeft(int x, int y);
-  void OnReturnToTopOfQueue(void);
 #ifdef TASKTRACE
   const char *GetEventTypeName(void){return "COMBAT_SPELL_AIM_MANUAL_MENU_DATA";};
 #endif
@@ -4323,7 +4134,6 @@ struct AVAILABLE_SPELL
   bool       referenced;
   bool       learned;
   int        probability;  // Percent chance of success
-  bool       levelLimited; // Not currently available because of character's level
   AVAILABLE_SPELL(void) {pSpellData = NULL; learned = referenced = false;};
   ~AVAILABLE_SPELL(void) {};
   bool operator >(const AVAILABLE_SPELL& avs) const;
@@ -4453,12 +4263,12 @@ class CHOOSE_FROM_LIST_MENU_DATA : public GameEvent
 private:
   GameEvent *m_pOrigEvent;
   eventType m_origEventType;
-  CString *m_pResult;
-  CString m_list;
 public:
-  CHOOSE_FROM_LIST_MENU_DATA(CString list, CString *pResult)
-     {m_list = list; event=CONTROL_ChooseFromList; m_pResult=pResult;};
+  CHOOSE_FROM_LIST_MENU_DATA() 
+  {event=CONTROL_OverrideSpellSelection;};
   virtual ~CHOOSE_FROM_LIST_MENU_DATA() {};
+  CString m_list;
+  CString m_result;
   void OnUpdateUI(void);
   void OnKeypress(key_code key, char ascii);
   void OnInitialEvent(void);
@@ -4476,22 +4286,21 @@ private:
   //GLOBAL_SPELL_ID m_cspell;
   SPELL_ID m_cspellID;
   CASTING_ENVIRONMENT m_castingEnvironment;
-  bool m_choosingSpellFromList;
-  CString m_chooseFromListResult;
 public:
   CAST_MENU_DATA(GameEvent *pEvent, CASTING_ENVIRONMENT sce)
   { 
     event=CONTROL_CastMenu;
     m_pOrigEvent=pEvent; 
     m_castingEnvironment = sce;
-    m_choosingSpellFromList = false;
+    m_pChooseSpell = NULL;
   };
-  virtual ~CAST_MENU_DATA() {};
+  virtual ~CAST_MENU_DATA() {if (m_pChooseSpell != NULL) delete m_pChooseSpell;}
   void OnKeypress(key_code key, char ascii);
   void OnInitialEvent(void);
   void OnDraw(void);
   void OnUpdateUI(void);
   void OnReturnToTopOfQueue();
+  CHOOSE_FROM_LIST_MENU_DATA *m_pChooseSpell;
 #ifdef TASKTRACE
   const char *GetEventTypeName(void){return "CAST_MENU_DATA";};
 #endif

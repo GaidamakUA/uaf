@@ -182,7 +182,7 @@ int loadData(RACE_DATA_TYPE& data, LPCSTR fullPath)
   CAR car(&myFile, CArchive::load);
   //if (globalData.version >= _SPECIAL_ABILITIES_VERSION_)
   //{
-  //  car.Compress(true);
+  //  car.Compress(true); // qqqqq
   //};
 
   try
@@ -1021,7 +1021,7 @@ BOOL GENERIC_REFERENCE::LookupReferenceData(double &result)
       ActorType ctx = GetCharContext();
       if (ctx.Level == LEVEL_UNKNOWN)
       {
-        // Not Implemented(0x2abca, false);
+        NotImplemented(0x2abca, false);
         result = 0;
       }
       else
@@ -1033,7 +1033,7 @@ BOOL GENERIC_REFERENCE::LookupReferenceData(double &result)
   case GENDER_DB:
     {
       ActorType ctx = GetCharContext();
-      CHARACTER *pChar = GetCurrentlyActiveContext(&ctx, "GENERIC_REFERENCE::LookupReferenceData");
+      CHARACTER *pChar = GetCurrentlyActiveContext(&ctx);
       if (pChar==NULL) { result=0.0; return FALSE; }
       result=(m_refKey==pChar->GetAdjGender());
       return TRUE;
@@ -1047,7 +1047,7 @@ BOOL GENERIC_REFERENCE::LookupReferenceData(double &result)
       //if (m_refKey==raceUnknown)
       //if (m_raceID.IsNoRace())
       //{
-      //  Not Implemented(0x3cec85, false);
+      //  NotImplemented(0x3cec85, false);
         //result = ctx.Race;// evaluating 'race' keyword, return race key for char context
       //}
       //else
@@ -1065,7 +1065,7 @@ BOOL GENERIC_REFERENCE::LookupReferenceData(double &result)
       //if (m_refKey==classUnknown)
       //if (m_classID.IsNoClass())
       //{
-      //  Not Implemented(0x4c7a83, false);
+      //  NotImplemented(0x4c7a83, false);
         //result = ctx.Class;// evaluating 'class' keyword, return class key for char context
       //}
       //else
@@ -1083,7 +1083,7 @@ BOOL GENERIC_REFERENCE::LookupReferenceData(double &result)
       //if (m_refKey==classUnknown)
       //if (m_baseclassID.IsNoBaseclass())
       //{
-      //  Not Implemented(0x6c8ace, false);
+      //  NotImplemented(0x6c8ace, false);
         //result = ctx.Class;// evaluating 'class' keyword, return class key for char context
       //}
       //else
@@ -1097,7 +1097,7 @@ BOOL GENERIC_REFERENCE::LookupReferenceData(double &result)
   case ABILITY_DB:
     {
       ActorType ctx = GetCharContext();
-      CHARACTER *pChar = GetCurrentlyActiveContext(&ctx, "GENERIC_REFERENCE::LookupReferenceData");
+      CHARACTER *pChar = GetCurrentlyActiveContext(&ctx);
       if (pChar==NULL) { result=0.0; return FALSE; }
       //result = pChar->GetAbilityScore(m_refKey);
       result = pChar->GetAbilityScore(this->m_refName);
@@ -2962,38 +2962,37 @@ void RACE_DATA::LogUndefinedMultiClassReferences(void)
   };
 }
 
+
+
 int RACE_DATA::Serialize(CAR &car, const CString& version)
 {
-  //int i, n;
+  int i, n;
   int result=0;
   if (car.IsStoring())
   {
+    //car << m_raceKey;
+    car << preSpellNameKey;
+    if (m_name=="") m_name="*";
+    car << m_name;
+    if (m_name=="*") m_name="";
+    m_weight.Serialize(car);
+    m_height.Serialize(car);
+    m_age.Serialize(car);
+    m_maxAge.Serialize(car);
+    car.WriteCount(m_abilityRequired.GetSize());
+    for (i=0; i<m_abilityRequired.GetSize(); i++)
     {
-      int i;
-      //car << m_raceKey;
-      car << preSpellNameKey;
-      if (m_name == "") m_name = "*";
-      car << m_name;
-      if (m_name == "*") m_name = "";
-      m_weight.Serialize(car);
-      m_height.Serialize(car);
-      m_age.Serialize(car);
-      m_maxAge.Serialize(car);
-      car.WriteCount(m_abilityRequired.GetSize());
-      for (i = 0; i < m_abilityRequired.GetSize(); i++)
-      {
-        GetAbilityReq(i)->Serialize(car);
-        //m_abilityRequired[i].Serialize(car);
-      };
-      m_baseMovement.Serialize(car);
-      car << m_canChangeClass;
-      car << m_dwarfResistance;
-      car << m_gnomeResistance;
-      car << m_findSecretDoor;
-      car << m_findSecretDoorSearching;
-      LogUndefinedMultiClassReferences();
-      car.Serialize(m_race_asl, "RACE_DATA_ATTRIBUTES");
+      GetAbilityReq(i)->Serialize(car);
+      //m_abilityRequired[i].Serialize(car);
     };
+    m_baseMovement.Serialize(car);
+    car << m_canChangeClass;
+    car << m_dwarfResistance;
+    car << m_gnomeResistance;
+    car << m_findSecretDoor;
+    car << m_findSecretDoorSearching;
+    LogUndefinedMultiClassReferences();
+    car.Serialize(m_race_asl, "RACE_DATA_ATTRIBUTES");
     {
       int i, n;
       n = m_skills.GetSize();
@@ -3044,7 +3043,6 @@ int RACE_DATA::Serialize(CAR &car, const CString& version)
         //m_skillAdjustmentsScript[i].Serialize(car);
       };
     };
-    m_specAbs.Serialize(car, globalData.version, m_name, "races");
   }
   else
   {
@@ -3052,11 +3050,11 @@ int RACE_DATA::Serialize(CAR &car, const CString& version)
 #ifdef UAFEDITOR
     if (version < "RaceV2")
     {
+    //int key;
+    //car >> key;
+    //m_raceKey = (raceType)key;
       //int key;
       //car >> key;
-      //m_raceKey = (raceType)key;
-        //int key;
-        //car >> key;
       car >> preSpellNameKey;
     };
 #endif
@@ -3064,118 +3062,113 @@ int RACE_DATA::Serialize(CAR &car, const CString& version)
     {
       car >> preSpellNameKey;
     };
+    car >> m_name; if (m_name=="*") m_name="";
+#ifdef UAFEngine
+    // In the runtime, Name means only the un-decorated
+    // part of the name.  For example:  "Gnome|Stupid" will be
+    // read as simply "Gnome".  There can be multiple objects with
+    // the same name but once we are at the point where we have the binary
+    // data then everything is identified uniquely and is referenced by the
+    // binary key.  The name is only for printing.
+    if (m_name.Find('|') >= 0) m_name = m_name.Left(m_name.Find('|')); // Remove qualifier.
+#endif
+    result=m_weight.Serialize(car);
+    if (result!=0) return result;
+    result=m_height.Serialize(car);
+    if (result!=0) return result;
+    result=m_age.Serialize(car);
+    if (result!=0) return result;
+    result=m_maxAge.Serialize(car);
+    if (result!=0) return result;
+    n=car.ReadCount();
+    m_abilityRequired.SetSize(n);
+    for (i=0; i<n; i++)
+    {
+      result=GetAbilityReq(i)->Serialize(car);
+      //result=m_abilityRequired[i].Serialize(car);
+      if (result!=0) return result;
+    };
+    result=m_baseMovement.Serialize(car);
+    if (result!=0) return result;
+#ifdef UAFEDITOR
+    if (version < "RaceV2")
+    {
+      m_canChangeClass          = (m_name.CompareNoCase("Human") == 0);
+      m_dwarfResistance         = (m_name.CompareNoCase("Dwarf") == 0);;
+      m_gnomeResistance         = (m_name.CompareNoCase("Gnome") == 0);;
+      m_findSecretDoor          = (m_name.CompareNoCase("Elf") == 0) ? 5 : 2;
+      m_findSecretDoorSearching = (m_name.CompareNoCase("Elf") == 0) ? 2 : 1;
+    }
+    else
+#endif
+    {
+      car >> m_canChangeClass;
+      car >> m_dwarfResistance;
+      car >> m_gnomeResistance;
+      car >> m_findSecretDoor;
+      car >> m_findSecretDoorSearching;
+    };
+
+    if (result!=0) return result;
+    car.DeSerialize(m_race_asl, "RACE_DATA_ATTRIBUTES");
+    if (globalData.version >= VersionSpellNames)
     {
       {
         int i, n;
-        car >> m_name; if (m_name == "*") m_name = "";
-#ifdef UAFEngine
-        // In the runtime, Name means only the un-decorated
-        // part of the name.  For example:  "Gnome|Stupid" will be
-        // read as simply "Gnome".  There can be multiple objects with
-        // the same name but once we are at the point where we have the binary
-        // data then everything is identified uniquely and is referenced by the
-        // binary key.  The name is only for printing.
-        if (m_name.Find('|') >= 0) m_name = m_name.Left(m_name.Find('|')); // Remove qualifier.
-#endif
-        result = m_weight.Serialize(car);
-        if (result != 0) return result;
-        result = m_height.Serialize(car);
-        if (result != 0) return result;
-        result = m_age.Serialize(car);
-        if (result != 0) return result;
-        result = m_maxAge.Serialize(car);
-        if (result != 0) return result;
-        n = car.ReadCount();
-        m_abilityRequired.SetSize(n);
-        for (i = 0; i < n; i++)
+        car >> n;
+        m_skills.SetSize(n);
+        for (i=0; i<n; i++)
         {
-          result = GetAbilityReq(i)->Serialize(car);
-          //result=m_abilityRequired[i].Serialize(car);
-          if (result != 0) return result;
-        };
-        result = m_baseMovement.Serialize(car);
-        if (result != 0) return result;
-      };
-#ifdef UAFEDITOR
-      if (version < "RaceV2")
-      {
-        m_canChangeClass = (m_name.CompareNoCase("Human") == 0);
-        m_dwarfResistance = (m_name.CompareNoCase("Dwarf") == 0);;
-        m_gnomeResistance = (m_name.CompareNoCase("Gnome") == 0);;
-        m_findSecretDoor = (m_name.CompareNoCase("Elf") == 0) ? 5 : 2;
-        m_findSecretDoorSearching = (m_name.CompareNoCase("Elf") == 0) ? 2 : 1;
-      }
-      else
-#endif
-      {
-        car >> m_canChangeClass;
-        car >> m_dwarfResistance;
-        car >> m_gnomeResistance;
-        car >> m_findSecretDoor;
-        car >> m_findSecretDoorSearching;
-      };
-
-      if (result != 0) return result;
-      car.DeSerialize(m_race_asl, "RACE_DATA_ATTRIBUTES");
-      if (globalData.version >= VersionSpellNames)
-      {
-        {
-          int i, n;
-          car >> n;
-          m_skills.SetSize(n);
-          for (i = 0; i < n; i++)
-          {
-            GetSkill(i)->Serialize(car);
-            //m_skills[i].Serialize(car);
-          };
-        };
-        {
-          int i, n;
-          car >> n;
-          m_skillAdjustmentsAbility.SetSize(n);
-          for (i = 0; i < n; i++)
-          {
-            GetSkillAdjAbility(i)->Serialize(car);
-            //m_skillAdjustmentsAbility[i].Serialize(car);
-          };
-        };
-        {
-          int i, n;
-          n = m_skillAdjustmentsBaseclass.GetSize();
-          car >> n;
-          m_skillAdjustmentsBaseclass.SetSize(n);
-          for (i = 0; i < n; i++)
-          {
-            GetSkillAdjBaseclass(i)->Serialize(car);
-            //m_skillAdjustmentsBaseclass[i].Serialize(car);
-          };
-        };
-        {
-          int i, n;
-          car >> n;
-          m_skillAdjustmentsRace.SetSize(n);
-          for (i = 0; i < n; i++)
-          {
-            GetSkillAdjRace(i)->Serialize(car);
-            //m_skillAdjustmentsRace[i].Serialize(car);
-          };
-        };
-        {
-          int i, n;
-          car >> n;
-          m_skillAdjustmentsScript.SetSize(n);
-          for (i = 0; i < n; i++)
-          {
-            GetSkillAdjScript(i)->Serialize(car);
-            //m_skillAdjustmentsScript[i].Serialize(car);
-          };
+          GetSkill(i)->Serialize(car);
+          //m_skills[i].Serialize(car);
         };
       };
-    }
-    if (globalData.version >= _SPECIAL_ABILITIES_VERSION_)
-    {
-      m_specAbs.Serialize(car, globalData.version, m_name, "races");
+      {
+        int i, n;
+        car >> n;
+        m_skillAdjustmentsAbility.SetSize(n);
+        for (i=0; i<n; i++)
+        {
+          GetSkillAdjAbility(i)->Serialize(car);
+          //m_skillAdjustmentsAbility[i].Serialize(car);
+        };
+      };
+      {
+        int i, n;
+        n = m_skillAdjustmentsBaseclass.GetSize();
+        car >> n;
+        m_skillAdjustmentsBaseclass.SetSize(n);
+        for (i=0; i<n; i++)
+        {
+          GetSkillAdjBaseclass(i)->Serialize(car);
+          //m_skillAdjustmentsBaseclass[i].Serialize(car);
+        };
+      };
+      {
+        int i, n;
+        car >> n;
+        m_skillAdjustmentsRace.SetSize(n);
+        for (i=0; i<n; i++)
+        {
+          GetSkillAdjRace(i)->Serialize(car);
+          //m_skillAdjustmentsRace[i].Serialize(car);
+        };
+      };
+      {
+        int i, n;
+        car >> n;
+        m_skillAdjustmentsScript.SetSize(n);
+        for (i=0; i<n; i++)
+        {
+          GetSkillAdjScript(i)->Serialize(car);
+          //m_skillAdjustmentsScript[i].Serialize(car);
+        };
+      };
     };
+  }
+  if (globalData.version >= _SPECIAL_ABILITIES_VERSION_)
+  {
+    m_specAbs.Serialize(car, globalData.version, m_name, "races");
   };
   return result;
 }
@@ -3511,17 +3504,7 @@ int RACE_DATA_TYPE::Serialize(CAR& car)
   };
   return result;
 }
-#ifdef UAFEDITOR
-void RACE_DATA_TYPE::CrossReference(CR_LIST *pCRList)
-{
-  int i, n;
-  n = GetCount();
-  for (i = 0; i < n; i++)
-  {
-    GetRace(i)->CrossReference(pCRList);
-  };
-};
-#endif
+
 
 RACE_DATA *RACE_DATA::operator = (const RACE_DATA& src)
 {
@@ -3576,47 +3559,42 @@ int RACE_DATA::LocateSkill(const SKILL_ID& skillID) const
   return -1;
 }
 
-//int RACE_DATA::GetSkillValue(const SKILL_ID& skillID) const
-void RACE_DATA::GetSkillValue(SKILL_COMPUTATION& SC) const
+int RACE_DATA::GetSkillValue(const SKILL_ID& skillID) const
 {
   const SKILL *pSkill;
-  pSkill = PeekSkill(SC.skillID);
-  if (pSkill == NULL) return;
-  if (SC.raceValue == NoSkill) SC.raceValue = pSkill->value;
-  else
+  pSkill = PeekSkill(skillID);
+  if (pSkill == NULL)
   {
-    if (SC.minimize) 
-    {
-      if (pSkill->value < SC.raceValue) SC.raceValue = pSkill->value;
-    }
-    else
-    {
-      if (pSkill->value > SC.raceValue) SC.raceValue = pSkill->value;
-    };
+    return NoSkill;
   };
+  return pSkill->value;
 }
 
-void RACE_DATA::UpdateSkillValue(SKILL_COMPUTATION& SC) const
+double RACE_DATA::UpdateSkillValue(const  CHARACTER    *pChar,
+                                   const  SKILL_ID&     skillID,
+                                   const  BASECLASS_ID *pBaseclassID,  // Or NULL
+                                   double               val) const
 {
-  // Compute adjustments;
-  // This includes adustments for Race, Baseclass, and Abilities.
+  // Multiply val by all adjustments for this skill;
+  // This includes adustments for Race, Baseclass, and Ability.
   int i, n;
-  //RACE_ID raceID;
-  //raceID = SC.pChar->RaceID();
+  RACE_ID raceID;
+  raceID = pChar->RaceID();
   n = GetSkillAdjBaseclassCount();
   for (i=0; i<n; i++)
   {
     const SKILL_ADJUSTMENT_BASECLASS *pAdj;
     pAdj = PeekSkillAdjBaseclass(i);
-    if (pAdj->skillID == SC.skillID)
+
+    if ((pBaseclassID == NULL) || (*pBaseclassID == pAdj->baseclassID))
     {
-      if ((SC.baseclassID.IsEmpty()) || (SC.baseclassID == pAdj->baseclassID))
+      if (pAdj->skillID == skillID)
       {
-        SC.baseclassLevel = SC.pChar->GetBaseclassLevel(pAdj->baseclassID);
-        if (SC.baseclassLevel > 0)
+        int baseclassLevel;
+        baseclassLevel = pChar->GetBaseclassLevel(pAdj->baseclassID);
+        if (baseclassLevel > 0)
         {
-          //pAdj->UpdateSkillValue(baseclassLevel, baseVal, pBestBaseclassAdj, minimize);
-          pAdj->UpdateSkillValue(SC);
+          val = pAdj->UpdateSkillValue(baseclassLevel, val);
         };
       };
     };
@@ -3626,10 +3604,9 @@ void RACE_DATA::UpdateSkillValue(SKILL_COMPUTATION& SC) const
   {
     const SKILL_ADJUSTMENT_ABILITY *pAdj;
     pAdj = PeekSkillAdjAbility(i);
-    if (pAdj->skillID == SC.skillID)
+    if (pAdj->skillID == skillID)
     {
-      //pAdj->UpdateSkillValue(pChar, baseVal, minimize);
-      pAdj->UpdateSkillValue(SC);
+      val = pAdj->UpdateSkillValue(pChar, val);
     };
   };
   n = GetSkillAdjRaceCount();
@@ -3637,12 +3614,12 @@ void RACE_DATA::UpdateSkillValue(SKILL_COMPUTATION& SC) const
   {
     const SKILL_ADJUSTMENT_RACE *pAdj;
     pAdj = PeekSkillAdjRace(i);
-    if (  (pAdj->skillID == SC.skillID) && (pAdj->raceID == RaceID()) )
+    if (  (pAdj->skillID == skillID) && (pAdj->raceID == raceID) )
     {
-      //pAdj->UpdateSkillValue(baseVal, pBestRaceAdj);
-      pAdj->UpdateSkillValue(SC);
+      val = pAdj->UpdateSkillValue(val);
     };
   };
+  return val;
 }
 
 
@@ -4167,36 +4144,6 @@ ABILITY_DATA_TYPE::~ABILITY_DATA_TYPE(void)
 {
 }
 
-void ABILITY_DATA_TYPE::ClearAdjustments(double val)
-{
-  int i,n;
-  n = GetCount();
-  for(i=0; i<n; i++)
-  {
-    GetAbilityData(i)->bestSkillAdj = val;
-  };
-}
-
-double ABILITY_DATA_TYPE::TotalAdjustments(double val)
-{
-  int i,n;
-  double result;
-  n = GetCount();
-  result = val;
-  for(i=0; i<n; i++)
-  {
-    ABILITY_DATA *pab;
-    pab = GetAbilityData(i);
-    if (pab->bestSkillAdj != val) 
-    {
-      if (result == val) result = pab->bestSkillAdj;
-      else               result += pab->bestSkillAdj;
-    };
-  };
-  return result;
-}
-
-
 void ABILITY_DATA_TYPE::Clear(void)
 {
   //m_AbilityData.RemoveAll();
@@ -4383,8 +4330,8 @@ int ABILITY_DATA_TYPE::Serialize(CAR& car)
   //POSITION p;
   //CString version("AbilityV1");
   CString version("AbilityV2");  // V2 uses ABILITY_ID instead of key
-
   int i, n, result=0;
+
   if (car.IsStoring())
   {
 //    car << "AbilityV0";
@@ -4408,7 +4355,7 @@ int ABILITY_DATA_TYPE::Serialize(CAR& car)
     {
       if (version > "AbilityV0") car.Compress(true);
       car >> count;
-      for (i=0; i<count; i++)
+      for (int i=0; i<count; i++)
       {
         result=data.Serialize(car, version);
         if (result!=0) break;
@@ -4546,6 +4493,7 @@ void BASE_CLASS_DATA::Clear(void)
   m_skillAdjustmentsRace.RemoveAll();
   m_bonusXP.RemoveAll();
   m_specAbs.Clear();
+//  m_saveVs.RemoveAll();
   m_spellBonusAbility.Empty();
 //  m_turnUndeadLevel = 999;
   for (i=0; i<HIGHEST_CHARACTER_LEVEL; i++) hitDice[i].Clear();
@@ -4617,6 +4565,9 @@ BASE_CLASS_DATA& BASE_CLASS_DATA::operator =(const BASE_CLASS_DATA& src)
   n=src.m_bonusXP.GetSize();
     m_bonusXP.SetSize(n);
     m_bonusXP.Copy(src.m_bonusXP);
+//  n=src.m_saveVs.GetSize();
+//    m_saveVs.SetSize(n);
+//    m_saveVs.Copy(src.m_saveVs);
   n = src.GetCastingInfoCount();
     m_castingInfo.SetSize(n);
     m_castingInfo.Copy(src.m_castingInfo);
@@ -4687,6 +4638,12 @@ BOOL BASE_CLASS_DATA::operator ==(const BASE_CLASS_DATA& src) const
   {
     if (!(*PeekBonusXP(i) == *src.PeekBonusXP(i))) return FALSE;
   };
+//  n = m_saveVs.GetSize();
+//  if (n != src.m_saveVs.GetSize()) return FALSE;
+//  for (i=0; i<n; i++)
+//  {
+//    if (!(*PeekSaveVs(i) == *src.PeekSaveVs(i))) return FALSE;
+//  };
   for (i=0; i<HIGHEST_CHARACTER_LEVEL; i++)
   {
     if (!(hitDice[i] == src.hitDice[i])) return FALSE;
@@ -4787,14 +4744,13 @@ BASECLASS_STATS::BASECLASS_STATS(void)
   currentLevel = 0;
   previousLevel = 0;
   preDrainLevel = 0;
-  x_experience = 0;
-  pBaseclassData = NULL;
+  experience = 0;
 }
 
 
 CArchive& BASECLASS_STATS::Serialize(CArchive& ar)
 {
-  die("BASECLASS_STATS should not serialize to CArchive"); // Not Implemented(0x2e4da65, false);
+  NotImplemented(0x2e4da65, false);
   return ar;
 }
 
@@ -4806,7 +4762,7 @@ CAR& BASECLASS_STATS::Serialize(CAR& car, const CString& version)
     car << currentLevel;
     car << previousLevel;
     car << preDrainLevel;
-    car << x_experience;
+    car << experience;
   }
   else
   {
@@ -4814,22 +4770,11 @@ CAR& BASECLASS_STATS::Serialize(CAR& car, const CString& version)
     car >> currentLevel;
     car >> previousLevel;
     car >> preDrainLevel;
-    car >> x_experience;
+    car >> experience;
   };
   return car;
 }
 
-int BASECLASS_STATS::CurExperience(void) const
-{
-  if (previousLevel > 0) return 0;
-  return x_experience;
-}
-
-int BASECLASS_STATS::IncCurExperience(int exp)
-{
-  if (previousLevel > 0) return 0;
-  return x_experience += exp;
-}
 #ifdef UAFEDITOR
 
 const char *JKEY_BASECLASSID = "baseclassID";
@@ -4845,7 +4790,7 @@ void BASECLASS_STATS::Export(JWriter& jw)
   jw.NameAndValue(JKEY_CURRENTLEVEL, currentLevel);
   jw.NameAndValue(JKEY_PREVIOUSLEVEL, previousLevel);
   jw.NameAndValue(JKEY_PREDRAINLEVEL, preDrainLevel);
-  jw.NameAndValue(JKEY_EXPERIENCE, x_experience);
+  jw.NameAndValue(JKEY_EXPERIENCE, experience);
   jw.EndList();
 }
 void BASECLASS_STATS::Import(JReader& jr)
@@ -4855,7 +4800,7 @@ void BASECLASS_STATS::Import(JReader& jr)
   jr.NameAndValue(JKEY_CURRENTLEVEL, currentLevel);
   jr.NameAndValue(JKEY_PREVIOUSLEVEL, previousLevel);
   jr.NameAndValue(JKEY_PREDRAINLEVEL, preDrainLevel);
-  jr.NameAndValue(JKEY_EXPERIENCE, x_experience);
+  jr.NameAndValue(JKEY_EXPERIENCE, experience);
   jr.EndList();
 }
 #endif
@@ -4907,304 +4852,159 @@ CAR& SKILL_ADJ::Serialize(CAR& car, const CString& version)
   return car;
 }
 
-
-const char *JKEY_SKILLID          = "SkillID";
-const char *JKEY_ADJUSTMENTID     = "AdjustmentID";
-const char *JKEY_ADJUSTMENTAMOUNT = "AdjustmentAmount";
-const char *JKEY_ADJUSTMENTTYPE   = "AdjustmentType";
-
-
 #ifdef UAFEDITOR
 void SKILL_ADJ::Export(JWriter& jw)
 {
-  CString temp;
-  jw.StartList();
-  jw.NameAndValue(JKEY_SKILLID, skillID);
-  jw.NameAndQuotedValue(JKEY_ADJUSTMENTID, adjID);
-  jw.NameAndValue(JKEY_ADJUSTMENTAMOUNT, value);
-  temp = type;
-  jw.NameAndValue(JKEY_ADJUSTMENTTYPE, temp);
-  jw.EndList();
+  NotImplemented(0xad9d, false);
+  /*
+    car << skillID;
+    car << adjID;
+    car << value;
+    car << type;
+    */
 }
 void SKILL_ADJ::Import(JReader& jr)
 {
-  CString temp;
-  jr.StartList();
-  jr.NameAndValue(JKEY_SKILLID, skillID);
-  jr.NameAndQuotedValue(JKEY_ADJUSTMENTID, adjID);
-  jr.NameAndValue(JKEY_ADJUSTMENTAMOUNT, value);
-  jr.NameAndValue(JKEY_ADJUSTMENTTYPE, temp);
-  if (temp.GetLength() > 0)
-  {
-    type = temp[0];
-  }
-  else
-  {
-    type = ' ';
-  };
-  jr.EndList();
+  NotImplemented(0xad9e, false);
+  /*
+    car << skillID;
+    car << adjID;
+    car << value;
+    car << type;
+    */
 }
 #endif
 
 
-//void SKILL_ADJUSTMENT_RACE::UpdateSkillValue(double baseVal, double *pBestAdjRace) const
-void SKILL_ADJUSTMENT_RACE::UpdateSkillValue(SKILL_COMPUTATION& SC) const
+double SKILL_ADJUSTMENT_RACE::UpdateSkillValue(double val) const
 {
-  double adj;
-  adj = 0.0;
   switch (adjType)
   {
   case '%':
-    adj = (SC.baseVal * skillAdj) / 100.0 - SC.baseVal; break;
+    return val * skillAdj / 100.0;
   case '+':
-    adj = skillAdj;                                     break;
-  case '-':
-    adj = -skillAdj;                                     break;
+    return val + skillAdj;
   case '=':
-    adj = skillAdj - SC.baseVal;                        break;
-  default:
-    if (!debugStrings.AlreadyNoted("SARIAT"))
-    {
-      CString msg;
-      msg.Format("SKILL_ADJUSTMENT_RACE::UpdateSkillValue - Illegal adjType = '%c'", adjType);
-      MsgBoxInfo(msg);
-      WriteDebugString(msg);
-    };
-    return;
+    return skillAdj;
   };
-  if (SC.bestRaceAdj == NoSkillAdj) SC.bestRaceAdj = adj;
-  else
-  {
-    if (SC.minimize)  
-    {
-      if (adj < SC.bestRaceAdj) SC.bestRaceAdj = adj;
-    }
-    else
-    {
-      if (adj > SC.bestRaceAdj) SC.bestRaceAdj = adj;
-    };
-  };
+  return val;
 }
 
-//void SKILL_ADJUSTMENT_BASECLASS::UpdateSkillValue(int baseclassLevel, 
-//                                                  double baseVal, 
-//                                                  double *pBestBaseclassAdj,
-//                                                  bool minimize) const
-void SKILL_ADJUSTMENT_BASECLASS::UpdateSkillValue(SKILL_COMPUTATION& SC) const
+double SKILL_ADJUSTMENT_BASECLASS::UpdateSkillValue(int level, double val) const
 {
-  double adj;
-  if (SC.baseclassLevel > HIGHEST_CHARACTER_LEVEL) SC.baseclassLevel = HIGHEST_CHARACTER_LEVEL;
-  if (SC.baseclassLevel < 1) SC.baseclassLevel = 1;
+  if (level > HIGHEST_CHARACTER_LEVEL) level = HIGHEST_CHARACTER_LEVEL;
+  if (level < 1) level = 1;
   switch (adjType)
   {
-  case '%':  adj = SC.baseVal * skillAdj[SC.baseclassLevel-1] / 100.0 - SC.baseVal; break;
-  case '+':  adj = skillAdj[SC.baseclassLevel-1];                                   break;
-  case '*':  adj = SC.baseVal * (skillAdj[SC.baseclassLevel-1] - 1);                break;
-  case '-':  adj = -skillAdj[SC.baseclassLevel-1];                                  break;
-  case '=':  adj = skillAdj[SC.baseclassLevel-1] - SC.baseVal;                      break;
-  default: 
-    if (!debugStrings.AlreadyNoted("SABIAT"))
-    {
-      CString msg;
-      msg.Format("Skill_ADJUSTMENT_BASECLASS - Illegal adjustment type = '%d'", adjType);
-      WriteDebugString(msg);
-      MsgBoxInfo(msg);
-    };
-    return;
+  case '%':  return val * skillAdj[level-1] / 100.0;
+  case '+':  return val + skillAdj[level-1];
+  case '*':  return val * skillAdj[level-1];
+  case '-':  return val - skillAdj[level-1];
+  case '=':  return skillAdj[level-1];
   };
-  if (SC.bestBaseclassAdj == NoSkillAdj) SC.bestBaseclassAdj = adj;
-  else
-  {
-    if (SC.minimize)
-    {
-      if (adj < SC.bestBaseclassAdj) SC.bestBaseclassAdj = adj;
-    }
-    else
-    {
-      if (adj > SC.bestBaseclassAdj) SC.bestBaseclassAdj = adj;
-    };
-  };
+  return val;
 }
 
-//void SKILL_ADJUSTMENT_ABILITY::UpdateSkillValue(const CHARACTER *pChar, 
-//                                                double           baseVal,
-//                                                bool             minimize) const
-void SKILL_ADJUSTMENT_ABILITY::UpdateSkillValue(SKILL_COMPUTATION& SC) const
+double SKILL_ADJUSTMENT_ABILITY::UpdateSkillValue(const CHARACTER *pChar, double val) const
 {
-  // We update the field 'bestSkillAdj' in abilityData.
   int ability;
-  double additiveAdj;
-  ABILITY_DATA *pAbilityData;
-  if      (abilityID == Ability_Strength)     ability = SC.pChar->GetLimitedStr();
-  else if (abilityID == Ability_Wisdom)       ability = SC.pChar->GetLimitedWis();
-  else if (abilityID == Ability_Charisma)     ability = SC.pChar->GetLimitedCha();
-  else if (abilityID == Ability_Constitution) ability = SC.pChar->GetLimitedCon();
-  else if (abilityID == Ability_Dexterity)    ability = SC.pChar->GetLimitedDex();
-  else if (abilityID == Ability_Intelligence) ability = SC.pChar->GetLimitedInt();
-  else return;
-  pAbilityData = abilityData.GetAbilityData(abilityID);
-  if (pAbilityData == NULL)
-  {
-    if (!debugStrings.AlreadyNoted("NARISA"))
-    {
-      writeDebugDialog = WRITE_DEBUG_DIALOG_WARNING;
-      WriteDebugString("Non-existent ability \"%s\" referenced in Skill Adjustment\n");
-      MsgBoxInfo("Non-existent Ability referenced. See error log");
-    };
-    return;
-  };
+  if      (abilityID == Ability_Strength)     ability = pChar->GetLimitedStr();
+  else if (abilityID == Ability_Wisdom)       ability = pChar->GetLimitedWis();
+  else if (abilityID == Ability_Charisma)     ability = pChar->GetLimitedCha();
+  else if (abilityID == Ability_Constitution) ability = pChar->GetLimitedCon();
+  else if (abilityID == Ability_Dexterity)    ability = pChar->GetLimitedDex();
+  else if (abilityID == Ability_Intelligence) ability = pChar->GetLimitedInt();
+  else return val;
   if (ability > HIGHEST_CHARACTER_PRIME) ability = HIGHEST_CHARACTER_PRIME;
   if (ability < 1) ability = 1;
   switch (adjType)
   {
   case '%':
-    additiveAdj = SC.baseVal * (skillAdj[ability-1]-100) / 100.0; break;
+    return val * skillAdj[ability-1] / 100.0;
   case '+':
-    additiveAdj = skillAdj[ability-1];                            break;
-  default: 
-    if (!debugStrings.AlreadyNoted("ISATIS"))
-    {
-      MsgBoxInfo("Illegal skill adjustment type in SkillAdjAbility");
-    };
-    return;
+    return val + skillAdj[ability-1];
   };
-  if (pAbilityData->bestSkillAdj == NoSkillAdj) pAbilityData->bestSkillAdj = additiveAdj;
-  else
-  {
-    if (SC.minimize) 
-    {
-      if (pAbilityData->bestSkillAdj > additiveAdj) pAbilityData->bestSkillAdj = additiveAdj;
-    }
-    else
-    {
-      if (pAbilityData->bestSkillAdj < additiveAdj) pAbilityData->bestSkillAdj = additiveAdj;
-    };
-  };
+  return val;
 }
 
-
-void GetSkillValue(SKILL_COMPUTATION& SC)
+BOOL GetAdjSkillValue(const SKILL_ID&        skillID,
+                      const CHARACTER       *pChar,
+                      const BASE_CLASS_DATA **pBestBaseclass,
+                            int             *pBestBaseValue,
+                            int             *pAdjValue)
 {
   // First we will find the largest value of the skill
   // in the baseclass and race databases.
+  // Returns NoSkill if no such skill is found.
+  int bestBaseValue = NoSkill;
+  const RACE_DATA *pRace;
   BASECLASS_ID baseclassID;
   const BASE_CLASS_DATA *pBaseclass;
-  if (SC.ppBestBaseclass != NULL) *SC.ppBestBaseclass = NULL;
+  const CLASS_DATA *pClass;
+  pClass = classData.PeekClass(pChar->GetClass());
+  if (pBestBaseclass != NULL) *pBestBaseclass = NULL;
+  if (pAdjValue != NULL) *pAdjValue = 0;
+  double val;
   // Find the largest skill value among the baseclasses
   {
     int j, m;
-    if (SC.pClass != NULL)
+    if (pClass != NULL)
     {
-      m = SC.pClass->GetCount();
+      m = pClass->GetCount();
       for (j=0; j<m; j++)
       {
-        baseclassID = *SC.pClass->PeekBaseclassID(j);
-        if (SC.baseclassID.IsEmpty() || (SC.baseclassID == baseclassID))
+        int skillValue;
+        BASECLASS_ID baseclassID;
+        baseclassID = *pClass->PeekBaseclassID(j);
+        pBaseclass = baseclassData.PeekBaseclass(baseclassID);
+        if (pBaseclass == NULL) continue;
+        skillValue = pBaseclass->GetSkillValue(skillID);
+        if (skillValue > bestBaseValue)
         {
-          pBaseclass = baseclassData.PeekBaseclass(baseclassID);
-          if (pBaseclass == NULL) continue;
-          pBaseclass->GetSkillValue(SC);
+          bestBaseValue = skillValue;
+          if (pBestBaseclass != NULL) *pBestBaseclass = pBaseclass;
         };
       };
     };
   };
   // Find the largest skill value in the race.
-  if (SC.pRace != NULL)
+  pRace = raceData.PeekRace(pChar->RaceID());
+  if (pRace != NULL)
   {
-    SC.pRace->GetSkillValue(SC);
-  };
-  // Now find the best starting value (baseclass or race)  
-  SC.baseVal = SC.baseclassValue;
-  if (SC.raceValue != NoSkill)
-  {
-    if (SC.baseVal == NoSkill) SC.baseVal = SC.raceValue;
-    else
+    int i, n;
+    n = pRace->GetSkillCount();
+    for (i=0; i<n; i++)
     {
-      if (SC.minimize) 
+      const SKILL *pSkill;
+      pSkill = pRace->PeekSkill(i);
+      if (pSkill->skillID != skillID) continue;
+      if (pSkill->value > bestBaseValue)
       {
-        if (SC.raceValue < SC.baseVal) SC.baseVal = SC.raceValue;
-      }
-      else
-      {
-        if (SC.raceValue > SC.baseVal) SC.baseVal = SC.raceValue;
+        bestBaseValue = pSkill->value;
       };
     };
   };
-}
-
-void UpdateSkillValue(SKILL_COMPUTATION& SC)
-{
-  abilityData.ClearAdjustments(NoSkillAdj);
-  if (SC.pRace != NULL)
+  if (pBestBaseValue != NULL) *pBestBaseValue = bestBaseValue;
+  if (bestBaseValue == NoSkill) return FALSE;
+  if (pAdjValue == NULL) return TRUE;
+  val = double(bestBaseValue);
+  if (pRace != NULL)
   {
-    //pRace->UpdateSkillValue (pChar, 
-    //                         skillID, 
-    //                         NULL, 
-    //                         baseVal, 
-    //                         &bestRaceAdj, 
-    //                         &bestBaseclassAdj,
-    //                         minimize);
-    SC.pRace->UpdateSkillValue (SC);
+    val = pRace->UpdateSkillValue (pChar, skillID, NULL, val);
   };
   {
     int i, n;
-    n = SC.pClass->GetCount();
+    n = pClass->GetCount();
     for (i=0; i<n; i++)
     {
-      BASECLASS_ID baseclassID;
-      const BASE_CLASS_DATA *pBaseclass;
-      baseclassID = *SC.pClass->PeekBaseclassID(i);
-      if (SC.baseclassID.IsEmpty() || (SC.baseclassID == baseclassID))
-      {
-        pBaseclass = baseclassData.PeekBaseclass(baseclassID);
-        if (pBaseclass == NULL) continue;
-        //pBaseclass->UpdateSkillValue(pChar, 
-        //                             skillID, 
-        //                             baseVal, 
-        //                             &bestRaceAdj, 
-        //                             &bestBaseclassAdj,
-        //                             minimize);
-        if (SC.baseclassID.IsEmpty() || (SC.baseclassID == pBaseclass->BaseclassID()))
-        {
-          pBaseclass->UpdateSkillValue(SC);
-        };
-      };
+      baseclassID = *pClass->PeekBaseclassID(i);
+      pBaseclass = baseclassData.PeekBaseclass(baseclassID);
+      if (pBaseclass == NULL) continue;
+      val = pBaseclass->UpdateSkillValue(pChar, skillID, val);
     };
   };
-}
-
-//BOOL GetAdjSkillValue(const SKILL_ID&        skillID,
-//                      const CHARACTER       *pChar,
-//                      const BASE_CLASS_DATA **pBestBaseclass,
-//                            int             *pBestBaseValue,
-//                            int             *pAdjValue,
-//                            bool             minimize)
-void GetAdjSkillValue(SKILL_COMPUTATION& SC)
-{
-  // Determined the base value for the skill
-  GetSkillValue(SC);
-  // Now we compute the adjustments.
-  UpdateSkillValue(SC);
-  SC.abilityAdj = abilityData.TotalAdjustments(NoSkillAdj);
-  if (SC.includeTempAdj)
-  {
-    SC.pChar->ApplyTempSkillAdjustments(SC);
-  };
-  if (       (SC.baseVal          == NoSkill)
-        &&   (SC.bestRaceAdj      == NoSkillAdj)
-        &&   (SC.bestBaseclassAdj == NoSkillAdj)
-        &&   (SC.abilityAdj       == NoSkillAdj)
-        &&   (SC.tempAdj          == NoSkillAdj) ) return;
-  SC.finalAdjustedValue = 0.0;
-  if (SC.baseVal          != NoSkill)    SC.finalAdjustedValue = SC.baseVal;
-  if (SC.bestRaceAdj      != NoSkillAdj) SC.finalAdjustedValue += SC.bestRaceAdj;
-  if (SC.bestBaseclassAdj != NoSkillAdj) SC.finalAdjustedValue += SC.bestBaseclassAdj;
-  if (SC.abilityAdj       != NoSkillAdj) SC.finalAdjustedValue += SC.abilityAdj;
-  if (SC.includeTempAdj)
-  {
-    if (SC.tempAdj          != NoSkillAdj) SC.finalAdjustedValue += SC.tempAdj;
-  };
-  //*pAdjValue = int(val+0.5);
+  *pAdjValue = int(val+0.5);
+  return TRUE;
 }
 
 /*
@@ -5237,20 +5037,21 @@ SKILL_ADJ *FindSkillAdj(CHARACTER *pChar, const SKILL_ID& skillID, const CString
 }
 
 
-CString GPDL::m_SkillAdjustment(
-                    CHARACTER *pChar,
-              const CString&  skillName,
-              const CString&  adjName,
-              const CString&  adjType,
-              int             adjValue)
+CString SkillAdjustment(
+                CHARACTER *pChar,
+          const CString&  skillName,
+          const CString&  adjName,
+          const CString&  adjType,
+          int             adjValue)
 {
   SKILL_ADJ *ps;
   SKILL_ID skillID;
+  static CString noSkill = "NoSkill";
   int indx;
-  int skillValue = NoSkill;
+  int skillValue = 0;
   char adjChar = '+';
   static CString result;
-  //BOOL skillExists = FALSE;
+  BOOL skillExists;
   skillID = skillName;
   if (adjType.GetLength() > 0)
   {
@@ -5261,73 +5062,36 @@ CString GPDL::m_SkillAdjustment(
   case '+':
   case '%':
   case '=':
-  case '-':
-  case '*':
     ps = FindSkillAdj(pChar, skillID, adjName);
     ps->type = adjChar;
     ps->value = adjValue;
     return emptyString;
     break;
   case 'D':
-    indx = pChar->LocateSkillAdj(skillName, adjName);
+    indx = pChar->LocateSkillAdj(skillID, adjName);
     if (indx >= 0) pChar->DeleteSkillAdj(indx);
     return emptyString;
   case 'F':
-    {
-      SKILL_COMPUTATION SC(pChar, skillName, false, true);
-      GetAdjSkillValue(SC);
-      //skillExists = GetAdjSkillValue(skillID, 
-      //                               pChar, 
-      //                               NULL, 
-      //                               NULL, 
-      //                               &skillValue,
-      //                               false);
-      //pChar->ApplyTempSkillAdjustments(skillID, &skillValue);
-      if (SC.finalAdjustedValue == NoSkillAdj) skillValue = NoSkill;
-      else skillValue = SC.finalAdjustedValue + 0.5;
-    };
-    break;
-  case 'f':
-    {
-      SKILL_COMPUTATION SC(pChar, skillName, true, true);
-      GetAdjSkillValue(SC);
-      //skillExists = GetAdjSkillValue(skillID, 
-      //                               pChar, 
-      //                               NULL, 
-      //                               NULL, 
-      //                               &skillValue,
-      //                               true);
-      //pChar->ApplyTempSkillAdjustments(skillID, &skillValue);
-      if (SC.finalAdjustedValue == NoSkillAdj) skillValue = NoSkill;
-      else skillValue = SC.finalAdjustedValue + 0.5;
-    };
+    skillExists = GetAdjSkillValue(skillID, pChar, NULL, NULL, &skillValue);
     break;
   case 'A':
-    indx = pChar->LocateSkillAdj(skillName, adjName);
+    indx = pChar->LocateSkillAdj(skillID, adjName);
     if (indx < 0)
     {
-      //skillExists = FALSE;
+      skillExists = FALSE;
     }
     else
     {
       skillValue = pChar->PeekSkillAdj(indx)->value;
-      //skillExists = TRUE;
+      skillExists = TRUE;
     };
     break;
-  case 'b':
-    skillValue = pChar->GetAdjSkillValue(skillName, true, false);
-    //skillExists = pChar->GetAdjSkillValue(skillName, true);
-    //skillExists = GetAdjSkillValue(skillID, pChar, NULL, &skillValue, NULL, true);
-    break;
   case 'B':
-    skillValue = pChar->GetAdjSkillValue(skillName, false, false);
-    break;
   default:
-    //skillExists = GetAdjSkillValue(skillID, pChar, NULL, &skillValue, NULL, false);
-    m_interpretError("Illegal 'type' specified in $SkillAdj()");
+    skillExists = GetAdjSkillValue(skillID, pChar, NULL, &skillValue, NULL);
     break;
   };
-  if (skillValue == NoSkill) return "NoSkill";
+  if (!skillExists) return noSkill;
   result.Format("%d", skillValue);
   return result;
 }
@@ -5462,7 +5226,7 @@ CAR& SPELL_ADJ::Serialize(CAR& car, const CString& version)
 #ifdef UAFEDITOR
 void SPELL_ADJ::Export(JWriter& jw)
 {
-  /* Really */ NotImplemented(0xdea7, false);
+  NotImplemented(0xdea7, false);
   /*
     car << schoolID;
     car << adjID;
@@ -5474,7 +5238,7 @@ void SPELL_ADJ::Export(JWriter& jw)
 }
 void SPELL_ADJ::Import(JReader& jr)
 {
-  /* Really */ NotImplemented(0xdea8, false);
+  NotImplemented(0xdea8, false);
   /*
     car << schoolID;
     car << adjID;
@@ -5543,7 +5307,7 @@ CString CHARACTER::SpellAdjustment(
 void BASE_CLASS_DATA::AddSkillAdjAbility(const CString& skillName,
                                          const CString& abilityName,
                                          const char adjType,
-                                         short      *skillModifier,
+                                         const WORD *skillModifier,
                                          int size)
 {
   SKILL_ADJUSTMENT_ABILITY skillAdj;
@@ -5593,50 +5357,47 @@ int RollHitPointDice(const CString& baseclassName, int low, int high)
 
 int BASE_CLASS_DATA::Serialize(CAR& car)
 {
-  //int i,n;
+  int i,n;
   int result=0;
   CString ver("Bcd5");
   if (car.IsStoring())
   {
-    {
-      int i, n;
-      car << ver; // version
-      //car << m_baseclassKey;
-      car << m_preSpellNameKey;
-      if (m_name == "") m_name = "*";
-      car << m_name;
-      if (m_name == "*") m_name = "";
-      //n=m_primeReq.GetSize();
-      //  car.WriteCount(n);
-      //  //for (i=0; i<n; i++) m_primeReq[i].Serialize(car);
-      //  for (i=0; i<n; i++) car << *PeekAbilityName(i);
-      n = m_abilityReq.GetSize();
+    car << ver; // version
+    //car << m_baseclassKey;
+    car << m_preSpellNameKey;
+    if (m_name=="") m_name="*";
+    car << m_name;
+    if (m_name=="*") m_name="";
+    //n=m_primeReq.GetSize();
+    //  car.WriteCount(n);
+    //  //for (i=0; i<n; i++) m_primeReq[i].Serialize(car);
+    //  for (i=0; i<n; i++) car << *PeekAbilityName(i);
+    n=m_abilityReq.GetSize();
       car.WriteCount(n);
-      for (i = 0; i < n; i++)
+      for (i=0; i<n; i++)
       {
         GetAbilityReq(i)->Serialize(car);
         //m_abilityReq[i].Serialize(car);
       };
-      n = m_allowedRaces.GetSize();
+    n=m_allowedRaces.GetSize();
       car.WriteCount(n);
       //for (i=0; i<n; i++) m_allowedRaces[i].Serialize(car, 0);
-      for (i = 0; i < n; i++) car << *PeekRaceID(i);
-      //m_expLevels.Serialize(car);
-      car << m_expLevels;
-      car << m_allowedAlignments;
-      car.Serialize(THAC0, sizeof(THAC0));
-      //car << m_primeCasting;
-      //car << m_backstabAbility;
-      //car << m_backstabLevel;
-      //car << m_turnUndeadLevel;
-      car << m_spellBonusAbility;
-      //car << m_rangerBonusLevel;
-      n = m_bonusSpells.GetSize();
-      car << n;
-      for (i = 0; i < n; i++)
-      {
-        car << m_bonusSpells[i];
-      };
+      for (i=0; i<n; i++) car << *PeekRaceID(i);
+    //m_expLevels.Serialize(car);
+    car << m_expLevels;
+    car << m_allowedAlignments;
+    car.Serialize(THAC0, sizeof(THAC0));
+    //car << m_primeCasting;
+    //car << m_backstabAbility;
+    //car << m_backstabLevel;
+    //car << m_turnUndeadLevel;
+    car << m_spellBonusAbility;
+    //car << m_rangerBonusLevel;
+    n = m_bonusSpells.GetSize();
+    car << n;
+    for (i=0; i<n; i++)
+    {
+      car << m_bonusSpells[i];
     };
     {
       int i, n;
@@ -5649,7 +5410,6 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
     };
     m_specAbs.Serialize(car, globalData.version, m_name, "baseclasses");
     {
-      int i;
       for (i=0; i<HIGHEST_CHARACTER_LEVEL; i++)
       {
         car << hitDice[i].sides;
@@ -5717,6 +5477,15 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
         //m_bonusXP[i].Serialize(car);
       };
     };
+//    {
+//      int i, n;
+//      n = GetSaveVsCount();
+//      car << n;
+//      for (i=0; i<n; i++)
+//      {
+//        GetSaveVs(i)->Serialize(car);
+//      };
+//    };
   }
   else
   {
@@ -5762,7 +5531,6 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
 #ifdef UAFEDITOR
       if (intVer < 4)
       {
-        int i, n;
         n=car.ReadCount();
           //m_primeReq.SetSize(n);
         for (i=0; i<n; i++)
@@ -5776,19 +5544,17 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
         };
       };
 #endif
-      {
-        int i, n;
-        n = car.ReadCount();
+      n=car.ReadCount();
         m_abilityReq.SetSize(n);
-        for (i = 0; i < n; i++)
+        for (i=0; i<n; i++)
         {
-          result = GetAbilityReq(i)->Serialize(car);
+          result=GetAbilityReq(i)->Serialize(car);
           //result=m_abilityReq[i].Serialize(car);
-          if (result != 0) return result;
+          if (result!=0) return result;
         };
-        n = car.ReadCount();
+      n=car.ReadCount();
         m_allowedRaces.SetSize(n);
-        for (i = 0; i < n; i++)
+        for (i=0; i<n; i++)
         {
           //result=m_allowedRaces[i].Serialize(car, intVer);
           car >> *GetRaceID(i);
@@ -5801,7 +5567,6 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
 #endif
           //if (result!=0) return result;
         };
-      };
       car >> m_expLevels;
       //m_expLevels.Serialize(car);
       if (result!=0) return result;
@@ -5812,39 +5577,36 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
       if (intVer >= 4)
 #endif
       {
-        {
-          int i, n;
-          car.Serialize(THAC0, sizeof(THAC0));
+        car.Serialize(THAC0, sizeof(THAC0));
 
-          //car >> m_primeCasting;
+        //car >> m_primeCasting;
 //#ifdef UAFEDITOR
-//          if (intVer < 4)
-//          {
-//            //car >> m_backstabAbility;
-//            //car >> m_backstabLevel;
-//            CString backstabAbility;
-//            int backstabLevel;
-//            car >> backstabAbility;
-//            car >> backstabLevel;
-//          };
+//        if (intVer < 4)
+//        {
+//          //car >> m_backstabAbility;
+//          //car >> m_backstabLevel;
+//          CString backstabAbility;
+//          int backstabLevel;
+//          car >> backstabAbility;
+//          car >> backstabLevel;
+//        };
 //#endif
-          car >> m_spellBonusAbility;
-          //#ifdef UAFEDITOR
-          //          if (intVer < 4)
-          //          {
-          //            int rangerBonusLevel;
-          //          //car >> m_rangerBonusLevel;
-          //            car >> rangerBonusLevel;
-          //          };
-          //#endif
-          car >> n;
-          m_bonusSpells.SetSize(n);
-          for (i = 0; i < n; i++)
-          {
-            BYTE x;
-            car >> x;
-            m_bonusSpells.SetAt(i, x);
-          };
+        car >> m_spellBonusAbility;
+//#ifdef UAFEDITOR
+//        if (intVer < 4)
+//        {
+//          int rangerBonusLevel;
+//        //car >> m_rangerBonusLevel;
+//          car >> rangerBonusLevel;
+//        };
+//#endif
+        car >> n;
+        m_bonusSpells.SetSize(n);
+        for (i=0; i<n; i++)
+        {
+          BYTE x;
+          car >> x;
+          m_bonusSpells.SetAt(i, x);
         };
         {
           int i, n;
@@ -5885,7 +5647,6 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
         //};
         if (m_name == Baseclass_thief)
         {
-          int i;
           //m_backstabAbility = Ability_Dexterity;
           //m_backstabLevel = 0;
           BYTE backstabMultipliers[40];
@@ -5975,7 +5736,6 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
           }
           else if (m_name == Baseclass_cleric)
           {
-            int i;
             // Cleric Spells only
             memcpy(castingInfo.m_maxSpellsByPrime, MaxClericSpellsForEachSpellLvlByPrime, 19);
             memcpy(castingInfo.m_maxSpellLevelsByPrime, MaxSpellLevel[1][1], 19);
@@ -5987,7 +5747,7 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
             };
             m_castingInfo.Add(castingInfo);
 
-            int thac0=0;
+            int i, thac0=0;
             for (i=1; i<=HIGHEST_CHARACTER_LEVEL; i++)
             {
               thac0 = 20;
@@ -5998,7 +5758,6 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
           }
           else if (m_name == Baseclass_druid)
           {
-            int i;
             // Magic User and Cleric Spells
             memcpy(castingInfo.m_maxSpellsByPrime, MaxDruidSpellsForEachSpellLvlByPrime, 19);
             memcpy(castingInfo.m_maxSpellLevelsByPrime, MaxSpellLevel[6][1], 19);
@@ -6022,7 +5781,7 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
             };
             m_castingInfo.Add(castingInfo);
 
-            int thac0=0;
+            int i, thac0=0;
             for (i=1; i<=HIGHEST_CHARACTER_LEVEL; i++)
             {
               thac0 = 20;
@@ -6033,7 +5792,6 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
           }
           else if (m_name == Baseclass_paladin)
           {
-            int i;
             // Magic User and Cleric Spells
             memcpy(castingInfo.m_maxSpellsByPrime, MaxPaladinSpellsForEachSpellLvlByPrime, 19);
             memcpy(castingInfo.m_maxSpellLevelsByPrime, MaxSpellLevel[3][1], 19);
@@ -6058,7 +5816,7 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
             m_castingInfo.Add(castingInfo);
 
 
-            int thac0=0;
+            int i, thac0=0;
             for (i=1; i<=HIGHEST_CHARACTER_LEVEL; i++)
             {
               thac0 = 20;
@@ -6069,7 +5827,6 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
           }
           else if (m_name == Baseclass_ranger)
           {
-            int i;
             // Magic User and Cleric spells
             memcpy(castingInfo.m_maxSpellsByPrime, MaxRangerSpellsForEachSpellLvlByPrime, 19);
             memcpy(castingInfo.m_maxSpellLevelsByPrime, MaxSpellLevel[2][1], 19);
@@ -6093,7 +5850,7 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
             };
             m_castingInfo.Add(castingInfo);
 
-            int thac0=0;
+            int i, thac0=0;
             for (i=1; i<=HIGHEST_CHARACTER_LEVEL; i++)
             {
               thac0 = 20;
@@ -6105,7 +5862,6 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
           }
           else if (m_name == Baseclass_magicUser)
           {
-            int i;
             // Magic User spells only
             castingInfo.schoolID = School_Magic_User;
             castingInfo.primeAbility = Ability_Intelligence;
@@ -6119,7 +5875,7 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
             };
             m_castingInfo.Add(castingInfo);
 
-            int thac0=0;
+            int i, thac0=0;
             for (i=1; i<=HIGHEST_CHARACTER_LEVEL; i++)
             {
               thac0 = 20;
@@ -6135,23 +5891,11 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
 #endif
       if (ver > "Bcd2")
       {
-        double version;
-        version = globalData.version;
-        // We have a problem here.
-        // People package their old designs (Pre 0.930, eg) with new baseclass.dat.
-        // The serialize code examines the design version and makes a mistake
-        // about the baseclass.dat version.
-        // So we will fake the version for the purposes of loading the baseclass.dat.
-        if (intVer >= 5)
-        {
-          version = 0.930;
-        };
-        m_specAbs.Serialize(car, version, m_name, "baseclasses");
+        m_specAbs.Serialize(car, globalData.version, m_name, "baseclasses");
       };
 #ifdef UAFEDITOR
       if (intVer < 4)
       {
-        int i;
         // We need to establish the hitDice tables from the hard-coded tables.
         DICEDATA *pDiceTable = NULL;
         if      (m_name == Baseclass_fighter)    pDiceTable = FighterHitDiceTable;
@@ -6174,7 +5918,6 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
       else
 #endif
       {
-        int i;
         for (i=0; i<HIGHEST_CHARACTER_LEVEL; i++)
         {
           car >> hitDice[i].sides;
@@ -6217,19 +5960,19 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
             AddSkillAdjBaseclass(Skill_ReadLanguages, Baseclass_thief, '%', rl, 17);
           };
           {  // From Char.cpp  SetThiefSkillDexAdjustments
-            static short pp[19] =
+            static WORD pp[19] =
             {0,0,0,0,0,0,0,0,85,90,95,0,0,0,0,0,105,110,115};
 
-            static short ol[19] =
+            static WORD ol[19] =
             {0,0,0,0,0,0,0,0,90,95,0,0,0,0,0,0,105,110,115};
 
-            static short ft[19] =
+            static WORD ft[19] =
             {0,0,0,0,0,0,0,0,90,90,95,0,0,0,0,0,0,105,110};
 
-            static short ms[19] =
+            static WORD ms[19] =
             {0,0,0,0,0,0,0,0,80,85,90,95,0,0,0,0,105,110,115};
 
-            static short hs[19] =
+            static WORD hs[19] =
             {0,0,0,0,0,0,0,0,90,95,0,0,0,0,0,0,105,110,115};
 
 
@@ -6406,7 +6149,21 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
           AddSkillAdjBaseclass(Save_Vs_SP,   m_name, '%', T_sp,   22);
         };
       }
+//      else
 #endif
+//      {
+//        CString name;
+//        char value[HIGHEST_CHARACTER_LEVEL];
+//        int i, n;
+//        car >> n;
+//        //m_saveVs.SetSize(n);
+//        for (i=0; i<n; i++)
+//        {
+//          //GetSaveVs(i)->Serialize(car);
+//          car >> name;
+//          car.Serialize(value, sizeof(value));
+//        };
+//      };
     }
     else
     {
@@ -6416,7 +6173,6 @@ int BASE_CLASS_DATA::Serialize(CAR& car)
   };
   return result;
 }
-
 
 void BASE_CLASS_DATA::AddAbilityRequirement(ABILITY_REQ& abReq)
 {
@@ -6609,106 +6365,50 @@ ABILITYLIMITS BASE_CLASS_DATA::GetAbilityReqs(const ABILITY_ID abilityID) const
 }
 
 
-//void BASE_CLASS_DATA::ComputeCharSavingThrow(const CString& versus, int *result, int level) const
-//{
-//  int val;
-//  if (level > HIGHEST_CHARACTER_LEVEL) level = HIGHEST_CHARACTER_LEVEL;
-//  if (level < 1) level = 1;
-//  Not Implemented(0x74a12, false); val = 0;
-//  if (val < *result) *result = val;
-//}
-
-SKILL_COMPUTATION::SKILL_COMPUTATION(const CHARACTER *pCH, const CString& skid, bool min, bool includeTemp)
+void BASE_CLASS_DATA::ComputeCharSavingThrow(const CString& versus, int *result, int level) const
 {
-  pChar              = pCH;
-  skillID            = skid;
-  minimize           = min;
-  includeTempAdj     = includeTemp;
-  baseclassID.Empty();
-  //pRace              = raceData.PeekRace(pChar->RaceID());
-  pRace              = pChar->PeekRaceData();
-  pClass             = classData.PeekClass(pChar->GetClass());
-  //pBaseclass         = NULL;
-  ppBestBaseclass    = NULL;
-  baseclassLevel     = 0;
-  baseclassValue     = NoSkill;
-  raceValue          = NoSkill;
-  baseVal            = NoSkill;    // Best of baseclass and race values
-  finalAdjustedValue = NoSkillAdj;
-  bestRaceAdj        = NoSkillAdj;
-  bestBaseclassAdj   = NoSkillAdj;
-  abilityAdj         = NoSkillAdj;
-  tempAdj            = NoSkillAdj;
+  int val;
+  //const SAVE_VS *pSaveVs;
+  //pSaveVs = PeekSaveVs(versus);
+  //if (pSaveVs == NULL) return;
+  if (level > HIGHEST_CHARACTER_LEVEL) level = HIGHEST_CHARACTER_LEVEL;
+  if (level < 1) level = 1;
+  //val = pSaveVs->save[level-1];
+  NotImplemented(0x74a12, false); val = 0;
+  if (val < *result) *result = val;
 }
 
-void BASE_CLASS_DATA::GetSkillValue(SKILL_COMPUTATION& SC) const
+int BASE_CLASS_DATA::GetSkillValue(const SKILL_ID& skillID) const
 {
-  const SKILL *pSkill;
   int indx;
-  indx = LocateSkill(SC.skillID);
-  if (indx < 0) return;
-  pSkill = PeekSkill(indx);
-  if (SC.baseclassValue == NoSkill) 
-  {
-    SC.baseclassValue = pSkill->value;
-    if (SC.ppBestBaseclass != NULL)
-    {
-      *SC.ppBestBaseclass = this;
-    };
-  }
-  else
-  {
-    if (SC.minimize) 
-    {
-      if (pSkill->value < SC.baseclassValue) 
-      {
-        if (SC.ppBestBaseclass != NULL)
-        {
-          *SC.ppBestBaseclass = this;
-        };
-          SC.baseclassValue = pSkill->value;
-      };
-    }
-    else
-    {
-      if (pSkill->value > SC.baseclassValue) 
-      {
-        if (SC.ppBestBaseclass != NULL)
-        {
-          *SC.ppBestBaseclass = this;
-        };
-        SC.baseclassValue = pSkill->value;
-      };
-    };
-  };
+  indx = LocateSkill(skillID);
+  if (indx < 0) return NoSkill;
+  return PeekSkill(indx)->value;
 }
 
-//void BASE_CLASS_DATA::UpdateSkillValue(const  CHARACTER *pChar,
-//                                       const  SKILL_ID&  skillID,
-//                                       double            baseVal,
-//                                       double           *pBestRaceAdj,
-//                                       double           *pBestBaseclassAdj,
-//                                       bool              minimize) const
-void BASE_CLASS_DATA::UpdateSkillValue(SKILL_COMPUTATION& SC) const
+double BASE_CLASS_DATA::UpdateSkillValue(const  CHARACTER *pChar,
+                                         const  SKILL_ID&  skillID,
+                                         double            val) const
 {
-  // Update adustments for Race, Baseclass, and Ability.
+  // Adjust val by all adjustments for this skill;
+  // This includes adustments for Race, Baseclass, and Ability, and Scripts.
   int i, n;
-//  RACE_ID raceID;
+  RACE_ID raceID;
   BASECLASS_ID baseclassID;
   baseclassID = BaseclassID();
-//  raceID = SC.pChar->RaceID();
+  raceID = pChar->RaceID();
   n = GetSkillAdjBaseclassCount();
   for (i=0; i<n; i++)
   {
     const SKILL_ADJUSTMENT_BASECLASS *pAdj;
     pAdj = PeekSkillAdjBaseclass(i);
-    if (pAdj->skillID == SC.skillID)
+    if (pAdj->skillID == skillID)
     {
-      SC.baseclassLevel = SC.pChar->GetBaseclassLevel(pAdj->baseclassID);
-      if (SC.baseclassLevel > 0)
+      int baseclassLevel;
+      baseclassLevel = pChar->GetBaseclassLevel(pAdj->baseclassID);
+      if (baseclassLevel > 0)
       {
-        //pAdj->UpdateSkillValue(baseclassLevel, baseVal, pBestBaseclassAdj, minimize);
-        pAdj->UpdateSkillValue(SC);
+        val = pAdj->UpdateSkillValue(baseclassLevel, val);
       };
     };
   };
@@ -6717,46 +6417,37 @@ void BASE_CLASS_DATA::UpdateSkillValue(SKILL_COMPUTATION& SC) const
   {
     const SKILL_ADJUSTMENT_ABILITY *pAdj;
     pAdj = PeekSkillAdjAbility(i);
-    if (pAdj->skillID == SC.skillID)
+    if (pAdj->skillID == skillID)
     {
-      //pAdj->UpdateSkillValue(pChar, baseVal, minimize);
-      pAdj->UpdateSkillValue(SC);
+      val = pAdj->UpdateSkillValue(pChar, val);
     };
   };
   n = GetSkillAdjRaceCount();
   for (i=0; i<n; i++)
   {
     const SKILL_ADJUSTMENT_RACE *pAdj;
+    const RACE_DATA *pRace;
+    pRace = raceData.PeekRace(raceID);
     pAdj = PeekSkillAdjRace(i);
-    if (pAdj->skillID == SC.skillID)
+    if (pAdj->skillID == skillID)
     {
       if (pAdj->adjType == 'I')
       {
-        if (SC.pRace != NULL)
+        SKILL_ID indirectSkillID;
+        indirectSkillID = pAdj->raceID;
+        if (pRace != NULL)
         {
-          SKILL_ID indirectSkillID;
-          SKILL_ID savedSkillID;
-          indirectSkillID = pAdj->raceID;
-          savedSkillID = SC.skillID;
-          SC.skillID = indirectSkillID;
-          //pRace->UpdateSkillValue(pChar, 
-          //                        indirectSkillID, 
-          //                        &baseclassID, 
-          //                        baseVal, 
-          //                        pBestRaceAdj,
-          //                        pBestBaseclassAdj,
-          //                        minimize);
-          SC.pRace->UpdateSkillValue(SC);
-          SC.skillID = savedSkillID;
+          val = pRace->UpdateSkillValue(pChar, indirectSkillID, &baseclassID, val);
         };
       }
-      else if ((SC.pRace != NULL) && (pAdj->raceID == SC.pRace->RaceID()))
+      else if (pAdj->raceID == raceID)
       {
-        //pAdj->UpdateSkillValue(baseVal, pBestRaceAdj);
-        pAdj->UpdateSkillValue(SC);
+        val = pAdj->UpdateSkillValue(val);
       };
     };
+
   };
+  return val;
 }
 
 #ifdef UAFEDITOR
@@ -6834,6 +6525,18 @@ bool BASE_CLASS_DATA::IsAllowedRace(const RACE_ID& raceID) const
   return LocateRaceID(raceID) >= 0;
 }
 
+/*
+int BASE_CLASS_DATA::LocateSaveVs(const CString& versus) const
+{
+  int i, n;
+  n = m_saveVs.GetSize();
+  for (i=0; i<n; i++)
+  {
+    if (m_saveVs[i].versusName == versus) return i;
+  };
+  return -1;
+}
+*/
 
 int BASE_CLASS_DATA::LocateRaceID(const RACE_ID& raceID) const
 {
@@ -7114,7 +6817,7 @@ void BASECLASS_LIST::Serialize(CAR& car)
 
 void BASECLASS_LIST::Serialize(CArchive& ar)
 {
-  die("BASECLASS_LIST Serialize(CArchive&)"); //Not Implemented(0x7feba4, false); // We should not be doing this!
+  NotImplemented(0x7feba4, false); // We should not be doing this!
 }
 
 BOOL BASECLASS_LIST::operator == (const BASECLASS_LIST& src) const
@@ -7186,12 +6889,9 @@ CLASS_ID CLASS_DATA_TYPE::FindPreVersionSpellNamesClassID(DWORD classType) const
   {
     classID = ClassText[classType];
   };
-  if (!debugStrings.AlreadyNoted("CDBK"))
-  {
-    MsgBoxInfo("Searching for a Class that was defined by its 'key'.  We lost that information "
-               "at about version 0.998101 of the editor.  If this is a problem for you, please "
-               "contact the DC development team for help.");
-  };
+  MsgBoxInfo("Searching for a Class that was defined by its 'key'.  We lost that information "
+             "at about version 0.998101 of the editor.  If this is a problem for you, please "
+             "contact the DC development team for help.");
   classID=ClassText[0];
   return classID;
 }
@@ -7311,18 +7011,6 @@ int BASE_CLASS_DATA_TYPE::Serialize(CAR& car)
   };
   return result;
 }
-#ifdef UAFEDITOR
-void BASE_CLASS_DATA_TYPE::CrossReference(CR_LIST *pCRList)
-{
-  int i, n;
-  n = GetCount();
-  for (i = 0; i < n; i++)
-  {
-    GetBaseclass(i)->CrossReference(pCRList);
-  };
-}
-#endif
-
 
 /*
 // No locking... for internal use
@@ -7527,18 +7215,12 @@ void HIT_DICE_LEVEL_BONUS::Serialize(CAR& car)
   };
 }
 
-
 bool HIT_DICE_LEVEL_BONUS::operator == (const HIT_DICE_LEVEL_BONUS& src) const
 {
-  int i;
-  if (ability     != src.ability)     return false;
-  if (baseclassID != src.baseclassID) return false;
-  for (i=0; i<HIGHEST_CHARACTER_PRIME; i++)
-  {
-    if (bonusValues[i] != src.bonusValues[i]) return false;
-  };
+  NotImplemented(0x2210c, false);
   return true;
 }
+
 
 CLASS_DATA::CLASS_DATA(void):m_specialAbilities(false) 
 {
@@ -7731,7 +7413,6 @@ ABILITYLIMITS CLASS_DATA::GetAbilityLimits(ABILITY_ID abilityID) const
 }
 
 
-#ifdef OldDualClass20180126
 int CLASS_DATA::GetCharTHAC0(const CHARACTER *pChar) const
 {
   int i, n, THAC0, thac0;
@@ -7757,9 +7438,7 @@ int CLASS_DATA::GetCharTHAC0(const CHARACTER *pChar) const
   };
   return THAC0;
 }
-#endif
 
-/*
 void CLASS_DATA::ComputeCharSavingThrows(const CHARACTER *pChar,
                                          int *ppd,
                                          int *rsw,
@@ -7793,7 +7472,7 @@ void CLASS_DATA::ComputeCharSavingThrows(const CHARACTER *pChar,
   };
   return;
 }
-*/
+
 /*
 void CLASS_DATA::GetThiefSkills(const CHARACTER *pChar,
                       int *pp,
@@ -7958,13 +7637,13 @@ int CLASS_DATA::Serialize(CAR &car)
     //car << hitDiceBonusAbility;
     //car.Serialize((char *)hitDiceBonusValues, sizeof(hitDiceBonusValues));
     {
-      int j, m;
-      m = hitDiceLevelBonus.GetSize();
-      car << m;
-      for (j=0; j<m; j++)
+      int i, n;
+      n = hitDiceLevelBonus.GetSize();
+      car << n;
+      for (i=0; i<n; i++)
       {
-        GetHitDiceLevelBonus(j)->Serialize(car);
-        //hitDiceLevelBonus[j].Serialize(car);
+        GetHitDiceLevelBonus(i)->Serialize(car);
+        //hitDiceLevelBonus[i].Serialize(car);
       };
     };
     strengthBonusDice.Serialize(car);
@@ -8064,13 +7743,13 @@ int CLASS_DATA::Serialize(CAR &car)
 #ifdef UAFEDITOR
       if (intVer < 3)
       {
-        int idx;
+        int i;
         //BASECLASS_ID baseclassID;
         HIT_DICE_LEVEL_BONUS hdlb;
         hdlb.baseclassID = Ability_Constitution;
-        for (idx=0; idx<HIGHEST_CHARACTER_PRIME; idx++)
+        for (i=0; i<HIGHEST_CHARACTER_PRIME; i++)
         {
-          hdlb.bonusValues[idx] = determineHitDiceBonus(idx, m_name==Baseclass_fighter);
+          hdlb.bonusValues[i] = determineHitDiceBonus(i, m_name==Baseclass_fighter);
         };
         strengthBonusDice.Clear();
         if (    (LocateBaseclassID("fighter") >= 0)
@@ -8102,9 +7781,9 @@ int CLASS_DATA::Serialize(CAR &car)
 #endif
       {
         HIT_DICE_LEVEL_BONUS hdlb;
-        int ii, nn;
-        car >> nn;
-        for (ii=0; ii<nn; ii++)
+        int i, n;
+        car >> n;
+        for (i=0; i<n; i++)
         {
           hdlb.Serialize(car);
           hitDiceLevelBonus.Add(hdlb);
@@ -8132,13 +7811,6 @@ int CLASS_DATA::Serialize(CAR &car)
     {
       m_startingEquipment.Serialize(car, globalData.version);
     };
-    // Fix for empty starting equipment.  If equipment is specified, assume that there should be at least 1
-    POSITION pos = m_startingEquipment.GetHeadPosition();
-    while (pos != NULL) {
-        ITEM i = m_startingEquipment.GetNext(pos);
-        if (i.qty == 0)
-            m_startingEquipment.SetQty(m_startingEquipment.GetListKeyByItemName(i.itemID), 1);
-    }
 #ifdef UAFEDITOR
     if (intVer < 3)
     {
@@ -8677,7 +8349,7 @@ int CLASS_DATA_TYPE::Serialize(CAR& car)
     {
       if (version > "ClassV0") car.Compress(true);
       car >> count;
-      for (int ii=0; ii<count; ii++)
+      for (int i=0; i<count; i++)
       {
         data.Clear();
         result=data.Serialize(car);
@@ -8694,18 +8366,6 @@ int CLASS_DATA_TYPE::Serialize(CAR& car)
   };
   return result;
 }
-#ifdef UAFEDITOR
-void CLASS_DATA_TYPE::CrossReference(class CR_LIST *pCRList)
-{
-  //POSITION p;
-  int i, n;
-  n = GetCount();
-  for (i = 0; i < n; i++)
-  {
-    GetClass(i)->CrossReference(pCRList);
-  };
-}
-#endif
 
 ALLOWED_CLASSES::ALLOWED_CLASSES(void)
 {
@@ -8756,8 +8416,7 @@ void ALLOWED_CLASSES::Initialize(void)
       if (!pClass->RunClassScripts(
                                   SELECT_CHARACTER_CLASS,
                                   ScriptCallback_RunAllScripts,
-                                  NULL,
-                                  "Character creation - is class allowed").IsEmpty()) continue;
+                                  NULL).IsEmpty()) continue;
     };
     m_allowedClasses.Add(classID);
   };
@@ -8797,11 +8456,7 @@ void ALLOWED_CLASSES::Restrictions(const RACE_ID& raceID, const CString& gender)
             scriptContext.SetClassContext(pClass);
             hookParameters[5] = gender;
             hookParameters[6] = raceID;
-            result = pBaseclass->RunBaseClassScripts(
-                                 IS_BASECLASS_ALLOWED,
-                                 ScriptCallback_RunAllScripts,
-                                 "",
-                                 "Character creation - is baseclass allowed");
+            result = pBaseclass->RunBaseClassScripts(IS_BASECLASS_ALLOWED, ScriptCallback_RunAllScripts, "");
             if (result.IsEmpty()) continue;
             if (result[0] == 'N')
             {
@@ -9601,18 +9256,6 @@ int SPELLGROUP_DATA_TYPE::Serialize(CAR& car)
 }
 
 #ifdef UAFEDITOR
-void SPELLGROUP_DATA_TYPE::CrossReference(class CR_LIST *pCRList)
-{
-  int i, n;
-  n = GetSpellgroupCount();
-  for (i = 0; i < n; i++)
-  {
-    GetSpellgroup(i)->CrossReference(pCRList);
-  };
-}
-#endif
-
-#ifdef UAFEDITOR
 
 // Divide a multi-line string and write it as an array of strings.
 void JWriter::NameAndMultiLineString(const char *name, const CString& value)
@@ -9656,7 +9299,7 @@ void JWriter::String(const char *str)
   {
     CString s(str);
     s.Replace("\"", "\\\"");
-    // If a string supports linefeeds then you should use JWriter/JReader::NameAndMultilineString
+    // If a string supports linefeeds then you should use JWriter/JReader::StringArray
     //s.Replace("\r\n", "\\n");
     //
     m_f->Write(s, s.GetLength());
@@ -9990,10 +9633,10 @@ void JWriter::NameAndEnum(const char *name, const spellSaveEffectType& value)
   NameAndEnum(name, temp, NUM_SAVE_EFFECT_TYPES, SaveEffectText);
 }
 
-void JWriter::NameAndEnum(const char *name, const spellSaveVersusType& value)
+void JWriter::NameAndEnum(const char *name, const spellSaveVsType& value)
 {
   DWORD temp = value;
-  NameAndEnum(name, temp, NUM_SAVE_VERSUS_TYPES, SaveVersusText);
+  NameAndEnum(name, temp, NUM_SAVE_VS_TYPES, SaveVsText);
 }
 
 void JWriter::NameAndEnum(const char *name, const takeItemsAffectsType& value)
@@ -10110,24 +9753,6 @@ void JWriter::NameAndEnum(const char *name, const itemClassType& value)
 {
   DWORD temp = value;
   NameAndEnum(name, temp, NUM_ITEMCLASS_TYPES, itemClassText);
-}
-
-void JWriter::NameAndEnum(const char *name, const VALUE_MODIFICATION& value)
-{
-  DWORD temp = value;
-  NameAndEnum(name, temp, NUM_VALUE_MODIFICATION_TYPES, VALUE_MODIFICATIONText);
-}
-
-void JWriter::NameAndEnum(const char *name, const ACTION_CONDITION& value)
-{
-  DWORD temp = value;
-  NameAndEnum(name, temp, NUM_ACTION_CONDITION_TYPES, ACTION_CONDITIONText);
-}
-
-void JWriter::NameAndEnum(const char *name, const ACTION& value)
-{
-  DWORD temp = value;
-  NameAndEnum(name, temp, NUM_ACTION_TYPES, ACTIONText);
 }
 
 //void JWriter::NameAndEnum(const char *name, const takeItemQtyType& value)
@@ -10330,19 +9955,13 @@ CString JReader::GetErrorMessage(void)
 
 void JReader::JRError(const char *msg)
 {
-  CString message;
   errMessage = msg;
-  message.Format("%s\nfile=%s\nline=%d", msg, m_f->GetFilePath(), errLine);
-  MsgBoxError(message, "JSON Reader Error");
-  throw (int)2;
+  throw 2;
 }
 
 BOOL JReader::Whitespace(void)
 {
-  return  (thisChar==' ')
-        ||(thisChar=='\t')
-        ||(thisChar=='\n')
-        ||(thisChar=='\r');
+  return (thisChar==' ')||(thisChar=='\t')||(thisChar=='\n');
 }
 
 
@@ -10528,8 +10147,7 @@ void JReader::GetParseList(JR_LIST **pList)
       if (tokenType != TT_Colon)
       {
         SetError(ES_missingColon);
-        JRError("File missing colon ':'");
-        return; // GetError();
+        return;
       };
       GetToken();
       if (GetError() != ES_ok) return;
@@ -10798,7 +10416,7 @@ bool JReader::NameAndValue(const char *name, CString& value)
 
 bool JReader::NameAndBinary(const char *name, CString& value)
 {
-  /* Really */ NotImplemented(0x3abd, false);
+  NotImplemented(0x3abd, false);
   return false;
 }
 
@@ -11361,32 +10979,6 @@ bool JReader::NameAndEnum(const char *name, charStatusType& value)
   return status;
 }
 
-bool JReader::NameAndEnum(const char *name, VALUE_MODIFICATION& value)
-{
-  DWORD temp = value;
-  bool status;
-  status = NameAndEnum(name, temp, NUM_VALUE_MODIFICATION_TYPES, VALUE_MODIFICATIONText);
-  value = (VALUE_MODIFICATION)temp;
-  return status;
-}
-bool JReader::NameAndEnum(const char *name, ACTION_CONDITION& value)
-{
-  DWORD temp = value;
-  bool status;
-  status = NameAndEnum(name, temp, NUM_ACTION_CONDITION_TYPES, ACTION_CONDITIONText);
-  value = (ACTION_CONDITION)temp;
-  return status;
-}
-bool JReader::NameAndEnum(const char *name, ACTION& value)
-{
-  DWORD temp = value;
-  bool status;
-  status = NameAndEnum(name, temp, NUM_ACTION_TYPES, ACTIONText);
-  value = (ACTION)temp;
-  return status;
-}
-
-
 
 bool JReader::NameAndEnum(const char *name, eventStepType& value)
 {
@@ -11459,12 +11051,12 @@ bool JReader::NameAndEnum(const char *name, eventPartyAffectType& value)
   return status;
 }
 
-bool JReader::NameAndEnum(const char *name, spellSaveVersusType& value)
+bool JReader::NameAndEnum(const char *name, spellSaveVsType& value)
 {
   DWORD temp = value;
   bool status;
-  status = NameAndEnum(name, temp, NUM_SAVE_VERSUS_TYPES, SaveVersusText);
-  value = (spellSaveVersusType)temp;
+  status = NameAndEnum(name, temp, NUM_SAVE_VS_TYPES, SaveVsText);
+  value = (spellSaveVsType)temp;
   return status;
 }
 
@@ -11566,7 +11158,7 @@ bool JReader::NameAndEnum(const char *name, int& value, DWORD numValue, const ch
   SetError(ES_missingData);
   JRError("Illegal enumeration value");
   throw 1;
-  //return false;
+  return false;
 }
 
 bool JReader::NameAndEnum(const char *name, BYTE& value, DWORD numValue, const char *text[])
@@ -12386,15 +11978,5 @@ void CASTING_INFO::Serialize(CAR& car)
   car.Serialize((char *)m_maxSpellsByPrime, sizeof(m_maxSpellsByPrime));
 }
 
-#ifdef UAFEDITOR
-void ABILITY_DATA_TYPE::CrossReference(CR_LIST *pCRList)
-{
-  int n, i;
-  n = GetCount();
-  for (i = 0; i < n; i++)
-  {
-    GetAbilityData(i)->CrossReference(pCRList);
-  };
-}
-#endif
+
 

@@ -16,25 +16,25 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ******************************************************************************/
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 //#include "..\Shared\ProjectVersion.h"
 #ifdef UAFEDITOR
-#include "..\UAFwinEd\resource.h"
+#include "../UAFWinEd/resource.h"
 #endif
 
 #ifdef UAFEDITOR
-#include "..\UAFWinEd\UAFWinEd.h"
+#include "../UAFWinEd/UAFWinEd.h"
 #include "class.h"
-#include "..\UAFWinEd\CrossReference.h"
+#include "../UAFWinEd/CrossReference.h"
 #else
-#include "externs.h"
-#include "..\UAFWin\Dungeon.h"
+#include "Externs.h"
+#include "../UAFWin/Dungeon.h"
 #endif
 
-#include "items.h"
-#include "globalData.h"
+#include "Items.h"
+#include "GlobalData.h"
 #include "SoundMgr.h"
-#include "monster.h"
+#include "Monster.h"
 #include "PicSlot.h"
 
 #ifdef _DEBUG
@@ -60,8 +60,7 @@ extern const double PRODUCT_VER;
 
 
 #ifdef UAFEDITOR
-//void MONSTER_ATTACK_DETAILS::CrossReference(CR_LIST *pCRList, CR_REFERENCE *pCRReference) const
-void ATTACK_DETAILS::CrossReference(CR_LIST* pCRList, CR_REFERENCE* pCRReference) const
+void MONSTER_ATTACK_DETAILS::CrossReference(CR_LIST *pCRList, CR_REFERENCE *pCRReference) const
 {
   //pCRList->CR_AddSpellReference(spelldbkey, pCRReference);
   pCRList->CR_AddSpellReference(spellID, pCRReference);
@@ -72,8 +71,7 @@ void ATTACK_DETAILS::CrossReference(CR_LIST* pCRList, CR_REFERENCE* pCRReference
 
 
 
-//void MONSTER_ATTACK_DETAILS::Serialize(CArchive &ar, double version)
-void ATTACK_DETAILS::Serialize(CArchive& ar, double version)
+void MONSTER_ATTACK_DETAILS::Serialize(CArchive &ar, double version)
 {
   if (ar.IsStoring())
   {
@@ -101,8 +99,7 @@ void ATTACK_DETAILS::Serialize(CArchive& ar, double version)
     }
   }
 }
-//void MONSTER_ATTACK_DETAILS::Serialize(CAR &ar, double version)
-void ATTACK_DETAILS::Serialize(CAR& ar, double version)
+void MONSTER_ATTACK_DETAILS::Serialize(CAR &ar, double version)
 {
   if (ar.IsStoring())
   {
@@ -443,7 +440,11 @@ void MONSTER_DATA::Serialize(CArchive &ar, double ver)
       Name.Replace('/','|');
     //ar << key;
     AS(ar,Name);
+#ifdef SIMPLE_STRUCTURE
     Icon.Serialize(ar, ver, rte.IconArtDir());
+#else
+    Icon.Serialize(ar, ver);
+#endif
     AS(ar, HitSound);
     AS(ar, MissSound);
     AS(ar, MoveSound);
@@ -471,17 +472,7 @@ void MONSTER_DATA::Serialize(CArchive &ar, double ver)
   }
   else
   {
-
-
-    /* *********** PRS 20191207  The following 'if' is
-                   an attempt to read an old version 0.5751 game
-                   named "The Last Days of Autumn".
-                   I am totally guessing at the version number for the
-                   'if' statement.  I know that the game "Fury" was version 0.831
-                   and it worked OK with the later code.  So something changed
-                   between these two versions.  ***** */
-    if (ver < 0.576)
-           ar >> preSpellNameKey;
+    //ar >> key;
     DAS(ar,Name);
 
 #ifdef UAFEngine
@@ -496,7 +487,7 @@ void MONSTER_DATA::Serialize(CArchive &ar, double ver)
 
 #ifdef UAFEDITOR
     {
-      //die("Serialize very old monster data.  We should look for a key.");
+      die("Serialize very old monster data.  We should look for a key.");
     };
 #endif
     if (ver < _VERSION_0640_)
@@ -557,8 +548,7 @@ void MONSTER_DATA::Serialize(CArchive &ar, double ver)
       if (Dmg_Dice_for_Attack <= 0) Dmg_Dice_for_Attack = 10;
       if (Nbr_Dmg_Dice <= 0) Nbr_Dmg_Dice = 1;
 
-      //MONSTER_ATTACK_DETAILS tmp;
-      ATTACK_DETAILS tmp;
+      MONSTER_ATTACK_DETAILS tmp;
       tmp.sides = Dmg_Dice_for_Attack;
       tmp.nbr = Nbr_Dmg_Dice;
       tmp.bonus = Dmg_Dice_Bonus;
@@ -574,8 +564,7 @@ void MONSTER_DATA::Serialize(CArchive &ar, double ver)
     if (attackData.GetMonsterAttackDetailsCount()==0)
     {
       WriteDebugString("Forcing monster %s to have at least one attack\n", Name);
-      //MONSTER_ATTACK_DETAILS tmp;
-      ATTACK_DETAILS tmp;
+      MONSTER_ATTACK_DETAILS tmp;
       tmp.sides = 6;
       tmp.nbr = 1;
       tmp.bonus = 0;
@@ -603,18 +592,6 @@ void MONSTER_DATA::Serialize(CArchive &ar, double ver)
       //undeadStatus = (undeadType)temp;
       ar >> undeadType;
     }
-
-    /* *********** PRS 20191207  The following 'if' is
-                   an attempt to read an old version 0.5751 game
-                   named "The Last Days of Autumn".
-                   I am totally guessing at the version number for the
-                   'if' statement.  I know that the game "Fury" was version 0.831
-                   and it worked OK with the later code.  So something changed
-                   between these two versions.  ***** */
-    if (ver < 0.576)
-      ar >> undeadType;
-
-
 #ifdef UADEDITOR
     else
       GuessUndeadStatus();
@@ -747,8 +724,7 @@ void MONSTER_DATA::Serialize(CAR &ar, double ver)
       if (Dmg_Dice_for_Attack <= 0) Dmg_Dice_for_Attack = 10;
       if (Nbr_Dmg_Dice <= 0) Nbr_Dmg_Dice = 1;
 
-      //MONSTER_ATTACK_DETAILS tmp;
-      ATTACK_DETAILS tmp;
+      MONSTER_ATTACK_DETAILS tmp;
       tmp.sides = Dmg_Dice_for_Attack;
       tmp.nbr = Nbr_Dmg_Dice;
       tmp.bonus = Dmg_Dice_Bonus;
@@ -764,8 +740,7 @@ void MONSTER_DATA::Serialize(CAR &ar, double ver)
     if (attackData.GetMonsterAttackDetailsCount()==0)
     {
       WriteDebugString("Forcing monster %s to have at least one attack\n", Name);
-      //MONSTER_ATTACK_DETAILS tmp;
-      ATTACK_DETAILS tmp;
+      MONSTER_ATTACK_DETAILS tmp;
       tmp.sides = 6;
       tmp.nbr = 1;
       tmp.bonus = 0;
@@ -1276,8 +1251,14 @@ BOOL saveData(MONSTER_DATA_TYPE& data)
 {
   EditorStatusMsg("Saving monster data...");
 
+#ifdef SIMPLE_STRUCTURE
   CString fullPath;
   fullPath = rte.DataDir() + MONSTER_DB_NAME;
+#else
+  char fullPath[_MAX_PATH+1];
+  GetDesignPath(fullPath);
+  strcat(fullPath, MONSTER_DB_NAME);
+#endif
 
   return saveData(data, fullPath);
 }
@@ -1381,7 +1362,7 @@ int loadData(MONSTER_DATA_TYPE& data, LPCSTR fullPath)
     CAR ar(&myFile, CArchive::load);
     if (ver >= _SPECIAL_ABILITIES_VERSION_)
     {
-      ar.Compress(true); // 
+      ar.Compress(true); // qqqqq
     };
     try
     {
@@ -1479,7 +1460,6 @@ void MONSTER_DATA::CrossReference(CR_LIST *pCRList) const
   Icon.CrossReference(pCRList, &crReference);
   myItems.CrossReference(pCRList, &crReference);
   attackData.CrossReference(pCRList, &crReference);
-  specAbs.CrossReference(pCRList, &crReference);
 }
 
 #endif
@@ -1605,6 +1585,7 @@ void MONSTER_DATA_TYPE::CollapseDefaultFilenames()
   {
     //MONSTER_DATA& data = GetAtPos(p);
     MONSTER_DATA& data = *GetMonster(i);
+#ifdef SIMPLE_STRUCTURE
     DefFilename = ede.TemplateIconArtDir() + DEFAULT_MONSTER_ICON;
     if (data.Icon.filename.CompareNoCase(DefFilename)==0)
     {
@@ -1628,6 +1609,31 @@ void MONSTER_DATA_TYPE::CollapseDefaultFilenames()
     DefFilename  = ede.TemplateSoundDir() + DEF_CHAR_DEATH_SOUND;
     if (data.DeathSound.CompareNoCase(DefFilename)==0)
       data.DeathSound = "DEFAULT";
+#else
+    DefFilename.Format("%s%s",EditorArt, DEFAULT_MONSTER_ICON);
+    if (data.Icon.filename.CompareNoCase(DefFilename)==0)
+    {
+      data.Icon.filename = "DEFAULT";
+      data.Icon.picType=IconDib;
+      data.Icon.SetDefaults();
+    }
+
+    DefFilename.Format("%s%s",EditorArt, DEF_HIT_SOUND);
+    if (data.HitSound.CompareNoCase(DefFilename)==0)
+      data.HitSound = "DEFAULT";
+
+    DefFilename.Format("%s%s",EditorArt, DEF_MISS_SOUND);
+    if (data.MissSound.CompareNoCase(DefFilename)==0)
+      data.MissSound = "DEFAULT";
+
+    DefFilename.Format("%s%s",EditorArt, DEF_CHAR_MOVE_SOUND);
+    if (data.MoveSound.CompareNoCase(DefFilename)==0)
+      data.MoveSound = "DEFAULT";
+
+    DefFilename.Format("%s%s",EditorArt, DEF_CHAR_DEATH_SOUND);
+    if (data.DeathSound.CompareNoCase(DefFilename)==0)
+      data.DeathSound = "DEFAULT";
+#endif
     //key = GetKeyAt(p);
     //SetMonster(key, data);
     //GetNext(p);
@@ -2196,7 +2202,7 @@ void MONSTER_DATA_TYPE::GetMonsterAttackMsg(const MONSTER_ID& monsterID, int att
     //int attackMsgCnt = MonsterData[index].attackData.GetMonsterAttackDetailsCount();
     if (attackMsgCnt==0) // shouldn't happen if monster configured properly
     {
-      msg = getGameText("attacks");
+      msg = "attacks";
       return;
     }
 
@@ -2208,7 +2214,6 @@ void MONSTER_DATA_TYPE::GetMonsterAttackMsg(const MONSTER_ID& monsterID, int att
     //msg = MonsterData[index].attackData.PeekMonsterAttackDetails(attackNum)->attackMsg;
   }
   if (msg.GetLength()==0) msg = "attacks";
-  msg = getGameText(msg);
 }
 
 //void MONSTER_DATA_TYPE::GetMonsterDamageDice(int index, int attackNum, int &num, int &sides, int &bonus) const
@@ -2236,8 +2241,7 @@ void MONSTER_DATA_TYPE::GetMonsterDamageDice(const MONSTER_ID& monsterID, int at
       //num = tmp.nbr;
       //sides = tmp.sides;
       //bonus = tmp.bonus;
-      //const MONSTER_ATTACK_DETAILS *pMAD;
-      const ATTACK_DETAILS* pMAD;
+      const MONSTER_ATTACK_DETAILS *pMAD;
       const MONSTER_DATA *pMonster;
       pMonster = PeekMonster(index);
       pMAD = pMonster->attackData.PeekMonsterAttackDetails(attackNum);
@@ -2471,7 +2475,7 @@ ActorType MONSTER_DATA_TYPE::GetContext(const MONSTER_ID& monsterID) const
   {
     ActorType data;
     data.Clear();
-    die(0xd017a);
+    ASSERT(FALSE);
     return data;
   }
 }

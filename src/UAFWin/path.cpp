@@ -20,15 +20,15 @@
 * from www.generation5.org/astar_d.shtml
 ******************************************************************************/
 
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 
 #include "externs.h"
 #include "Dungeon.h"
 #include <string.h>
 //#include <math.h>
-#include "combatants.h"
-#include "DrawTile.h"
-#include "Path.h"
+#include "Combatants.h"
+#include "Drawtile.h"
+#include "path.h"
 
 void *My_malloc(int size);
 void My_free(void *addr);

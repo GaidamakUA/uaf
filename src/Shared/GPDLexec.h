@@ -21,7 +21,7 @@
 #define __GPDLEXEC_H__
 
 // 19 Apr PRS #include "GPDLCode.h"
-#include "RegExp.h"
+#include "regexp.h"
 
 #define DOWN_ARROW      0x28
 #define UP_ARROW        0x26
@@ -49,15 +49,12 @@ enum AURA_FUNC
   $AURA_ATTACH_Combatant,
   $AURA_ATTACH_CombatantFacing,
   $AURA_ATTACH_None,
-  $AURA_SetData,
-  $AURA_GetData,
 
 };
 
 
 class GPDL_EVENT;
 class GPDLCOMP;
-class RAM_FILE;
 
 enum GPDL_STATE { // Also used for event return values.
 
@@ -93,22 +90,6 @@ class GLOBAL_ITEM_ID;
 class ITEM_DATA;
 struct SPELL_EFFECTS_DATA;
 
-
-struct DISCOURSELINE
-{
-  CArray<CString, CString> discourseLine;
-  DISCOURSELINE *pPrevDiscourseLine;
-
-  DISCOURSELINE::DISCOURSELINE(void)
-  {
-    pPrevDiscourseLine = NULL;
-  };
-  void Push(void);
-  void Pop(void);
-};
-
-
-
 class GPDL {
 #define DBG_messageBox	  1
 #define DBG_functionTrace 2
@@ -130,7 +111,6 @@ class GPDL {
 	  GLOBALS (void);
 	  ~GLOBALS(void);
 	  int read(CArchive& ar);
-    int read(RAM_FILE& ar);
 #ifdef UAFEDITOR
     int read(GPDLCOMP *pGPDL);
 #endif
@@ -146,7 +126,6 @@ class GPDL {
 	  INDEX (void);
 	  ~INDEX(void);
 	  int read(CArchive& ar);
-    int read(RAM_FILE& ar);
 #ifdef UAFEDITOR
     int read(GPDLCOMP *pGPDL);
 #endif
@@ -173,7 +152,6 @@ class GPDL {
 	  LINE		   *m_firstLine;
 	  unsigned int	m_numLine;
 	  unsigned int	m_topLine;
-    DISCOURSETEXT *m_pushStack;
 	  void			m_format(CString& text, unsigned int width, bool colorTags=true);
 	  void			m_addLine(const char *line);
   public:
@@ -187,8 +165,6 @@ class GPDL {
 	  void			upArrow(void);
 	  GPDL_STATE		Char(UINT c); // Return GPDL_ACCEPTED if character accepted
 	  void			Clear(void);
-    void      Push(void);
-    void      Pop();
 	  CString			GetInput(void); // Get result of input operation;
   };
 private:
@@ -214,7 +190,6 @@ private:
 	ERRORLOG	  	m_errorLog;
 	GPDL_STATE		m_interpret(void);
   GPDL_STATE    ReadProgram(CArchive& ar);
-  GPDL_STATE    ReadProgram(RAM_FILE& ar);
   void          SA_Name(void);
   void          SA_Param(const SPECIAL_ABILITIES *pSA);
   void          SA_Param(void);
@@ -255,8 +230,6 @@ private:
 	void			m_popInteger3();
 	void			m_popInteger4();
 	void			m_popInteger5();
-  void      m_pushUInteger(unsigned int u);
-  void      m_pushInteger(int i);
 	void			m_pushInteger1(void);
 	void			m_pushInteger2(void);
 	void			m_pushInteger3(void);
@@ -268,14 +241,6 @@ private:
 	void			m_IllegalStateMessageAndQuit(void);
 	void			m_interpretError(const char *msg);
 	void			m_error_message(char *msg);
-  void      m_MsgBoxErrorAlert(const char *msg);
-  CString   m_SkillAdjustment(
-                    CHARACTER *pChar,
-               const CString&  skillName,
-               const CString&  adjustmentName,
-               const CString&  adjType,
-                     int       adjValue);
-
 //  void      m_getCharacterValueWithActor(int keyindex, ActorType actor);
 //  void      m_setCharacterValueWithActor(int keyIndex, ActorType actor, const CString& value);
 //  void      m_getCharacterValue(int keyindex);
@@ -285,29 +250,26 @@ private:
 //  void      m_getGameValue(int keyindex);
 //  void      m_setGameValue(int keyindex);
 
-  CHARACTER *Dude(const char *msg);
+  CHARACTER *Dude(void);
 
   void      m_GetLiteralInt(int v);
-  void      m_GetCharInt(int (CHARACTER::*f)() const, const char *msg);
-  void      m_GetCharInt(int (CHARACTER::*f)(DWORD) const, const char *msg);
-  void      m_GetCharInt(genderType (CHARACTER::*f)(DWORD) const, const char *msg);
-  void      m_GetCharString(const CString& (CHARACTER::*f)() const, const char *msg);
-  void      m_GetActorBOOL(BOOL (CHARACTER::*f)() const, const char *msg);
-  void      m_GetCharInt(BYTE (CHARACTER::*f)(DWORD) const, const char *msg);
-  void      m_GetCharInt(BYTE (CHARACTER::*f)() const, const char *msg);
-  void      m_GetCharInt(int (CHARACTER::*f)(const ITEM_ID&, int, DWORD) const, const char *msg);
+  void      m_GetCharInt(int (CHARACTER::*f)() const);
+  void      m_GetCharInt(int (CHARACTER::*f)(DWORD) const);
+  void      m_GetCharInt(genderType (CHARACTER::*f)(DWORD) const);
+  void      m_GetCharString(const CString& (CHARACTER::*f)() const);
+  void      m_GetActorBOOL(BOOL (CHARACTER::*f)() const);
+  void      m_GetCharInt(BYTE (CHARACTER::*f)(DWORD) const);
+  void      m_GetCharInt(BYTE (CHARACTER::*f)() const);
+  void      m_GetCharInt(int (CHARACTER::*f)(const ITEM_ID&, int, DWORD) const);
 
-  void      m_SetCharInt(void (CHARACTER::*f)(int), const char *msg);
-  void      m_SetCharInt(void (CHARACTER::*f)(int,int,bool), const char *msg);
+  void      m_SetCharInt(void (CHARACTER::*f)(int));
+  void      m_SetCharInt(void (CHARACTER::*f)(int,int,bool));
   void      m_SetLiteralInt(int *v);
-  void      m_SetCharString(void (CHARACTER::*f)(const CString&), const char *msg);
-  void      m_SetCharBOOL(void (CHARACTER::*f)(BOOL), const char *msg);
-  void      m_SetActorBOOL(void (CHARACTER::*f)(BOOL b), const char *msg);
-  void      m_SetMemorizeCount(void);
-  void      m_GetHighestLevelBaseclass(void);
-  void      m_GetBaseclassLevel(void);
+  void      m_SetCharString(void (CHARACTER::*f)(const CString&));
+  void      m_SetCharBOOL(void (CHARACTER::*f)(BOOL));
+  void      m_SetActorBOOL(void (CHARACTER::*f)(BOOL b));
 
-  void      m_GetCharActor(ActorType *pActor, const char *msg);
+  void      m_GetCharActor(ActorType *pActor);
   
 
   //
@@ -327,11 +289,11 @@ private:
   const ITEM_DATA *m_GetItemData(void);
 
   // Convert Index values to data pointers
-  COMBATANT *m_IndexToCombatant(int index, const char *msg);
-  CHARACTER *m_IndexToCharacter(int index, const char *msg);
-  CHARACTER *m_IndexedCharacter(int index, const char *msg);
-  COMBATANT *m_popCombatant(const char *msg)        {return m_IndexToCombatant(m_popInteger(),msg);};
-  CHARACTER *m_popCharacter(const char *msg)        {return m_IndexToCharacter(m_popInteger(),msg);};
+  COMBATANT *m_IndexToCombatant(int index);
+  CHARACTER *m_IndexToCharacter(int index);
+  CHARACTER *m_IndexedCharacter(int index);
+  COMBATANT *m_popCombatant(void)        {return m_IndexToCombatant(m_popInteger());};
+  CHARACTER *m_popCharacter(void)        {return m_IndexToCharacter(m_popInteger());};
   //CHARACTER *m_popIndexedCharacter(void) {return m_IndexedCharacter(m_popInteger());};
 
   CHARACTER *m_popCharacterActor(void);
@@ -364,9 +326,13 @@ private:
   CString m_AlignmentNeutral(CString &data);
   CString m_AlignmentChaotic(CString &data);  
   CString m_InParty(CString &data);
+  //CString m_SaveVsSpell(CString &data);
+  //CString m_SaveVsBreathWeapon(CString &data);
+  //CString m_SaveVsRodStaffWand(CString &data);
+  //CString m_SaveVsPetPoly(CString &data);
+  //CString m_SaveVsParPoiDM(CString &data);
   CString m_IsUndead(CString &data);
   CString m_IndexOf(const CString &data);
-  CString m_IndexToActor();
   CString m_IsCharAffectedBySpell(const CString &ActorString, const SPELL_ID &SpellID);
   CString m_IsCharAffectedBySpellAttribute(const CString &ActorString, const CString &SpellAttribName);
 
@@ -411,7 +377,6 @@ public:
   CString interpretError;
 	GPDL_STATE State(void);
 	GPDL_STATE Load(CArchive& ar);
-	GPDL_STATE Load(RAM_FILE& ar);
 #ifdef UAFEDITOR
   GPDL_STATE Load(GPDLCOMP *pGPDL);
 #endif
@@ -468,8 +433,7 @@ public:
 
 extern GPDL_STACK gpdlStack;
 
-//extern CArray<CString, CString> discourseLine;
-extern DISCOURSELINE *pDiscourseLine;
+extern CArray<CString, CString> discourseLine;
 //extern CString discourseLine[5]; //DLD 12/20/00 //extern CString discourseLine[TEXTBOX_LINES]; 
 
 

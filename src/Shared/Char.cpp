@@ -20,9 +20,9 @@
 
 #ifdef UAFEDITOR
 //#include "..\UAFWinEd\UAFWinEd.h"
-#include "..\UAFWinEd\resource.h"
+#include "../UAFWinEd/resource.h"
 #include "class.h"
-#include "..\UAFWinEd\CrossReference.h"
+#include "../UAFWinEd/CrossReference.h"
 #else
 #include "Externs.h"
 
@@ -37,9 +37,9 @@
 #include "../UAFWin/Combatant.h"
 #endif
 
-#include "items.h"
-#include "char.h"
-#include "monster.h"
+#include "Items.h"
+#include "Char.h"
+#include "Monster.h"
 #include "class.h"
 
 #include "GlobalData.h"
@@ -48,19 +48,17 @@
 
 #ifdef UAFEngine
 #include "RunTimeIF.h"
-#include "..\UAFWin\FormattedText.h"
+#include "../UAFWin/FormattedText.h"
 #include <math.h>
 #include "GPDLexec.h"
-#include "GPDLComp.h"
+#include "GPDLcomp.h"
 #endif
 
 #include "RunTimeIF.h"
 //#include "ProjectVersion.h"
 
 
-extern BOOL logDebuggingInfo;
 extern int setPartyXY_x;
-extern CHARACTER FakeCharacter;
 BOOL MyCopyFile(LPCSTR src, LPCSTR dest, BOOL failIfExists);
 #ifdef UAFEngine
 void die(int);
@@ -893,7 +891,7 @@ int CHARACTER::LocateBaseclassStats(const BASECLASS_ID& baseclassID) const
   return -1;
 }
 
-int CHARACTER::LocateSkillAdj(const CString& skillName, const CString& adjName) const
+int CHARACTER::LocateSkillAdj(const SKILL_ID& skillID, const CString& adjName) const
 {
   int i, n;
   n = GetSkillAdjCount();
@@ -901,7 +899,7 @@ int CHARACTER::LocateSkillAdj(const CString& skillName, const CString& adjName) 
   {
     const SKILL_ADJ *ps;
     ps = PeekSkillAdj(i);
-    if (ps->skillID == skillName)
+    if (ps->skillID == skillID)
     {
       if (ps->adjID == adjName)
       {
@@ -912,57 +910,18 @@ int CHARACTER::LocateSkillAdj(const CString& skillName, const CString& adjName) 
   return -1;
 }
 
-//void CHARACTER::ApplyTempSkillAdjustments(const CString& skillID, int *skillValue) const
-void CHARACTER::ApplyTempSkillAdjustments(SKILL_COMPUTATION& SC) const
-{
-  int i, n;
-  char adjType;
-  double adj;
-  n = GetSkillAdjCount();
-  for (i=0; i<n; i++)
-  {
-    const SKILL_ADJ *ps;
-    ps = PeekSkillAdj(i);
-    if (ps->skillID == SC.skillID)
-    {
-      adjType = ps->type;
-      switch (adjType)
-      {
-      case '%':  adj = (SC.baseVal * ps->value + 50) / 100.0 - SC.baseVal; break;
-      case '+':  adj = ps->value;                                          break;
-      case '*':  adj = SC.baseVal*(ps->value - 1.0);                       break;
-      case '-':  adj = -ps->value;                                         break; 
-      case '=':  adj = ps->value - SC.baseVal;                             break;
-      default:
-        {
-          if (!debugStrings.AlreadyNoted("CATSAIA"))
-          {
-            CString msg;
-            msg.Format("CHARACTER::ApplyTempSkillAdjustments - Illegal adjType= %c", adjType);
-            MsgBoxInfo(msg);
-            WriteDebugString(msg);
-          };
-          return;
-        };
-      };
-      if (SC.tempAdj == NoSkillAdj) SC.tempAdj = 0.0;
-      SC.tempAdj += adj;
-    };
-  };
-}
-
 void CHARACTER::DeleteSkillAdj(int indx) 
 {
-  skillAdjustments.RemoveAt(indx);
+  NotImplemented(0x9086, false);
 }
 
-int CHARACTER::InsertSkillAdj(const CString& skillName, const CString& adjName, char saType, int value) 
+int CHARACTER::InsertSkillAdj(const SKILL_ID& skillID, const CString& adjName, char type, int value) 
 {
   SKILL_ADJ skillAdj;
   int i, n;
-  skillAdj.skillID = skillName;
+  skillAdj.skillID = skillID;
   skillAdj.adjID = adjName;
-  skillAdj.type = saType;
+  skillAdj.type = type;
   skillAdj.value = value;
   n = GetSkillAdjCount();
   for (i=0; i<n; i++)
@@ -977,82 +936,45 @@ int CHARACTER::InsertSkillAdj(const CString& skillName, const CString& adjName, 
   return n;
 }
 
-const RACE_DATA *CHARACTER::PeekRaceData(void) const
+double CHARACTER::UpdateSkillValue(const SKILL_ID& skillID, double val) const
 {
-  const RACE_DATA *pRace;
-  pRace = raceData.PeekRace(race);
-  if (pRace != NULL) return pRace;
-  if (this == &FakeCharacter) return raceData.PeekRace(0);
-  if (!debugStrings.AlreadyNoted("CHARPRD"))
+  int i, n;
+  n = GetSkillAdjCount();
+  for (i=0; i<n; i++)
   {
-    CString msg;
-    int i, n;
-    n = raceData.GetCount();
-    msg.Format("Character '%s' has an illegal race.\nRace : %s\nAvailable races are:\n",
-                name, race);
-    for(i=0; i<n; i++)
-    {
-      if (i >= 12)
-      {
-        msg += ". . . .etc.";
-        break;
-      };
-      msg += raceData.PeekRace(i)->Name();
-      if (i < n-1) msg += ",\n";
-    };
-    MsgBoxInfo(msg, "ALERT");
+    NotImplemented(0x4c5c6, false);
   };
-  return NULL;
+  return val;
 }
 
-
-/*
-//double CHARACTER::UpdateSkillValue(const SKILL_ID& skillID, double val) const
-void CHARACTER::UpdateSkillValuex(SKILL_COMPUTATION& SC) const
+int CHARACTER::GetAdjSkillValue(const SKILL_ID& skillID)
 {
-  SC.tempAdj = 0;
-  die("Not Implemented"); // compute adjustment
-  //ApplyTempSkillAdjustments(skillID, &value);
-  ApplyTempSkillAdjustments(SC);
+  int result;
+  if (::GetAdjSkillValue(skillID, this, NULL, NULL, &result))
+  {
+    return result;
+  };
+  return 0;
 }
-*/
-int CHARACTER::GetAdjSkillValue(const CString& skillName, bool minimize, bool includeTempAdj) const
-{
-  SKILL_COMPUTATION SC(this, skillName, minimize, includeTempAdj);
-  //if (::GetAdjSkillValue(skillID, this, NULL, NULL, &result, minimize))
-  ::GetAdjSkillValue(SC);
-  return SC.finalAdjustedValue==NoSkillAdj?NoSkill:SC.finalAdjustedValue+0.5;
-}
-
-
 
 int CHARACTER::GetLevelCap(const BASE_CLASS_DATA *pBaseclass) const
 {
-  SKILL_COMPUTATION SC(this, Skill_MaxLevel, true, true);
-  //Limit baseclass search to this one baseclass.
-
-
-  SC.baseclassID = pBaseclass->BaseclassID();
-// Should already have been done in SC constructor   SC.pRace = raceData.PeekRace(this->race);
-  ::GetAdjSkillValue(SC);
-  if (SC.finalAdjustedValue == NoSkillAdj) return NoSkill;
-  return SC.finalAdjustedValue + 0.5;
-  //GetAdjSkillValue();
-/*
-// the old way.  Why did we do it this way?
   int levelCap, maxLevelBaseclass, maxLevelRace;
+  levelCap = NoSkill;
   // See if this character has any MaxLevel skills defined.
   // First, find the smallest definition of MaxLevel in this baseclass and race.
+  SKILL_ID skillMaxLevel;
   const RACE_DATA *pRace;
-  SKILL_COMPUTATION SC;
-  SC.skillID = Skill_MaxLevel;
-  SC.pBaseclass = pBaseclass;
-  maxLevelBaseclass = SC.pBaseclass->GetSkillValue(SC);
-  levelCap = maxLevelBaseclass;  // Perhaps == NoSkill
+  skillMaxLevel = Skill_MaxLevel;
+  maxLevelBaseclass = pBaseclass->GetSkillValue(skillMaxLevel);
+  if (maxLevelBaseclass != NoSkill)
+  {
+    levelCap = maxLevelBaseclass;
+  };
   pRace = raceData.PeekRace(RaceID());
   if (pRace != NULL)
   {
-    maxLevelRace = pRace->GetSkillValue(SC);
+    maxLevelRace = pRace->GetSkillValue(skillMaxLevel);
     if (maxLevelRace != NoSkill)
     {  
       if (    (maxLevelRace < levelCap) 
@@ -1062,46 +984,20 @@ int CHARACTER::GetLevelCap(const BASE_CLASS_DATA *pBaseclass) const
       };
     };
   };
-  // Now we can make any required adjustments.
-  double baseVal;
-  //double bestRaceAdj, bestBaseclassAdj, abilityAdj, tempAdj;
-  SC.baseclassID = pBaseclass->BaseclassID();
-  baseVal = levelCap;
-  //bestRaceAdj = bestBaseclassAdj = NoSkillAdj;
-  abilityData.ClearAdjustments(NoSkillAdj);
-  //pRace->UpdateSkillValue(this, 
-  //                        skillMaxLevel,
-  //                        &baseclassID,
-  //                        baseVal, 
-  //                        &bestRaceAdj, 
-  //                        &bestBaseclassAdj,
-  //                        true);
-  pRace->UpdateSkillValue(SC); 
-  //pBaseclass->UpdateSkillValue(this, 
-  //                             skillMaxLevel, 
-  //                             baseVal, 
-  //                             &bestRaceAdj, 
-  //                             &bestBaseclassAdj,
-  //                             true);
-  SC.pBaseclass->UpdateSkillValue(SC);
-  SC.tempAdj = NoSkillAdj;
-  this->UpdateSkillValue(SC);
-  SC.abilityAdj = abilityData.TotalAdjustments(NoSkillAdj);
-  if (levelCap == NoSkill)
+  if (levelCap != NoSkill)
   {
-    if (     (SC.bestBaseclassAdj != NoSkillAdj)
-         ||  (SC.bestRaceAdj != NoSkillAdj) 
-         ||  (SC.tempAdj != NoSkillAdj)
-         ||  (SC.abilityAdj != NoSkillAdj)  ) levelCap = 0;
+    // Now we can make any required adjustments.
+    double val;
+    BASECLASS_ID baseclassID;
+    baseclassID = pBaseclass->BaseclassID();
+    val = levelCap;
+    val = pRace->UpdateSkillValue(this, skillMaxLevel,&baseclassID,val);
+    val = pBaseclass->UpdateSkillValue(this, skillMaxLevel, val);
+    val = this->UpdateSkillValue(skillMaxLevel, val);
+    levelCap = val;
   };
-  if (SC.bestBaseclassAdj != NoSkillAdj) levelCap += SC.bestBaseclassAdj;
-  if (SC.bestRaceAdj != NoSkillAdj)      levelCap += SC.bestRaceAdj;
-  if (SC.abilityAdj != NoSkillAdj)       levelCap += SC.abilityAdj;
-  if (SC.tempAdj != NoSkillAdj)          levelCap += SC.tempAdj;
   return levelCap;
-*/
 }
-
 
 
 //*****************************************************************************
@@ -1147,10 +1043,6 @@ bool CHARACTER::AddKnowableSpell(const CString& uniqueName)
 {
   CString list;
   CString entry;
-  SPELL_ID spellID;
-  spellID = uniqueName;
-  // If already known, don't add it to $KnowableSpells$
-  if (GetSpellBookIndex(spellID, false)) return false;
   entry = CString("?") + uniqueName;
   list = char_asl.Lookup("$KnowableSpells$");
   if (list.IsEmpty())
@@ -1178,11 +1070,11 @@ bool CHARACTER::ClrKnowableSpell(void)
   return false;
 }
 
-bool CHARACTER::DelKnowableSpell(const CString& spellName)
+bool CHARACTER::DelKnowableSpell(const CString& name)
 {
   CString list, str;
   bool result = false;
-  str = "?" + spellName;
+  str = "?" + name;
   list = char_asl.Lookup("$KnowableSpells$");
   if (list.GetLength() < str.GetLength()) return false;
   if (list.Right(str.GetLength()) == str)
@@ -1291,78 +1183,131 @@ CHARACTER& CHARACTER::operator=(const CHARACTER& dude)
 #endif
   };
 #endif
-   Clear();
-   preSpellNamesKey        = dude.preSpellNamesKey;
-   type                    = dude.type;
-   race                    = dude.race;
-   gender                  = dude.gender;
-   classID                 = dude.classID;
-   alignment               = dude.alignment;
-   allowInCombat           = dude.allowInCombat;
-   status                  = dude.status;
-   undeadType              = dude.undeadType;
-   creatureSize            = dude.creatureSize;
+  Clear();
+  preSpellNamesKey = dude.preSpellNamesKey;
+   type = dude.type;
+   //race(dude.race());
+   race = dude.race;
+   gender = dude.gender;
+   //charClass = dude.charClass;
+   classID = dude.classID;
+   alignment = dude.alignment;
+   allowInCombat = dude.allowInCombat;
+   status = dude.status;
+   //undead = dude.undead;
+   undeadType = dude.undeadType;
+   creatureSize = dude.creatureSize;
    if (!dude.name.IsEmpty())
-      name                 = dude.name;
+      name = dude.name;
    else
-      name                 = "";
+      name="";
 
-   DisableTalkIfDead       = dude.DisableTalkIfDead;
-   TalkEvent               = dude.TalkEvent;
-   TalkLabel               = dude.TalkLabel;
-   ExamineEvent            = dude.ExamineEvent;
-   ExamineLabel            = dude.ExamineLabel;
+   DisableTalkIfDead=dude.DisableTalkIfDead;
+   TalkEvent=dude.TalkEvent;
+   TalkLabel=dude.TalkLabel;
+   ExamineEvent=dude.ExamineEvent;
+   ExamineLabel=dude.ExamineLabel;
 
-   THAC0                   = dude.THAC0;
-   morale                  = dude.morale;
-   encumbrance             = dude.encumbrance;
-   maxEncumbrance          = dude.maxEncumbrance;
-   m_AC                    = dude.m_AC;
-   hitPoints               = dude.hitPoints;
-   maxHitPoints            = dude.maxHitPoints;
-   hitpointSeed            = dude.hitpointSeed;
-   nbrHitDice              = dude.nbrHitDice;
-   m_iUsedCureDisease      = dude.m_iUsedCureDisease;
-   age                     = dude.age;
-   maxAge                  = dude.maxAge;
-   birthday                = dude.birthday;
-   m_iMaxCureDisease       = dude.m_iMaxCureDisease;
-   unarmedDieS             = dude.unarmedDieS;
-   unarmedNbrDieS          = dude.unarmedNbrDieS;
-   unarmedBonus            = dude.unarmedBonus;
-   unarmedDieL             = dude.unarmedDieL;
-   unarmedNbrDieL          = dude.unarmedNbrDieL;
-   maxMovement             = dude.maxMovement;
-   readyToTrain            = dude.readyToTrain;
-   canTradeItems           = dude.canTradeItems;
-   strength                = dude.strength;
-   strengthMod             = dude.strengthMod;
-   intelligence            = dude.intelligence;
-   wisdom                  = dude.wisdom;
-   dexterity               = dude.dexterity;
-   constitution            = dude.constitution;
-   charisma                = dude.charisma;
-   strength_adjustment     = dude.strength_adjustment;
-   strengthMod_adjustment  = dude.strengthMod_adjustment;
-   intelligence_adjustment = dude.intelligence_adjustment;
-   wisdom_adjustment       = dude.wisdom_adjustment;
-   dexterity_adjustment    = dude.dexterity_adjustment;
-   constitution_adjustment = dude.constitution_adjustment;
-   charisma_adjustment     = dude.charisma_adjustment;
-   openDoors               = dude.openDoors;
-   openMagicDoors          = dude.openMagicDoors;
-   BB_LG                   = dude.BB_LG;
-   automatic               = dude.automatic;
-   allowPlayerControl      = dude.allowPlayerControl;
-   detectingInvisible      = dude.detectingInvisible;
-   detectingTraps          = dude.detectingTraps;
-   hitBonus                = dude.hitBonus;
-   dmgBonus                = dude.dmgBonus;
-   magicResistance         = dude.magicResistance;
+   THAC0 = dude.THAC0;
+   morale = dude.morale;
+   encumbrance = dude.encumbrance;
+   maxEncumbrance = dude.maxEncumbrance;
+   m_AC = dude.m_AC;
+   hitPoints = dude.hitPoints;
+   maxHitPoints = dude.maxHitPoints;
+   nbrHitDice = dude.nbrHitDice;
+   age = dude.age;
+   maxAge = dude.maxAge;
+   birthday=dude.birthday;
+   m_iMaxCureDisease = dude.m_iMaxCureDisease;
+   unarmedDieS = dude.unarmedDieS;
+   unarmedNbrDieS = dude.unarmedNbrDieS;
+   unarmedBonus = dude.unarmedBonus;
+   unarmedDieL = dude.unarmedDieL;
+   unarmedNbrDieL = dude.unarmedNbrDieL;
+   //ItemMask = dude.ItemMask;
+   maxMovement = dude.maxMovement;
+   readyToTrain = dude.readyToTrain;
+   canTradeItems=dude.canTradeItems;
+   //strengthKey=dude.strengthKey;
+   //intelligenceKey=dude.intelligenceKey;
+   //wisdomKey=dude.wisdomKey;
+   //dexterityKey=dude.dexterityKey;
+   //constitutionKey=dude.constitutionKey;
+   //charismaKey=dude.charismaKey;
+   strength=dude.strength;
+   strengthMod=dude.strengthMod;
+   intelligence=dude.intelligence;
+   wisdom=dude.wisdom;
+   dexterity=dude.dexterity;
+   constitution=dude.constitution;
+   charisma=dude.charisma;
+   strength_adjustment=dude.strength_adjustment;
+   strengthMod_adjustment=dude.strengthMod_adjustment;
+   intelligence_adjustment=dude.intelligence_adjustment;
+   wisdom_adjustment=dude.wisdom_adjustment;
+   dexterity_adjustment=dude.dexterity_adjustment;
+   constitution_adjustment=dude.constitution_adjustment;
+   charisma_adjustment=dude.charisma_adjustment;
+   openDoors = dude.openDoors;
+   openMagicDoors = dude.openMagicDoors;
+   BB_LG = dude.BB_LG;
+   automatic = dude.automatic;
+   allowPlayerControl=dude.allowPlayerControl;
+   //detectingMagic=dude.detectingMagic;
+   detectingInvisible=dude.detectingInvisible;
+   detectingTraps=dude.detectingTraps;
+   hitBonus = dude.hitBonus;
+   dmgBonus = dude.dmgBonus;
+   magicResistance = dude.magicResistance;
+   //saveVsParPsnDMag = dude.saveVsParPsnDMag;
+   //saveVsPetPoly = dude.saveVsPetPoly;
+   //saveVsRdStWnd = dude.saveVsRdStWnd;
+   //saveVsBreath = dude.saveVsBreath;
+   //saveVsSpell = dude.saveVsSpell;
+   //pickPockets = dude.pickPockets;
+   //openLocks = dude.openLocks;
+   //findRemoveTrap = dude.findRemoveTrap;
+   //moveSilent = dude.moveSilent;
+   //hideInShadows = dude.hideInShadows;
+   //hearNoise = dude.hearNoise;
+   //climbWalls = dude.climbWalls;
+   //readLanguages = dude.readLanguages;
 
+/*
+
+   FighterExperience = dude.FighterExperience;
+ 	 ClericExperience = dude.ClericExperience;
+   RangerExperience =  dude.RangerExperience;
+	 PaladinExperience = dude.PaladinExperience;
+	 MUExperience = dude.MUExperience;
+	 ThiefExperience = dude.ThiefExperience;
+   DruidExperience = dude.DruidExperience;
+
+   FighterLevel = dude.FighterLevel;
+   ClericLevel = dude.ClericLevel;
+   RangerLevel = dude.RangerLevel;
+   PaladinLevel = dude.PaladinLevel;
+   MULevel = dude.MULevel;
+   ThiefLevel = dude.ThiefLevel;
+   DruidLevel = dude.DruidLevel;
+   prevFighterLevel = dude.prevFighterLevel;
+   prevClericLevel = dude.prevClericLevel;
+   prevRangerLevel = dude.prevRangerLevel;
+   prevPaladinLevel = dude.prevPaladinLevel;
+   prevMULevel = dude.prevMULevel;
+   prevThiefLevel = dude.prevThiefLevel;
+   prevDruidLevel = dude.prevDruidLevel;
+   pdFighterLevel = dude.pdFighterLevel;
+   pdClericLevel = dude.pdClericLevel;
+   pdRangerLevel = dude.pdRangerLevel;
+   pdPaladinLevel = dude.pdPaladinLevel;
+   pdMULevel = dude.pdMULevel;
+   pdThiefLevel = dude.pdThiefLevel;
+   pdDruidLevel = dude.pdDruidLevel;
+*/
    baseclassStats.RemoveAll();
    baseclassStats.Append(dude.baseclassStats);
-
    skillAdjustments.RemoveAll();
    skillAdjustments.Append(dude.skillAdjustments);
 
@@ -1370,30 +1315,30 @@ CHARACTER& CHARACTER::operator=(const CHARACTER& dude)
    spellAdjustments.Append(dude.spellAdjustments);
 
 
-   //  This is cleared at the end of this function...why copy it?   spellAbility = dude.spellAbility;
+   spellAbility = dude.spellAbility;
 
-   IsPreGen                = dude.IsPreGen;
-   CanBeSaved              = dude.CanBeSaved;
-   HasLayedOnHandsToday    = dude.HasLayedOnHandsToday;
-   money                   = dude.money;
-   NbrAttacks              = dude.NbrAttacks;
-   myItems                 = dude.myItems;
-   icon                    = dude.icon;
-   iconIndex               = dude.iconIndex;
-   smallPic                = dude.smallPic;
-   origIndex               = dude.origIndex;
-   uniquePartyID           = dude.uniquePartyID;
-   characterID             = dude.characterID;
-   monsterID               = dude.monsterID;
+   IsPreGen = dude.IsPreGen;
+   CanBeSaved = dude.CanBeSaved;
+   HasLayedOnHandsToday=dude.HasLayedOnHandsToday;
+   money = dude.money;
+   NbrAttacks = dude.NbrAttacks;
+   myItems = dude.myItems;
+   //uniqueKey = dude.uniqueKey;
+   icon = dude.icon;
+   iconIndex=dude.iconIndex;
+   smallPic = dude.smallPic;
+   origIndex = dude.origIndex;
+   uniquePartyID = dude.uniquePartyID;
+   characterID = dude.characterID;
+   monsterID = dude.monsterID;
    specAbs.Copy(dude.specAbs);   
-   blockageData            = dude.blockageData;
-   m_spellbook             = dude.m_spellbook;
+   blockageData = dude.blockageData;
+   m_spellbook = dude.m_spellbook;
    char_asl.Copy(dude.char_asl);
-   *m_traits               = *dude.m_traits;
+   *m_traits=*dude.m_traits;
    m_spellEffects.RemoveAll();
-   m_spellCastingLevel     = dude.m_spellCastingLevel;
-   AIBaseclass             = dude.AIBaseclass;
-   POSITION pos            = dude.m_spellEffects.GetHeadPosition();
+   m_spellCastingLevel = dude.m_spellCastingLevel;
+   POSITION pos = dude.m_spellEffects.GetHeadPosition();
    SPELL_EFFECTS_DATA tmp;
    while (pos != NULL)
    {     
@@ -1410,6 +1355,8 @@ CHARACTER& CHARACTER::operator=(const CHARACTER& dude)
     specAbQueue.AddTail(data);
   }
 
+   //m_Properties = dude.m_Properties;
+  
   spellAbility.Clear();
   return *this;
 }
@@ -1464,16 +1411,67 @@ BOOL CHARACTER::operator==(const CHARACTER& dude)
   if (GetPermDex() != dude.GetPermDex()) return FALSE;
   if (GetPermCon() != dude.GetPermCon()) return FALSE;
   if (GetPermCha() != dude.GetPermCha()) return FALSE;
+  //if (strengthKey != dude.strengthKey) return FALSE;
+  //if (intelligenceKey != dude.intelligenceKey) return FALSE;
+  //if (wisdomKey != dude.wisdomKey) return FALSE;
+  //if (dexterityKey != dude.dexterityKey) return FALSE;
+  //if (constitutionKey != dude.constitutionKey) return FALSE;
+  //if (charismaKey != dude.charismaKey) return FALSE;
   if (openDoors != dude.openDoors) return FALSE;
   if (openMagicDoors != dude.openMagicDoors) return FALSE;
   if (BB_LG != dude.BB_LG) return FALSE;
   if (automatic != dude.automatic) return FALSE;
   if (allowPlayerControl != dude.allowPlayerControl) return FALSE;
+  //if (detectingMagic != dude.detectingMagic) return FALSE;
   if (detectingInvisible!=dude.detectingInvisible) return FALSE;
   if (detectingTraps!=dude.detectingTraps) return FALSE;
   if (hitBonus != dude.hitBonus) return FALSE;
   if (dmgBonus != dude.dmgBonus) return FALSE;
   if (magicResistance != dude.magicResistance) return FALSE;
+  //if (saveVsParPsnDMag != dude.saveVsParPsnDMag) return FALSE;
+  //if (saveVsPetPoly != dude.saveVsPetPoly) return FALSE;
+  //if (saveVsRdStWnd != dude.saveVsRdStWnd) return FALSE;
+  //if (saveVsBreath != dude.saveVsBreath) return FALSE;
+  //if (saveVsSpell != dude.saveVsSpell) return FALSE;
+  //if (pickPockets != dude.pickPockets) return FALSE;
+  //if (openLocks != dude.openLocks) return FALSE;
+  //if (findRemoveTrap != dude.findRemoveTrap) return FALSE;
+  //if (moveSilent != dude.moveSilent) return FALSE;
+  //if (hideInShadows != dude.hideInShadows) return FALSE;
+  //if (hearNoise != dude.hearNoise) return FALSE;
+  //if (climbWalls != dude.climbWalls) return FALSE;
+  //if (readLanguages != dude.readLanguages) return FALSE;
+/*
+  if (FighterExperience != dude.FighterExperience) return FALSE;
+	if (ClericExperience != dude.ClericExperience) return FALSE;
+	if (RangerExperience !=  dude.RangerExperience) return FALSE;
+	if (PaladinExperience != dude.PaladinExperience) return FALSE;
+	if (MUExperience != dude.MUExperience) return FALSE;
+	if (ThiefExperience != dude.ThiefExperience) return FALSE;
+  if (DruidExperience != dude.DruidExperience) return FALSE;
+
+  if (FighterLevel != dude.FighterLevel) return FALSE;
+  if (ClericLevel != dude.ClericLevel) return FALSE;
+  if (RangerLevel != dude.RangerLevel) return FALSE;
+  if (PaladinLevel != dude.PaladinLevel) return FALSE;
+  if (MULevel != dude.MULevel) return FALSE;
+  if (ThiefLevel != dude.ThiefLevel) return FALSE;
+  if (DruidLevel != dude.DruidLevel) return FALSE;
+  if (prevFighterLevel != dude.prevFighterLevel) return FALSE;
+  if (prevClericLevel != dude.prevClericLevel) return FALSE;
+  if (prevRangerLevel != dude.prevRangerLevel) return FALSE;
+  if (prevPaladinLevel != dude.prevPaladinLevel) return FALSE;
+  if (prevMULevel != dude.prevMULevel) return FALSE;
+  if (prevThiefLevel != dude.prevThiefLevel) return FALSE;
+  if (prevDruidLevel != dude.prevDruidLevel) return FALSE;
+  if (pdFighterLevel != dude.pdFighterLevel) return FALSE;
+  if (pdClericLevel != dude.pdClericLevel) return FALSE;
+  if (pdRangerLevel != dude.pdRangerLevel) return FALSE;
+  if (pdPaladinLevel != dude.pdPaladinLevel) return FALSE;
+  if (pdMULevel != dude.pdMULevel) return FALSE;
+  if (pdThiefLevel != dude.pdThiefLevel) return FALSE;
+  if (pdDruidLevel != dude.pdDruidLevel) return FALSE;
+*/
   {
     int i, j, n;
     n = dude.baseclassStats.GetSize();
@@ -1564,6 +1562,43 @@ BOOL CHARACTER::operator==(const CHARACTER& dude)
   return TRUE;
 }
 #endif
+/*
+int CHARACTER::GetTurnUndeadLevel(void) const
+{
+  int i, n, index;
+  int result = -1;
+  CLASS_ID classID;
+  const CLASS_DATA *pClass;
+  classID = GetClass();
+  index = classData.LocateClass(classID);
+  if (index < 0) return FALSE;
+  pClass = classData.PeekClass(index);
+  n = pClass->GetCount();
+  for (i=0; i<n; i++)
+  {
+    const BASE_CLASS_DATA *pBaseclass;
+    BASECLASS_ID baseclassID;
+    baseclassID = *pClass->PeekBaseclassID(i);
+    pBaseclass = baseclassData.PeekBaseclass(baseclassID);
+    if (pBaseclass != NULL)
+    {
+      int turnUndeadLevel;
+      const SKILL *pTurnSkill;
+      SKILL_ID skillID;
+      skillID = "Turn";
+      pTurnSkill = pBaseclass->PeekSkill(skillID);
+      if (pTurnSkill == NULL) continue;
+      turnUndeadLevel = pTurnSkill->value;
+      {
+        int effectiveLevel;
+        effectiveLevel = GetCurrentLevel(baseclassID) - turnUndeadLevel;
+        if (effectiveLevel > result) result = effectiveLevel;
+      };
+    };
+  };
+  return result;
+}
+*/
 
 
 //*****************************************************************************
@@ -1727,6 +1762,50 @@ void CHARACTER::Clear(BOOL IsConstructor)
    hitBonus = 0;
    dmgBonus = 0;
    magicResistance = 0;
+   //saveVsParPsnDMag = 0;
+   //saveVsPetPoly = 0;
+   //saveVsRdStWnd = 0;
+   //saveVsBreath = 0;
+   //saveVsSpell = 0;
+   //pickPockets = 0;
+   //openLocks = 0;
+   //findRemoveTrap = 0;
+   //moveSilent = 0;
+   //hideInShadows = 0;
+   //hearNoise = 0;
+   //climbWalls = 0;
+   //readLanguages = 0;
+/*
+   FighterExperience = 0;
+	 ClericExperience = 0;
+	 RangerExperience =  0;
+	 PaladinExperience = 0;
+	 MUExperience = 0;
+	 ThiefExperience = 0;
+   DruidExperience = 0;
+
+   FighterLevel = 0;
+   ClericLevel = 0;
+   RangerLevel = 0;
+   PaladinLevel = 0;
+   MULevel = 0;
+   ThiefLevel = 0;
+   DruidLevel = 0;
+   prevFighterLevel = 0;
+   prevClericLevel = 0;
+   prevRangerLevel = 0;
+   prevPaladinLevel = 0;
+   prevMULevel = 0;
+   prevThiefLevel = 0;
+   prevDruidLevel = 0;
+   pdFighterLevel = 0;
+   pdClericLevel = 0;
+   pdRangerLevel = 0;
+   pdPaladinLevel = 0;
+   pdMULevel = 0;
+   pdThiefLevel = 0;
+   pdDruidLevel = 0;
+*/
    baseclassStats.RemoveAll();
 
    IsPreGen = FALSE;
@@ -1748,14 +1827,32 @@ void CHARACTER::Clear(BOOL IsConstructor)
    myItems.Clear();
    char_asl.Clear();
    m_spellCastingLevel = -1;
-   AIBaseclass = -1;
    m_spellEffects.RemoveAll();
    spellAdjustments.RemoveAll();
-   skillAdjustments.RemoveAll();
+   //m_Properties.ClearAllMods();
+
+   //if (!IsConstructor)
+   //{
+     //strengthKey     = abilityData.GetKeyByIndex(0);
+     //intelligenceKey = abilityData.GetKeyByIndex(1);
+     //wisdomKey       = abilityData.GetKeyByIndex(2);
+     //dexterityKey    = abilityData.GetKeyByIndex(3);
+     //constitutionKey = abilityData.GetKeyByIndex(4);
+     //charismaKey     = abilityData.GetKeyByIndex(5);
+   //}
+   //else
+   //{
+     //strengthKey     = abilityUnknown;
+     //intelligenceKey = abilityUnknown;
+     //wisdomKey       = abilityUnknown;
+     //dexterityKey    = abilityUnknown;
+     //constitutionKey = abilityUnknown;
+     //charismaKey     = abilityUnknown;
+   //}
+#ifdef newCombatant
    m_pCombatant = NULL;
-#ifdef OldDualClass20180126
-   20180126 temp__canUsePrevClass = -1;
 #endif
+   temp__canUsePrevClass = -1;
 }
 
 #ifdef UAFEDITOR
@@ -1842,14 +1939,13 @@ void CHARACTER::Serialize(CArchive &ar, double version)
   // version and game.dat file version
   //
 //  CObject::Serialize(ar);
-  int characterVersion=0;
+  int temp, characterVersion=0;
   bool raceProblem = false;
   DWORD raceProblemTemp=999;
   bool classProblem = false;
   DWORD classProblemTemp=999;
   if (ar.IsStoring())
   {
-    int temp;
     ar << CHARACTER_VERSION;
     //ar << uniqueKey;
     ar << type;
@@ -1915,7 +2011,7 @@ void CHARACTER::Serialize(CArchive &ar, double version)
     ar << GetCon();
     ar << GetCha();
     */
-    die ("Not Needed?"); //Not Implemented(0x442bc, false); // Should not be using CArchive.
+    NotImplemented(0x442bc, false); // Should not be using CArchive.
 
     ar << openDoors;
     ar << openMagicDoors;
@@ -1923,6 +2019,43 @@ void CHARACTER::Serialize(CArchive &ar, double version)
     ar << hitBonus;
     ar << dmgBonus;
     ar << magicResistance;
+    //ar << saveVsParPsnDMag;
+    //ar << saveVsPetPoly;
+    //ar << saveVsRdStWnd;
+    //ar << saveVsBreath;
+    //ar << saveVsSpell;
+    //ar << pickPockets;
+    //ar << openLocks;
+    //ar << findRemoveTrap;
+    //ar << moveSilent;
+    //ar << hideInShadows;
+    //ar << hearNoise;
+    //ar << climbWalls;
+    //ar << readLanguages;
+
+/*
+    ar << FighterLevel;
+    ar << ClericLevel;
+    ar << RangerLevel;
+    ar << PaladinLevel;
+    ar << MULevel;
+    ar << ThiefLevel;
+    ar << DruidLevel;
+    ar << prevFighterLevel;
+    ar << prevClericLevel;
+    ar << prevRangerLevel;
+    ar << prevPaladinLevel;
+    ar << prevMULevel;
+    ar << prevThiefLevel;
+    ar << prevDruidLevel;
+    ar << pdFighterLevel;
+    ar << pdClericLevel;
+    ar << pdRangerLevel;
+    ar << pdPaladinLevel;
+    ar << pdMULevel;
+    ar << pdThiefLevel;
+    ar << pdDruidLevel;
+*/
     {
       int i, count;
       count = GetBaseclassStatsCount();
@@ -2071,7 +2204,7 @@ void CHARACTER::Serialize(CArchive &ar, double version)
 #ifdef UAFEDITOR
     if (version < VersionSpellNames)
     {
-      //int temp;
+      int temp;
       ar >> temp;
       classID = classData.FindPreVersionSpellNamesClassID(temp);
       if (classID.IsEmpty())
@@ -2181,23 +2314,23 @@ void CHARACTER::Serialize(CArchive &ar, double version)
 
     if (version < 0.999702)
     {
-      BYTE tmp;;
+      BYTE temp;;
       /*
-      ar >> tmp; SetStr(tmp);
-      ar >> tmp; SetStrMod(tmp);
-      ar >> tmp; SetInt(tmp);
-      ar >> tmp; SetWis(tmp);
-      ar >> tmp; SetDex(tmp);
-      ar >> tmp; SetCon(tmp);
-      ar >> tmp; SetCha(tmp);
+      ar >> temp; SetStr(temp);
+      ar >> temp; SetStrMod(temp);
+      ar >> temp; SetInt(temp);
+      ar >> temp; SetWis(temp);
+      ar >> temp; SetDex(temp);
+      ar >> temp; SetCon(temp);
+      ar >> temp; SetCha(temp);
       */
-      ar >> tmp; SetPermStr(tmp);
-      ar >> tmp; SetPermStrMod(tmp);
-      ar >> tmp; SetPermInt(tmp);
-      ar >> tmp; SetPermWis(tmp);
-      ar >> tmp; SetPermDex(tmp);
-      ar >> tmp; SetPermCon(tmp);
-      ar >> tmp; SetPermCha(tmp);
+      ar >> temp; SetPermStr(temp);
+      ar >> temp; SetPermStrMod(temp);
+      ar >> temp; SetPermInt(temp);
+      ar >> temp; SetPermWis(temp);
+      ar >> temp; SetPermDex(temp);
+      ar >> temp; SetPermCon(temp);
+      ar >> temp; SetPermCha(temp);
       strength_adjustment = 0x7fffffff;
       strengthMod_adjustment = 0x7fffffff;
       intelligence_adjustment = 0x7fffffff;
@@ -2208,7 +2341,7 @@ void CHARACTER::Serialize(CArchive &ar, double version)
     }
     else
     {
-      die("Not Needed?"); //Not Implemented(0x442a, false);  // Cannot happen
+      NotImplemented(0x442a, false);  // Cannot happen
     };
     ar >> openDoors;
     ar >> openMagicDoors;
@@ -2219,20 +2352,32 @@ void CHARACTER::Serialize(CArchive &ar, double version)
 #ifdef UAFEDITOR
     if (version < VersionSpellNames)
     {
-      int trash;
-      ar >> trash;
-      ar >> trash;
-      ar >> trash;
-      ar >> trash;
-      ar >> trash;
-      ar >> trash;
-      ar >> trash;
-      ar >> trash;
-      ar >> trash;
-      ar >> trash;
-      ar >> trash;
-      ar >> trash;
-      ar >> trash;
+      int saveVsParPsnDMag;
+      int saveVsPetPoly;
+      int saveVsRdStWnd;
+      int saveVsBreath;
+      int saveVsSpell;
+      int pickPockets;
+      int openLocks;
+      int findRemoveTrap;
+      int moveSilent;
+      int hideInShadows;
+      int hearNoise;
+      int climbWalls;
+      int readLanguages;
+      ar >> saveVsParPsnDMag;
+      ar >> saveVsPetPoly;
+      ar >> saveVsRdStWnd;
+      ar >> saveVsBreath;
+      ar >> saveVsSpell;
+      ar >> pickPockets;
+      ar >> openLocks;
+      ar >> findRemoveTrap;
+      ar >> moveSilent;
+      ar >> hideInShadows;
+      ar >> hearNoise;
+      ar >> climbWalls;
+      ar >> readLanguages;
     };
 #endif
 
@@ -2265,65 +2410,65 @@ void CHARACTER::Serialize(CArchive &ar, double version)
 
       if (FighterLevel > 0)
       {
-        bcl.baseclassID = "fighter";
+        bcl.baseclassID = "Fighter";
         bcl.currentLevel = FighterLevel;
         bcl.previousLevel = prevFighterLevel;
         bcl.preDrainLevel = pdFighterLevel;
-        bcl.x_experience = FighterExperience;
+        bcl.experience = FighterExperience;
         baseclassStats.Add(bcl);
       };
       if (ClericLevel > 0)
       {
-        bcl.baseclassID = "cleric";
+        bcl.baseclassID = "Cleric";
         bcl.currentLevel = ClericLevel;
         bcl.previousLevel = prevClericLevel;
         bcl.preDrainLevel = pdClericLevel;
-        bcl.x_experience = ClericExperience;
+        bcl.experience = ClericExperience;
         baseclassStats.Add(bcl);
       };
       if (RangerLevel > 0)
       {
-        bcl.baseclassID = "ranger";
+        bcl.baseclassID = "Ranger";
         bcl.currentLevel = RangerLevel;
         bcl.previousLevel = prevRangerLevel;
         bcl.preDrainLevel = pdRangerLevel;
-        bcl.x_experience = RangerExperience;
+        bcl.experience = RangerExperience;
         baseclassStats.Add(bcl);
       };
       if (PaladinLevel > 0)
       {
-        bcl.baseclassID = "paladin";
+        bcl.baseclassID = "Paladin";
         bcl.currentLevel = PaladinLevel;
         bcl.previousLevel = prevPaladinLevel;
         bcl.preDrainLevel = pdPaladinLevel;
-        bcl.x_experience = PaladinExperience;
+        bcl.experience = PaladinExperience;
         baseclassStats.Add(bcl);
       };
       if (MULevel > 0)
       {
-        bcl.baseclassID = "magicUser";
+        bcl.baseclassID = "MU";
         bcl.currentLevel = MULevel;
         bcl.previousLevel = prevMULevel;
         bcl.preDrainLevel = pdMULevel;
-        bcl.x_experience = MUExperience;
+        bcl.experience = MUExperience;
         baseclassStats.Add(bcl);
       };
       if (ThiefLevel > 0)
       {
-        bcl.baseclassID = "thief";
+        bcl.baseclassID = "Thief";
         bcl.currentLevel = ThiefLevel;
         bcl.previousLevel = prevThiefLevel;
         bcl.preDrainLevel = pdThiefLevel;
-        bcl.x_experience = ThiefExperience;
+        bcl.experience = ThiefExperience;
         baseclassStats.Add(bcl);
       };
       if (DruidLevel > 0)
       {
-        bcl.baseclassID = "druid";
+        bcl.baseclassID = "Druid";
         bcl.currentLevel = DruidLevel;
         bcl.previousLevel = prevDruidLevel;
         bcl.preDrainLevel = pdDruidLevel;
-        bcl.x_experience = DruidExperience;
+        bcl.experience = DruidExperience;
         baseclassStats.Add(bcl);
       };
     }
@@ -2544,10 +2689,9 @@ void CHARACTER::Serialize(CAR &car, double version)
   // The version specified distinguishes between saved char file 
   // version and game.dat file version
   //
-  int characterVersion=0;
+  int temp, characterVersion=0;
   if (car.IsStoring())
   {
-    int temp;
     car << CHARACTER_VERSION;
     //ar << uniqueKey;
     car << preSpellNamesKey;
@@ -2620,40 +2764,77 @@ void CHARACTER::Serialize(CAR &car, double version)
     car << hitBonus;
     car << dmgBonus;
     car << magicResistance;
+    //car << saveVsParPsnDMag;
+    //car << saveVsPetPoly;
+    //car << saveVsRdStWnd;
+    //car << saveVsBreath;
+    //car << saveVsSpell;
+    //car << pickPockets;
+    //car << openLocks;
+    //car << findRemoveTrap;
+    //car << moveSilent;
+    //car << hideInShadows;
+    //car << hearNoise;
+    //car << climbWalls;
+    //car << readLanguages;
+
+/*
+    ar << FighterLevel;
+    ar << ClericLevel;
+    ar << RangerLevel;
+    ar << PaladinLevel;
+    ar << MULevel;
+    ar << ThiefLevel;
+    ar << DruidLevel;
+    ar << prevFighterLevel;
+    ar << prevClericLevel;
+    ar << prevRangerLevel;
+    ar << prevPaladinLevel;
+    ar << prevMULevel;
+    ar << prevThiefLevel;
+    ar << prevDruidLevel;
+    ar << pdFighterLevel;
+    ar << pdClericLevel;
+    ar << pdRangerLevel;
+    ar << pdPaladinLevel;
+    ar << pdMULevel;
+    ar << pdThiefLevel;
+    ar << pdDruidLevel;
+*/
     {
-      CString BSVersion = "BS0";
+      CString version = "BS0";
       int i, count;
-      car << BSVersion;
+      car << version;
       count = GetBaseclassStatsCount();
       car << count;
       for (i=0; i<count; i++)
       {
-        GetBaseclassStats(i)->Serialize(car, BSVersion);
-        //baseclassStats[i].Serialize(car, BSVersion);
+        GetBaseclassStats(i)->Serialize(car, version);
+        //baseclassStats[i].Serialize(car, version);
       };
     }
     {
-      CString SAVersion = "SA0";
+      CString version = "SA0";
       int i, count;
       count = GetSkillAdjCount();
-      car << SAVersion;
+      car << version;
       car << count;
       for (i=0; i<count; i++)
       {
-        GetSkillAdj(i)->Serialize(car, SAVersion);
-        //skillAdjustments[i].Serialize(car, SAVersion);
+        GetSkillAdj(i)->Serialize(car, version);
+        //skillAdjustments[i].Serialize(car, version);
       };
     };
     {
-      CString SAVersion = "SA0";
+      CString version = "SA0";
       int i, count;
       count = GetSpellAdjCount();
-      car << SAVersion;
+      car << version;
       car << count;
       for (i=0; i<count; i++)
       {
-        GetSpellAdj(i)->Serialize(car, SAVersion);
-        //spellAdjustments[i].Serialize(car, SAVersion);
+        GetSpellAdj(i)->Serialize(car, version);
+        //spellAdjustments[i].Serialize(car, version);
       };
     };
     car << IsPreGen;
@@ -2784,25 +2965,25 @@ void CHARACTER::Serialize(CAR &car, double version)
 
     if (version < 0.999702)
     {
-      BYTE tmp;
-      car >> tmp; strength = tmp;
-      car >> tmp; strengthMod = tmp;
-      car >> tmp; intelligence = tmp;
-      car >> tmp; wisdom = tmp;
-      car >> tmp; dexterity = tmp;
-      car >> tmp; constitution= tmp;
-      car >> tmp; charisma = tmp;
+      BYTE temp;
+      car >> temp; strength = temp;
+      car >> temp; strengthMod = temp;
+      car >> temp; intelligence = temp;
+      car >> temp; wisdom = temp;
+      car >> temp; dexterity = temp;
+      car >> temp; constitution= temp;
+      car >> temp; charisma = temp;
     }
     else
     {
-      int tmp;
-      car >> tmp; strength = tmp;
-      car >> tmp; strengthMod = tmp;
-      car >> tmp; intelligence = tmp;
-      car >> tmp; wisdom = tmp;
-      car >> tmp; dexterity = tmp;
-      car >> tmp; constitution= tmp;
-      car >> tmp; charisma = tmp;
+      int temp;
+      car >> temp; strength = temp;
+      car >> temp; strengthMod = temp;
+      car >> temp; intelligence = temp;
+      car >> temp; wisdom = temp;
+      car >> temp; dexterity = temp;
+      car >> temp; constitution= temp;
+      car >> temp; charisma = temp;
     };
     strength_adjustment = 0x7fffffff;
     strengthMod_adjustment = 0x7fffffff;
@@ -2820,50 +3001,79 @@ void CHARACTER::Serialize(CAR &car, double version)
 #ifdef UAFEDITOR
     if (version < VersionSpellNames)
     {
-      int trash;
-      car >> trash;
-      car >> trash;
-      car >> trash;
-      car >> trash;
-      car >> trash;
-      car >> trash;
-      car >> trash;
-      car >> trash;
-      car >> trash;
-      car >> trash;
-      car >> trash;
-      car >> trash;
-      car >> trash;
+      int saveVsParPsnDMag;
+      int saveVsPetPoly;
+      int saveVsRdStWnd;
+      int saveVsBreath;
+      int saveVsSpell;
+      int pickPockets;
+      int openLocks;
+      int findRemoveTrap;
+      int moveSilent;
+      int hideInShadows;
+      int hearNoise;
+      int climbWalls;
+      int readLanguages;
+      car >> saveVsParPsnDMag;
+      car >> saveVsPetPoly;
+      car >> saveVsRdStWnd;
+      car >> saveVsBreath;
+      car >> saveVsSpell;
+      car >> pickPockets;
+      car >> openLocks;
+      car >> findRemoveTrap;
+      car >> moveSilent;
+      car >> hideInShadows;
+      car >> hearNoise;
+      car >> climbWalls;
+      car >> readLanguages;
     };
 #endif
 
+/*
+    ar >> FighterLevel;
+    ar >> ClericLevel;
+    ar >> RangerLevel;
+    ar >> PaladinLevel;
+    ar >> MULevel;
+    ar >> ThiefLevel;
+    ar >> DruidLevel;
+    ar >> prevFighterLevel;
+    ar >> prevClericLevel;
+    ar >> prevRangerLevel;
+    ar >> prevPaladinLevel;
+    ar >> prevMULevel;
+    ar >> prevThiefLevel;
+    ar >> prevDruidLevel;
+    ar >> pdFighterLevel;
+    ar >> pdClericLevel;
+    ar >> pdRangerLevel;
+    ar >> pdPaladinLevel;
+    ar >> pdMULevel;
+    ar >> pdThiefLevel;
+    ar >> pdDruidLevel;
+*/
     {
       int i, count;
-      CString BSVersion;
-      car >> BSVersion;
+      CString version;
+      car >> version;
       car >> count;
       for (i=0; i<count; i++)
       {
         BASECLASS_STATS bcl;
-        bcl.Serialize(car, BSVersion);
+        bcl.Serialize(car, version);
         baseclassStats.Add(bcl);
       };
     };
     {
       int i, count;
-      CString SAVersion;
-      car >> SAVersion;
+      CString version;
+      car >> version;
       car >> count;
       for (i=0; i<count; i++)
       {
         SKILL_ADJ sa;
-        int isk;
-        sa.Serialize(car, SAVersion);
-        isk = LocateSkillAdj(sa.skillID, sa.adjID);
-        if (isk >= 0)
-        {
-          DeleteSkillAdj(isk);
-        };
+        sa.Serialize(car, version);
         skillAdjustments.Add(sa);
       };
     };
@@ -2872,13 +3082,13 @@ void CHARACTER::Serialize(CAR &car, double version)
 #endif
     {
       int i, count;
-      CString SAVersion;
-      car >> SAVersion;
+      CString version;
+      car >> version;
       car >> count;
       for (i=0; i<count; i++)
       {
         SPELL_ADJ sa;
-        sa.Serialize(car, SAVersion);
+        sa.Serialize(car, version);
         spellAdjustments.Add(sa);
       };
     };
@@ -3079,7 +3289,7 @@ const char *JKEY_MAXHP = "maxHP";
 const char *JKEY_NBRHITDICE = "nbrHitDice";
 const char *JKEY_AGE = "age";
 const char *JKEY_MAXAGE = "maxAge";
-const char *JKEY_BIRTHDAY = "birthday";
+const char *JKEY_BIRTHDAY = "birthdat";
 const char *JKEY_MAXCUREDISEASE = "maxCureDisease";
 const char *JKEY_UNARMEDDICESIDES = "unarmedDiceS";
 const char *JKEY_UNARMEDNBRDICES = "unarmedNbrDiceS";
@@ -3088,7 +3298,7 @@ const char *JKEY_UNARMEDDICEL = "unarmedDiceL";
 const char *JKEY_UNARMEDNBRDICEL = "unarmedNbrDiceL";
 const char *JKEY_MAXMOVEMENT = "maxMovement";
 const char *JKEY_READYTOTRAIN = "readyToTrain";
-const char *JKEY_CANTRADEITEMS = "canTradeItems";
+const char *JKEY_CANTRADEITEMS = "canTraceItems";
 const char *JKEY_STR = "str";
 const char *JKEY_STRMOD = "strMod";
 const char *JKEY_INT = "int";
@@ -3387,20 +3597,15 @@ void CHARACTER::Import(JReader& jr)
   }
   {
     //CString version = "SA0";
+    int i, count;
+    count = GetSkillAdjCount();
     //car << version;
     //car << count;
     jr.StartArray(JKEY_SKILLADJUSTMENTS);
-    while (jr.Optional(), jr.NextEntry())
+    for (i=0; i<count; i++)
     {
-      SKILL_ADJ sa;
-      int ski;
-      sa.Import(jr);
-      ski = LocateSkillAdj(sa.skillID, sa.adjID);
-      if (ski >= 0)
-      {
-        DeleteSkillAdj(ski);
-      };
-      skillAdjustments.Add(sa);
+      jr.NextEntry();
+      GetSkillAdj(i)->Import(jr);
       //skillAdjustments[i].Import(jr);
     };
     jr.EndArray();
@@ -3524,47 +3729,47 @@ BOOL CHARACTER::IsReadyToTrain() const
   if (GetType() == MONSTER_TYPE) return FALSE;
 
   //classType ctype = GetAdjClass();
-  //CLASS_ID AdjClassID = GetAdjClass();
+  CLASS_ID classID = GetAdjClass();
 /*
   //if (isFighter(ctype))
-  if (isFighter(AdjClassID))
+  if (isFighter(classID))
   {
     //if (getFighterLevel(GetAdjFighterExp()) > FighterLevel)
     if (getFighterLevel(GetAdjFighterExp()) > GetCurrLevel())
       readyToTrain = TRUE;
   }
   //if (isCleric(ctype))
-  if (isCleric(AdjClassID))
+  if (isCleric(classID))
   {
     if (getClericLevel(ClericExperience) > ClericLevel)
       readyToTrain = TRUE;
   }
   //if (isMagicUser(ctype))
-  if (isMagicUser(AdjClassID))
+  if (isMagicUser(classID))
   {
     if (getMagicUserLevel(MUExperience) > MULevel)
       readyToTrain = TRUE;
   }
   //if (isThief(ctype))
-  if (isThief(AdjClassID))
+  if (isThief(classID))
   {
     if (getThiefLevel(ThiefExperience) > ThiefLevel)
       readyToTrain = TRUE;
   }
   //if (isRanger(ctype))
-  if (isRanger(AdjClassID))
+  if (isRanger(classID))
   {
     if (getRangerLevel(RangerExperience) > RangerLevel)
       readyToTrain = TRUE;
   }
   //if (isPaladin(ctype))
-  if (isPaladin(AdjClassID))
+  if (isPaladin(classID))
   {
     if (getPaladinLevel(PaladinExperience) > PaladinLevel)
       readyToTrain = TRUE;
   }
   //if (isDruid(ctype))
-  if (isDruid(AdjClassID))
+  if (isDruid(classID))
   {
     if (getDruidLevel(DruidExperience) > DruidLevel)
       readyToTrain = TRUE;
@@ -3624,7 +3829,7 @@ BOOL CHARACTER::CanBeModified()
    for (i=0; i<n; i++)
    {
       pbcs = PeekBaseclassStats(i);
-      total += pbcs->CurExperience();
+      total += pbcs->experience;
    };
    if (total > 0)
       return (total == globalData.startExp);
@@ -3651,36 +3856,6 @@ BOOL CHARACTER::CanBeModified()
   return TRUE;
 }
 
-// ****************************************************************************
-// NAME: CHARACTER::ComputeAIBaseclass
-//
-// PURPOSE:  Search baseclasses for Special Ability named "AIBaseclass"
-// ****************************************************************************
-void CHARACTER::ComputeAIBaseclass(void)
-{
-  if (AIBaseclass != -1) return;  // 'Tis already been done!
-  int i, n;
-  const CLASS_DATA *pClass;
-  AIBaseclass = 0;  // Assume none is found.
-  pClass = classData.PeekClass(classID);
-  if (pClass == NULL) return;
-  n = pClass->BaseclassList()->GetCount();
-  for (i=0; i<n; i++)
-  {
-    BASECLASS_ID baseclassID;
-    const BASE_CLASS_DATA *pBaseclass;
-    CStringPAIR *pSpecAb;
-    int value;
-    baseclassID = *pClass->PeekBaseclassID(i);
-    pBaseclass = baseclassData.PeekBaseclass(baseclassID);
-    if (pBaseclass == NULL) continue;
-    pSpecAb = pBaseclass->m_specAbs.FindAbility("$AIBaseclass");
-    if (pSpecAb == NULL) continue;
-    value = atoi(pSpecAb->Value());
-    AIBaseclass = (AIBaseclass | value) & 0xffff;
-  };
-}
-
 
 //*****************************************************************************
 // NAME: CHARACTER::GetClassLevel
@@ -3692,30 +3867,85 @@ void CHARACTER::ComputeAIBaseclass(void)
 BYTE CHARACTER::GetBaseclassLevel(const BASECLASS_ID& baseclassID) const
 {
   //ASSERT( NumClassBits(ClassFlag) == 1 );
-  int i;
-  const BASECLASS_STATS *pBaseclassStats;
-  i = LocateBaseclassStats(baseclassID);
-  if (i < 0) return 0;
-  pBaseclassStats = PeekBaseclassStats(i);
 
-#ifdef OldDualClass20180126
-  if (    (IsDualClass())
-       && (CanUsePrevClass())
-       && (pBaseclassStats->currentLevel <= 0))
+  if ((IsDualClass())&&(CanUsePrevClass()))
   {
-    return pBaseclassStats->previousLevel;
+/*
+    switch (ClassFlag)
+    {
+      case MagicUserFlag: if (prevMULevel>0) return prevMULevel; else return MULevel;
+      case ClericFlag: if (prevClericLevel>0) return prevClericLevel; else return ClericLevel;
+      case ThiefFlag: if (prevThiefLevel>0) return prevThiefLevel; else return ThiefLevel;
+      case FighterFlag: if (prevFighterLevel>0) return prevFighterLevel; else return FighterLevel;
+      case PaladinFlag: if (prevPaladinLevel>0) return prevPaladinLevel; else return PaladinLevel;
+      case RangerFlag: if (prevRangerLevel>0) return prevRangerLevel; else return RangerLevel;
+      case DruidFlag: if (prevDruidLevel>0) return prevDruidLevel; else return DruidLevel;
+      default: ASSERT(FALSE); return 0;
+    }
+*/
+    NotImplemented(0x1abcde0,false);
   }
-#else
-  if (!CanUseBaseclass(pBaseclassStats)) return 0;
-  if (pBaseclassStats->currentLevel > 0)
+  else
   {
-    return pBaseclassStats->currentLevel;
+/*
+    switch (ClassFlag)
+    {
+      case MagicUserFlag: return MULevel;
+      case ClericFlag: return ClericLevel;
+      case ThiefFlag: return ThiefLevel;
+      case FighterFlag: return FighterLevel;
+      case PaladinFlag: return PaladinLevel;
+      case RangerFlag: return RangerLevel;
+      case DruidFlag: return DruidLevel;
+      default: ASSERT(FALSE); return 0;
+    }
+*/
+    // Here is our plan.
+    // Locate the STATS entry for this baseclass.
+    // It will contain the level we seek;
+    int i;
+    i = LocateBaseclassStats(baseclassID);
+    if (i < 0) return 0;
+    return PeekBaseclassStats(i)->currentLevel;
   };
-  return pBaseclassStats->previousLevel;
-#endif
+  return 0;
 }
-
-
+// dont pass type charClass to this function!
+//*****************************************************************************
+//    NAME: CHARACTER::GetClassPrevLevel
+//
+// PURPOSE: 
+//
+//*****************************************************************************
+//BYTE CHARACTER::GetClassPrevLevel(WORD ClassFlag) const
+BYTE CHARACTER::GetBaseclassPrevLevel(const BASECLASS_ID& baseclassID) const
+{
+  //ASSERT( NumClassBits(ClassFlag) == 1 );
+/*
+  switch (ClassFlag)
+  {
+    case MagicUserFlag:      
+      return prevMULevel;
+    case ClericFlag:
+      return prevClericLevel;
+    case ThiefFlag:
+      return prevThiefLevel;
+    case FighterFlag:
+      return prevFighterLevel;
+    case PaladinFlag:
+      return prevPaladinLevel;
+    case RangerFlag:
+      return prevRangerLevel;
+    case DruidFlag:
+      return prevDruidLevel;
+    default:
+      ASSERT(FALSE);
+      return 0;
+  }
+*/
+  NotImplemented(0xc3dd3d, false);
+  return 0;
+}
 // dont pass type charClass to this function!
 //*****************************************************************************
 //    NAME: CHARACTER::GetClassPreDrainLevel
@@ -3727,7 +3957,29 @@ BYTE CHARACTER::GetBaseclassLevel(const BASECLASS_ID& baseclassID) const
 BYTE CHARACTER::GetBaseclassPreDrainLevel(const BASECLASS_ID& baseclassID) const
 {
   //ASSERT( NumClassBits(ClassFlag) == 1 );
-  die ("Not Needed?"); //Not Implemented(0xbe213, false);
+/*
+  switch (ClassFlag)
+  {
+    case MagicUserFlag:      
+      return pdMULevel;
+    case ClericFlag:
+      return pdClericLevel;
+    case ThiefFlag:
+      return pdThiefLevel;
+    case FighterFlag:
+      return pdFighterLevel;
+    case PaladinFlag:
+      return pdPaladinLevel;
+    case RangerFlag:
+      return pdRangerLevel;
+    case DruidFlag:
+      return pdDruidLevel;
+    default:
+      ASSERT(FALSE);
+      return 0;
+  }
+*/
+  NotImplemented(0xbe213, false);
   return 0;
 }
 
@@ -3764,6 +4016,72 @@ BYTE CHARACTER::GetCurrentLevel(const BASECLASS_ID& baseclassID) const
 
   BYTE val=0;
   //if (ClassFlag==0)
+/*
+  if (baseclassID.IsNoBaseclass())
+  {
+    //classType myClass = GetAdjClass();
+    CLASS_ID classID = GetAdjClass();
+    //if (isMultiClass(myClass))
+    if (isMultiClass(classID))
+    {
+
+      //if (isFighter(myClass))
+      if (isFighter(classID))
+        val=max(val,GetClassLevel(FighterFlag));
+
+      //if (isCleric(myClass))
+      if (isCleric(classID))
+         val=max(val,GetClassLevel(ClericFlag));
+
+      //if (isRanger(myClass))
+      if (isRanger(classID))
+         val=max(val,GetClassLevel(RangerFlag));
+
+      //if (isPaladin(myClass))
+      if (isPaladin(classID))
+         val=max(val,GetClassLevel(PaladinFlag));
+
+      //if (isMagicUser(myClass))
+      if (isMagicUser(classID))
+         val=max(val,GetClassLevel(MagicUserFlag));
+
+      //if (isThief(myClass))
+      if (isThief(classID))
+         val=max(val,GetClassLevel(ThiefFlag));
+
+      //if (isDruid(myClass))
+      if (isDruid(classID))
+         val=max(val,GetClassLevel(DruidFlag));
+
+      // Find max of all baseclasses
+      NotImplemented(0xab29706, false);
+    }
+    else if (IsDualClass())
+    {
+      if (CanUsePrevClass())
+      {
+        val = GetPreviousClassLevel();
+        //BYTE val2 = GetClassLevel(CharClassToClassFlag(myClass));
+        BYTE val2 = GetClassLevel(CharClassToClassFlag(classID));
+        val = max(val, val2);
+      }
+      else
+      {
+        //val = GetClassLevel(CharClassToClassFlag(myClass));
+        val = GetClassLevel(CharClassToClassFlag(classID));
+      }
+    }
+    else
+    {
+      //val = GetClassLevel(CharClassToClassFlag(myClass));
+      val = GetClassLevel(CharClassToClassFlag(classID));
+    }
+
+    };
+      NotImplemented(0xddb830, false);
+  }
+  else
+*/
     //val = GetClassLevel(ClassFlag);
   val = GetBaseclassLevel(baseclassID);
   return val;
@@ -3792,7 +4110,7 @@ int CHARACTER::CurrentBaseclassLevel(const BASECLASS_ID& baseclassID) const
   case Thief:    return GetClassLevel(ThiefFlag);
   case Druid:    return GetClassLevel(DruidFlag);
 */
-  die ("Not Needed?"); // Not Implemented(0x43ab97, false);
+  NotImplemented(0x43ab97, false);
   
   //};
   return 0;
@@ -3800,7 +4118,7 @@ int CHARACTER::CurrentBaseclassLevel(const BASECLASS_ID& baseclassID) const
 
 
 
-/*
+
 // dont pass type charClass to this function!
 //*****************************************************************************
 //    NAME: CHARACTER::GetPrevLevel
@@ -3817,8 +4135,6 @@ BYTE CHARACTER::GetPrevLevel(const BASECLASS_ID& baseclassID) const
   //return val;
   return GetBaseclassPrevLevel(baseclassID);
 }
-*/
-/*
 // dont pass type charClass to this function!
 //*****************************************************************************
 //    NAME: CHARACTER::GetPreDrainLevel
@@ -3834,7 +4150,6 @@ BYTE CHARACTER::GetPreDrainLevel(const BASECLASS_ID& baseclassID) const
   //return val;
   return GetBaseclassPreDrainLevel(baseclassID);
 }
-*/
 
 // dont pass type charClass to this function!
 //*****************************************************************************
@@ -3847,27 +4162,44 @@ BYTE CHARACTER::GetPreDrainLevel(const BASECLASS_ID& baseclassID) const
 void CHARACTER::SetCurrentLevel(const BASECLASS_ID& baseclassID, int lvl)
 {
   //ASSERT( NumClassBits(ClassFlag) == 1 );
+/*  switch (ClassFlag)
+  {
+    case MagicUserFlag:      
+      MULevel=lvl; break;
+    case ClericFlag:
+      ClericLevel=lvl; break;
+    case ThiefFlag:
+      ThiefLevel=lvl; break;
+    case FighterFlag:
+      FighterLevel=lvl; break;
+    case PaladinFlag:
+      PaladinLevel=lvl;break;
+    case RangerFlag:
+      RangerLevel=lvl;break;
+    case DruidFlag:
+      DruidLevel=lvl; break;
+    default:
+      ASSERT(FALSE);
+      break;
+  }
+*/
   int i;
   i = LocateBaseclassStats(baseclassID);
   if (i < 0)
   {
-    MsgBoxInfo("Cannot locate baseclass stats");
+    NotImplemented(0xdea6509, false);
   }
   else
   {
     BASECLASS_STATS *pBaseclassStats;
     pBaseclassStats = GetBaseclassStats(i);
-#ifdef OldDualClass20180126
     if (pBaseclassStats->currentLevel != lvl)
     {
       temp__canUsePrevClass = -1;
     };
-#endif
     pBaseclassStats->currentLevel = lvl;
   };
 }
-
-/*
 // dont pass type charClass to this function!
 //*****************************************************************************
 //    NAME: CHARACTER::SetPrevLevel
@@ -3879,10 +4211,37 @@ void CHARACTER::SetCurrentLevel(const BASECLASS_ID& baseclassID, int lvl)
 void CHARACTER::SetPrevLevel(const BASECLASS_ID& baseclassID, int lvl)
 {
   //ASSERT( NumClassBits(ClassFlag) == 1 );
-  die("Not Needed?"); //Not Implemented(0x43aa1b, false);
-}
-*/
 /*
+  switch (ClassFlag)
+  {
+    case MagicUserFlag:      
+      prevMULevel=lvl;
+      break;
+    case ClericFlag:
+      prevClericLevel=lvl;
+      break;
+    case ThiefFlag:
+      prevThiefLevel=lvl;
+      break;
+    case FighterFlag:
+      prevFighterLevel=lvl;
+      break;
+    case PaladinFlag:
+      prevPaladinLevel=lvl;
+      break;
+    case RangerFlag:
+      prevRangerLevel=lvl;
+      break;
+    case DruidFlag:
+      prevDruidLevel=lvl;
+      break;
+    default:
+      ASSERT(FALSE);
+      break;
+  }
+*/
+  NotImplemented(0x43aa1b, false);
+}
 // dont pass type charClass to this function!
 //*****************************************************************************
 //    NAME: CHARACTER::SetPreDrainLevel
@@ -3894,10 +4253,37 @@ void CHARACTER::SetPrevLevel(const BASECLASS_ID& baseclassID, int lvl)
 void CHARACTER::SetPreDrainLevel(const BASECLASS_ID& baseclassID, int lvl)
 {
   //ASSERT( NumClassBits(ClassFlag) == 1 );
-  die("Not Needed?"); //Not Implemented(0x031ab8, false);
-}
-*/
 /*
+  switch (ClassFlag)
+  {
+    case MagicUserFlag:      
+      pdMULevel=lvl;
+      break;
+    case ClericFlag:
+      pdClericLevel=lvl;
+      break;
+    case ThiefFlag:
+      pdThiefLevel=lvl;
+      break;
+    case FighterFlag:
+      pdFighterLevel=lvl;
+      break;
+    case PaladinFlag:
+      pdPaladinLevel=lvl;
+      break;
+    case RangerFlag:
+      pdRangerLevel=lvl;
+      break;
+    case DruidFlag:
+      pdDruidLevel=lvl;
+      break;
+    default:
+      ASSERT(FALSE);
+      break;
+  }
+*/
+  NotImplemented(0x031ab8, false);
+  }
 // dont pass type charClass to this function!
 //*****************************************************************************
 //    NAME: CHARACTER::IncCurrentLevel
@@ -3909,11 +4295,31 @@ void CHARACTER::SetPreDrainLevel(const BASECLASS_ID& baseclassID, int lvl)
 int CHARACTER::IncCurrentLevel(const BASECLASS_ID& baseclassID, int inc)
 {
   //ASSERT( NumClassBits(ClassFlag) == 1 );
-  die("Not Needed?"); //Not Implemented(0xee9223, false);
+/*
+  switch (ClassFlag)
+  {
+    case MagicUserFlag:      
+      MULevel+=inc;return MULevel;
+    case ClericFlag:
+      ClericLevel+=inc;return ClericLevel;
+    case ThiefFlag:
+      ThiefLevel+=inc;return ThiefLevel;
+    case FighterFlag:
+      FighterLevel+=inc;return FighterLevel;
+    case PaladinFlag:
+      PaladinLevel+=inc;return PaladinLevel;
+    case RangerFlag:
+      RangerLevel+=inc;return RangerLevel;
+    case DruidFlag:
+      DruidLevel+=inc;return DruidLevel;
+    default:
+      ASSERT(FALSE);
+      return 0;
+  }
+*/
+  NotImplemented(0xee9223, false);
   return 0;
 }
-*/
-/*
 // dont pass type charClass to this function!
 //*****************************************************************************
 //    NAME: CHARACTER::IncPrevLevel
@@ -3925,11 +4331,31 @@ int CHARACTER::IncCurrentLevel(const BASECLASS_ID& baseclassID, int inc)
 int CHARACTER::IncPrevLevel(const BASECLASS_ID& baseclassID, int inc)
 {
   //ASSERT( NumClassBits(ClassFlag) == 1 );
-  die("Not Needed?"); //Not Implemented(0x1743bb, false);
+/*
+  switch (ClassFlag)
+  {
+    case MagicUserFlag:      
+      prevMULevel+=inc;return prevMULevel;
+    case ClericFlag:
+      prevClericLevel+=inc;return prevClericLevel;
+    case ThiefFlag:
+      prevThiefLevel+=inc;return prevThiefLevel;
+    case FighterFlag:
+      prevFighterLevel+=inc;return prevFighterLevel;
+    case PaladinFlag:
+      prevPaladinLevel+=inc;return prevPaladinLevel;
+    case RangerFlag:
+      prevRangerLevel+=inc;return prevRangerLevel;
+    case DruidFlag:
+      prevDruidLevel+=inc;return prevDruidLevel;
+    default:
+      ASSERT(FALSE);
+      return 0;
+  }
+*/
+  NotImplemented(0x1743bb, false);
   return 0;
 }
-*/
-/*
 // dont pass type charClass to this function!
 //*****************************************************************************
 //    NAME: CHARACTER::IncPreDrainLevel
@@ -3941,10 +4367,31 @@ int CHARACTER::IncPrevLevel(const BASECLASS_ID& baseclassID, int inc)
 int CHARACTER::IncPreDrainLevel(const BASECLASS_ID& baseclassID, int inc)
 {
   //ASSERT( NumClassBits(ClassFlag) == 1 );
-  die("Not Needed?"); //Not Implemented(0x2cda87, false);
+/*
+  switch (ClassFlag)
+  {
+    case MagicUserFlag:      
+      pdMULevel+=inc;return pdMULevel;
+    case ClericFlag:
+      pdClericLevel+=inc;return pdClericLevel;
+    case ThiefFlag:
+      pdThiefLevel+=inc;return pdThiefLevel;
+    case FighterFlag:
+      pdFighterLevel+=inc;return pdFighterLevel;
+    case PaladinFlag:
+      pdPaladinLevel+=inc;return pdPaladinLevel;
+    case RangerFlag:
+      pdRangerLevel+=inc;return pdRangerLevel;
+    case DruidFlag:
+      pdDruidLevel+=inc;return pdDruidLevel;
+    default:
+      ASSERT(FALSE);
+      return 0;
+  }
+*/
+  NotImplemented(0x2cda87, false);
   return 0;
 }
-*/
 // dont pass type charClass to this function!
 //*****************************************************************************
 //    NAME: CHARACTER::IsUsingBaselass
@@ -3974,7 +4421,7 @@ BOOL CHARACTER::IsUsingBaseclass(const BASECLASS_ID& baseclassID) const
     case DruidFlag:
       return isDruid(GetAdjClass());
     default:
-      ASS ERT(FALSE);
+      ASSERT(FALSE);
       return FALSE;
   }
 */
@@ -4104,10 +4551,10 @@ int CHARACTER::DetermineHitDiceBonus(const BASECLASS_ID& baseclassID)
   int prime = 0;
   int result = 0;
   int i, n;
-  CLASS_ID AdjClassID;
+  CLASS_ID classID;
   const CLASS_DATA *pClass;
-  AdjClassID = GetAdjClass();
-  pClass = classData.PeekClass(AdjClassID);
+  classID = GetAdjClass();
+  pClass = classData.PeekClass(classID);
   if (pClass == NULL) return 0;
 
   n = pClass->GetHitDiceLevelBonusCount();
@@ -4177,8 +4624,7 @@ int CHARACTER::getCharExpWorth()
     {
       const BASECLASS_STATS *pBaseclassStats;
       pBaseclassStats = PeekBaseclassStats(i);
-      // 20170926  totexp += pBaseclassStats->experience;
-      totexp += pBaseclassStats->CurExperience();
+      totexp += pBaseclassStats->experience;
     };
   };
   //totexp += (int)money.ConvertToDefault(money.Total(), money.GetBaseType());
@@ -4197,10 +4643,6 @@ int CHARACTER::getCharExpWorth()
   return totexp;
 }
 
-/*
-int CreateSpellAvailabilityList( CHARACTER *pChar,
-                                  CArray<AVAILABLE_SPELL, AVAILABLE_SPELL&> *pSpellAvailabilityList);
-*/
 
 //*****************************************************************************
 // NAME: CHARACTER::TrainCharacter
@@ -4223,47 +4665,7 @@ void CHARACTER::TrainCharacter(const CArray<TRAINABLE_BASECLASS, TRAINABLE_BASEC
   UpdateLevelBasedStats();
   //SetThiefSkillDexAdjustments();
   SetThiefSkills();
-  spellAbility.valid = FALSE;
   UpdateSpellAbility();
-
-
-/*
-  {
-    int i, n;
-    CArray<AVAILABLE_SPELL, AVAILABLE_SPELL&> spellAvailabilityList;
-    CreateSpellAvailabilityList(this, &spellAvailabilityList);
-
-    n = spellAvailabilityList.GetSize();
-    for (i=0; i<n; i++)
-    {
-      const SPELL_DATA *pSpell;
-      pSpell = spellAvailabilityList[i].pSpellData;
-      //if (!pSpell->AutoScribeAtLevelChange) continue;
-
-      // From Manikus 20171115
-      // It is correct that they are not auto-scribed. Magic User school
-      // spells are added to the $KnowableSpells$ ASL at character creation,
-      // and then at time of attaining a new level or a scribeable item
-      // being scribed, they can move a spell from the $KnowableSpells$ ASL
-      // to their spellbook.
-      //
-      // So we removed the test for autoscribe.
-      //if (!pSpell->AutoScribe) continue;
-
-
-      if (!KnowSpell(pSpell, true))        
-      {
-        CString msg;
-        msg.Format("% was unable to learn spell %s",GetName(), pSpell->Name);
-        MsgBoxInfo(msg);
-      };
-    };
-
-  };
-
-*/
-
-
 }
 
 DWORD randomMT(void);
@@ -4326,7 +4728,7 @@ void CHARACTER::generateNewCharacter(DWORD StartExperience, int StartExpType)
     else
     {
       bcs.currentLevel = 1;
-      bcs.x_experience = 0;
+      bcs.experience = 0;
       bcs.preDrainLevel = 0;
       bcs.previousLevel = 0;
       n = pClass->GetCount();
@@ -4337,9 +4739,7 @@ void CHARACTER::generateNewCharacter(DWORD StartExperience, int StartExpType)
         bcs.baseclassID = baseclassID;
         baseclassStats.Add(bcs);
       };
-#ifdef OldDualClass20180126
       temp__canUsePrevClass = -1;
-#endif
     }
   };
   {
@@ -4389,7 +4789,7 @@ void CHARACTER::generateNewCharacter(DWORD StartExperience, int StartExpType)
       ThiefExperience = GetMinThiefExpForLevel(destlvl);
     if (isDruid(charClass))
       DruidExperience = GetMinDruidExpForLevel(destlvl);
-*/  die("Not Needed?"); //Not Implemented(0x47abc, false);
+*/  NotImplemented(0x47abc, false);
 
 
 
@@ -4777,10 +5177,10 @@ void CHARACTER::DetermineCharHitDice()
   //classType ctype = GetAdjClass();
   CLASS_ID prevClass;
   CLASS_ID currClass = GetAdjClass();
-#ifdef OldDualClass20180126
+
   if (CanUsePrevClass())
     prevClass = GetPreviousClass();
-#endif
+
 /*  
   if (isFighter(ctype))
   {
@@ -4935,9 +5335,7 @@ void CHARACTER::DetermineCharHitDice()
 //*****************************************************************************
 void CHARACTER::DetermineCharMaxHitPoints()
 {
-#ifdef OldDualClass20180126
   BOOL canUsePrevClass;
-#endif
   if (GetType() == MONSTER_TYPE)
   {
     //MONSTER_DATA *pData = monsterData.GetMonsterData(origIndex);
@@ -4977,9 +5375,7 @@ void CHARACTER::DetermineCharMaxHitPoints()
   //if (CanUsePrevClass())
   //  prevClass = GetPreviousClass();
 
-#ifdef OldDualClass20180126
   canUsePrevClass = CanUsePrevClass();
-#endif
 
   int totalHP = 0;
   int baseclassCount = 0;
@@ -5387,11 +5783,11 @@ void CHARACTER::getNewCharLevel(const CArray<TRAINABLE_BASECLASS,TRAINABLE_BASEC
     int hdBonus = bonus;
     if (hdBonus > 0)
     {
-     int adjBonus = (hdBonus / 4) + 1;
+     int bonus = (hdBonus / 4) + 1;
      if ((hdBonus % 4) == 0)
-       adjBonus--;
+       bonus--;
      //FighterLevel += bonus;
-      SetLevel(max(hd, 1)+ adjBonus);
+      SetLevel(max(hd, 1)+bonus);
     }
   }
 /*
@@ -5433,8 +5829,7 @@ void CHARACTER::getNewCharLevel(const CArray<TRAINABLE_BASECLASS,TRAINABLE_BASEC
       {
         continue;  // To next baseclass
       };
-      // 20170926 exp = pstats->experience;
-      exp = pstats->CurExperience();
+      exp = pstats->experience;
       baseclassID = pstats->baseclassID;
       pBaseclass = baseclassData.PeekBaseclass(baseclassID);
       if (pBaseclass == NULL)
@@ -5451,12 +5846,12 @@ void CHARACTER::getNewCharLevel(const CArray<TRAINABLE_BASECLASS,TRAINABLE_BASEC
       pTrainableBaseclass = NULL;
       if (pTrainableBaseclasses != NULL)
       {
-        int k, num;
-        num = pTrainableBaseclasses->GetSize();
-        for (k=0; k<num; k++)
+        int i, n;
+        n = pTrainableBaseclasses->GetSize();
+        for (i=0; i<n; i++)
         {
           const TRAINABLE_BASECLASS *pTB;
-          pTB = &(*(const_cast<CArray<TRAINABLE_BASECLASS,TRAINABLE_BASECLASS&> *>(pTrainableBaseclasses)))[k];
+          pTB = &(*(const_cast<CArray<TRAINABLE_BASECLASS,TRAINABLE_BASECLASS&> *>(pTrainableBaseclasses)))[i];
           if (pTB->baseclassID == baseclassID)
           {
             pTrainableBaseclass = pTB;
@@ -5481,9 +5876,7 @@ void CHARACTER::getNewCharLevel(const CArray<TRAINABLE_BASECLASS,TRAINABLE_BASEC
           if (pstats->currentLevel > pTrainableBaseclass->maxLevel) break;
         };
         pstats->currentLevel++;
-#ifdef OldDualClass20180126
         temp__canUsePrevClass = -1;
-#endif
       };
       {
         // At the last possible moment we will check for
@@ -5507,12 +5900,9 @@ void CHARACTER::getNewCharLevel(const CArray<TRAINABLE_BASECLASS,TRAINABLE_BASEC
         if (limitLevel < HIGHEST_CHARACTER_LEVEL)
         {
           maxExp = *pBaseclass->PeekExpLevels(limitLevel)-1;
-          if (pstats->previousLevel <= 0)
+          if (pstats->experience > maxExp)
           {
-            if (pstats->x_experience > maxExp)
-            {
-              pstats->x_experience = maxExp;
-            };
+            pstats->experience = maxExp;
           };
         };
       };
@@ -5723,8 +6113,7 @@ int CHARACTER::determineMaxMovement()
     //int val = monsterData.GetMonsterMovement(origIndex);
     int val = monsterData.GetMonsterMovement(monsterID);
     SetMaxMovement(val);
-    return GetAdjMaxMovement(DEFAULT_SPELL_EFFECT_FLAGS, 
-                             "Determine monster max movement");
+    return GetAdjMaxMovement();
   }
 
 	int ewt = determineEffectiveEncumbrance();	
@@ -5738,8 +6127,7 @@ int CHARACTER::determineMaxMovement()
   else val = 1;
 
   SetMaxMovement(val);
-  return GetAdjMaxMovement(DEFAULT_SPELL_EFFECT_FLAGS,
-                           "Determine non-monster max movement");
+  return GetAdjMaxMovement();
 }
 
 //*****************************************************************************
@@ -5776,6 +6164,521 @@ int CHARACTER::determineMaxEncumbrance()
   //if (CanUsePrevClass())
   //  prevClass = GetPreviousClass();
 //  prevClass = GetPreviousClass();
+/*
+
+   if (   (isFighter(ctype))
+       || (isRanger(ctype))
+       || (isPaladin(ctype)))
+   {
+      level = max(FighterLevel, RangerLevel);
+      level = max(level, PaladinLevel);
+
+		if (level >= 17)
+		{
+      ppd = min(ppd, 3);
+      rsw = min(rsw, 5);
+      pp  = min(pp,  4);
+      br  = min(br,  4);
+      sp  = min(sp,  6);
+		}
+		else if (level >= 15)
+		{
+      ppd = min(ppd, 4);
+      rsw = min(rsw, 6);
+      pp  = min(pp,  5);
+      br  = min(br,  4);
+      sp  = min(sp,  7);
+		}
+		else if (level >= 13)
+		{
+      ppd = min(ppd, 5);
+      rsw = min(rsw, 7);
+      pp  = min(pp,  6);
+      br  = min(br,  5);
+      sp  = min(sp,  8);
+		}
+		else if (level >= 11)
+		{
+      ppd = min(ppd, 7);
+      rsw = min(rsw, 9);
+      pp  = min(pp,  8);
+      br  = min(br,  8);
+      sp  = min(sp,  10);
+		}
+		else if (level >= 9)
+		{
+      ppd = min(ppd, 8);
+      rsw = min(rsw, 10);
+      pp  = min(pp,  9);
+      br  = min(br,  9);
+      sp  = min(sp,  11);
+		}
+		else if (level >= 7)
+		{
+      ppd = min(ppd, 10);
+      rsw = min(rsw, 12);
+      pp  = min(pp,  11);
+      br  = min(br,  12);
+      sp  = min(sp,  13);
+		}
+		else if (level >= 5)
+		{
+      ppd = min(ppd, 11);
+      rsw = min(rsw, 13);
+      pp  = min(pp,  12);
+      br  = min(br,  13);
+      sp  = min(sp,  14);
+		}
+		else if (level >= 3)
+		{
+      ppd = min(ppd, 13);
+      rsw = min(rsw, 15);
+      pp  = min(pp,  14);
+      br  = min(br,  16);
+      sp  = min(sp,  16);
+		}
+		else if (level >= 1)
+		{
+      ppd = min(ppd, 14);
+      rsw = min(rsw, 16);
+      pp  = min(pp,  15);
+      br  = min(br,  17);
+      sp  = min(sp,  17);
+		}
+		else 
+    {
+      ppd = min(ppd, 16);
+      rsw = min(rsw, 18);
+      pp  = min(pp,  17);
+      br  = min(br,  20);
+      sp  = min(sp,  19);
+		}
+   }
+
+   if (   (isCleric(ctype))
+       || (isDruid(ctype)))
+   {
+      level = max(ClericLevel, DruidLevel);
+
+		if (level >= 19)
+		{
+         ppd = min(ppd, 2);
+         rsw = min(rsw, 6);
+         pp  = min(pp,  5);
+         br  = min(br,  8);
+         sp  = min(sp,  7);
+		}
+		else if (level >= 16)
+		{
+         ppd = min(ppd, 4);
+         rsw = min(rsw, 8);
+         pp  = min(pp,  7);
+         br  = min(br, 10);
+         sp  = min(sp,  9);
+		}
+		else if (level >= 13)
+		{
+         ppd = min(ppd, 5);
+         rsw = min(rsw, 9);
+         pp  = min(pp,  8);
+         br  = min(br, 11);
+         sp  = min(sp, 10);
+		}
+		else if (level >= 10)
+		{
+         ppd = min(ppd, 6);
+         rsw = min(rsw,10);
+         pp  = min(pp,  9);
+         br  = min(br, 12);
+         sp  = min(sp, 11);
+		}
+		else if (level >= 7)
+		{
+         ppd = min(ppd, 7);
+         rsw = min(rsw,11);
+         pp  = min(pp, 10);
+         br  = min(br, 13);
+         sp  = min(sp, 12);
+		}
+		else if (level >= 4)
+		{
+         ppd = min(ppd, 9);
+         rsw = min(rsw,13);
+         pp  = min(pp, 12);
+         br  = min(br, 15);
+         sp  = min(sp, 14);
+		}
+		else 
+      {
+         ppd = min(ppd,10);
+         rsw = min(rsw,14);
+         pp  = min(pp, 13);
+         br  = min(br, 16);
+         sp  = min(sp, 15);
+		}
+   }
+
+   if (isMagicUser(ctype))
+   {
+		if (MULevel >= 21)
+		{
+         ppd = min(ppd, 8);
+         rsw = min(rsw, 3);
+         pp  = min(pp,  5);
+         br  = min(br,  7);
+         sp  = min(sp,  4);
+		}
+		else if (MULevel >= 16)
+		{
+         ppd = min(ppd,10);
+         rsw = min(rsw, 5);
+         pp  = min(pp,  7);
+         br  = min(br,  9);
+         sp  = min(sp,  6);
+		}
+		else if (MULevel >= 11)
+		{
+         ppd = min(ppd,11);
+         rsw = min(rsw, 7);
+         pp  = min(pp,  9);
+         br  = min(br, 11);
+         sp  = min(sp,  8);
+		}
+		else if (MULevel >= 6)
+		{
+         ppd = min(ppd,13);
+         rsw = min(rsw, 9);
+         pp  = min(pp, 11);
+         br  = min(br, 13);
+         sp  = min(sp, 10);
+		}
+		else 
+      {
+         ppd = min(ppd, 14);
+         rsw = min(rsw, 11);
+         pp  = min(pp,  13);
+         br  = min(br,  15);
+         sp  = min(sp,  12);
+		}
+   }
+
+   if (isThief(ctype))
+   {
+		if (ThiefLevel >= 21)
+		{
+         ppd = min(ppd, 8);
+         rsw = min(rsw, 7);
+         pp  = min(pp,  4);
+         br  = min(br, 11);
+         sp  = min(sp,  5);
+		}
+		else if (ThiefLevel >= 17)
+		{
+         ppd = min(ppd, 9);
+         rsw = min(rsw, 6);
+         pp  = min(pp,  8);
+         br  = min(br, 12);
+         sp  = min(sp,  7);
+		}
+		else if (ThiefLevel >= 13)
+		{
+         ppd = min(ppd,10);
+         rsw = min(rsw, 8);
+         pp  = min(pp,  9);
+         br  = min(br, 13);
+         sp  = min(sp,  9);
+		}
+		else if (ThiefLevel >= 9)
+		{
+         ppd = min(ppd,11);
+         rsw = min(rsw,10);
+         pp  = min(pp, 10);
+         br  = min(br, 14);
+         sp  = min(sp, 11);
+		}
+		else if (ThiefLevel >= 5)
+		{
+         ppd = min(ppd,12);
+         rsw = min(rsw,12);
+         pp  = min(pp, 11);
+         br  = min(br, 15);
+         sp  = min(sp, 13);
+		}
+		else 
+      {
+         ppd = min(ppd,13);
+         rsw = min(rsw,14);
+         pp  = min(pp, 12);
+         br  = min(br, 16);
+         sp  = min(sp, 15);
+		}
+   }
+
+   if (   (isFighter(prevClass))
+       || (isRanger(prevClass))
+       || (isPaladin(prevClass)))
+   {
+      level = max(prevFighterLevel, prevRangerLevel);
+      level = max(level, prevPaladinLevel);
+
+		if (level >= 17)
+		{
+      ppd = min(ppd, 3);
+      rsw = min(rsw, 5);
+      pp  = min(pp,  4);
+      br  = min(br,  4);
+      sp  = min(sp,  6);
+		}
+		else if (level >= 15)
+		{
+      ppd = min(ppd, 4);
+      rsw = min(rsw, 6);
+      pp  = min(pp,  5);
+      br  = min(br,  4);
+      sp  = min(sp,  7);
+		}
+		else if (level >= 13)
+		{
+      ppd = min(ppd, 5);
+      rsw = min(rsw, 7);
+      pp  = min(pp,  6);
+      br  = min(br,  5);
+      sp  = min(sp,  8);
+		}
+		else if (level >= 11)
+		{
+      ppd = min(ppd, 7);
+      rsw = min(rsw, 9);
+      pp  = min(pp,  8);
+      br  = min(br,  8);
+      sp  = min(sp,  10);
+		}
+		else if (level >= 9)
+		{
+      ppd = min(ppd, 8);
+      rsw = min(rsw, 10);
+      pp  = min(pp,  9);
+      br  = min(br,  9);
+      sp  = min(sp,  11);
+		}
+		else if (level >= 7)
+		{
+      ppd = min(ppd, 10);
+      rsw = min(rsw, 12);
+      pp  = min(pp,  11);
+      br  = min(br,  12);
+      sp  = min(sp,  13);
+		}
+		else if (level >= 5)
+		{
+      ppd = min(ppd, 11);
+      rsw = min(rsw, 13);
+      pp  = min(pp,  12);
+      br  = min(br,  13);
+      sp  = min(sp,  14);
+		}
+		else if (level >= 3)
+		{
+      ppd = min(ppd, 13);
+      rsw = min(rsw, 15);
+      pp  = min(pp,  14);
+      br  = min(br,  16);
+      sp  = min(sp,  16);
+		}
+		else if (level >= 1)
+		{
+      ppd = min(ppd, 14);
+      rsw = min(rsw, 16);
+      pp  = min(pp,  15);
+      br  = min(br,  17);
+      sp  = min(sp,  17);
+		}
+		else 
+    {
+      ppd = min(ppd, 16);
+      rsw = min(rsw, 18);
+      pp  = min(pp,  17);
+      br  = min(br,  20);
+      sp  = min(sp,  19);
+		}
+   }
+
+   if (   (isCleric(prevClass))
+       || (isDruid(prevClass)))
+   {
+      level = max(prevClericLevel, prevDruidLevel);
+
+		if (level >= 19)
+		{
+         ppd = min(ppd, 2);
+         rsw = min(rsw, 6);
+         pp  = min(pp,  5);
+         br  = min(br,  8);
+         sp  = min(sp,  7);
+		}
+		else if (level >= 16)
+		{
+         ppd = min(ppd, 4);
+         rsw = min(rsw, 8);
+         pp  = min(pp,  7);
+         br  = min(br, 10);
+         sp  = min(sp,  9);
+		}
+		else if (level >= 13)
+		{
+         ppd = min(ppd, 5);
+         rsw = min(rsw, 9);
+         pp  = min(pp,  8);
+         br  = min(br, 11);
+         sp  = min(sp, 10);
+		}
+		else if (level >= 10)
+		{
+         ppd = min(ppd, 6);
+         rsw = min(rsw,10);
+         pp  = min(pp,  9);
+         br  = min(br, 12);
+         sp  = min(sp, 11);
+		}
+		else if (level >= 7)
+		{
+         ppd = min(ppd, 7);
+         rsw = min(rsw,11);
+         pp  = min(pp, 10);
+         br  = min(br, 13);
+         sp  = min(sp, 12);
+		}
+		else if (level >= 4)
+		{
+         ppd = min(ppd, 9);
+         rsw = min(rsw,13);
+         pp  = min(pp, 12);
+         br  = min(br, 15);
+         sp  = min(sp, 14);
+		}
+		else 
+      {
+         ppd = min(ppd,10);
+         rsw = min(rsw,14);
+         pp  = min(pp, 13);
+         br  = min(br, 16);
+         sp  = min(sp, 15);
+		}
+   }
+
+   if (isMagicUser(prevClass))
+   {
+		if (prevMULevel >= 21)
+		{
+         ppd = min(ppd, 8);
+         rsw = min(rsw, 3);
+         pp  = min(pp,  5);
+         br  = min(br,  7);
+         sp  = min(sp,  4);
+		}
+		else if (prevMULevel >= 16)
+		{
+         ppd = min(ppd,10);
+         rsw = min(rsw, 5);
+         pp  = min(pp,  7);
+         br  = min(br,  9);
+         sp  = min(sp,  6);
+		}
+		else if (prevMULevel >= 11)
+		{
+         ppd = min(ppd,11);
+         rsw = min(rsw, 7);
+         pp  = min(pp,  9);
+         br  = min(br, 11);
+         sp  = min(sp,  8);
+		}
+		else if (prevMULevel >= 6)
+		{
+         ppd = min(ppd,13);
+         rsw = min(rsw, 9);
+         pp  = min(pp, 11);
+         br  = min(br, 13);
+         sp  = min(sp, 10);
+		}
+		else 
+    {
+         ppd = min(ppd, 14);
+         rsw = min(rsw, 11);
+         pp  = min(pp,  13);
+         br  = min(br,  15);
+         sp  = min(sp,  12);
+		}
+   }
+
+   if (isThief(prevClass))
+   {
+		if (prevThiefLevel >= 21)
+		{
+         ppd = min(ppd, 8);
+         rsw = min(rsw, 7);
+         pp  = min(pp,  4);
+         br  = min(br, 11);
+         sp  = min(sp,  5);
+		}
+		else if (prevThiefLevel >= 17)
+		{
+         ppd = min(ppd, 9);
+         rsw = min(rsw, 6);
+         pp  = min(pp,  8);
+         br  = min(br, 12);
+         sp  = min(sp,  7);
+		}
+		else if (prevThiefLevel >= 13)
+		{
+         ppd = min(ppd,10);
+         rsw = min(rsw, 8);
+         pp  = min(pp,  9);
+         br  = min(br, 13);
+         sp  = min(sp,  9);
+		}
+		else if (prevThiefLevel >= 9)
+		{
+         ppd = min(ppd,11);
+         rsw = min(rsw,10);
+         pp  = min(pp, 10);
+         br  = min(br, 14);
+         sp  = min(sp, 11);
+		}
+		else if (prevThiefLevel >= 5)
+		{
+         ppd = min(ppd,12);
+         rsw = min(rsw,12);
+         pp  = min(pp, 11);
+         br  = min(br, 15);
+         sp  = min(sp, 13);
+		}
+		else 
+    {
+         ppd = min(ppd,13);
+         rsw = min(rsw,14);
+         pp  = min(pp, 12);
+         br  = min(br, 16);
+         sp  = min(sp, 15);
+		}
+   }
+*/
+  //const CLASS_DATA *pClass;
+  //pClass = classData.PeekClass(adjClass);
+  //if (pClass != NULL)
+  //{
+  //  pClass->ComputeCharSavingThrows(this, &ppd, &rsw, &pp, &br, &sp);
+  //};
+  //pClass = classData.PeekClass(prevClass);
+  //if (pClass != NULL)
+  //{
+  //  pClass->ComputeCharSavingThrows(this, &ppd, &rsw, &pp, &br, &sp);
+  //};
+	//SetSaveVsPPDM(ppd);
+	//SetSaveVsRSW(rsw);
+	//SetSaveVsPP(pp);
+	//SetSaveVsBr(br);
+	//SetSaveVsSp(sp);
+//}
 
 //*****************************************************************************
 // NAME:    CHARACTER::giveCharacterExperience
@@ -5788,6 +6691,116 @@ void CHARACTER::giveCharacterExperience(int exppts, BOOL UseLimits)
 {
   //if (GetType() == MONSTER_TYPE) return;
   if (exppts == 0) return;
+/*
+   classType ctype = GetAdjClass();
+   if (isMultiClass(ctype))
+   {
+      if (exppts > 0)
+      {
+         exppts /= numClasses(ctype);
+         if (exppts == 0) exppts = 1;
+      }
+      else
+      {
+         exppts /= numClasses(ctype);
+         if (exppts == 0) exppts = -1;
+      }
+   }
+
+   // check to make sure char doesn't 
+   // jump more than one level of experience
+   //
+   if (isFighter(ctype))
+   {
+      IncCurrExp(FighterFlag, exppts);
+      if (UseLimits)
+      {
+        int cexp = GetFighterExp();
+        int mexp = GetMaxFighterExpForLevel(GetCurrentLevel(FighterFlag)+1);
+        int minxp = GetMinFighterExpForLevel(GetCurrentLevel(FighterFlag));
+        cexp = max(cexp, minxp);
+        SetCurrExp(FighterFlag,  min(cexp,mexp) );
+      }
+   }
+
+   if (isPaladin(ctype))
+   {
+      IncCurrExp(PaladinFlag, exppts);
+      if (UseLimits)
+      {
+        int cexp = GetPaladinExp();
+        int mexp = GetMaxPaladinExpForLevel(GetCurrentLevel(PaladinFlag)+1);
+        int minxp = GetMinPaladinExpForLevel(GetCurrentLevel(PaladinFlag));
+        cexp = max(cexp, minxp);
+        SetCurrExp(PaladinFlag,  min(cexp,mexp) );
+      }
+   }
+
+   if (isRanger(ctype))
+   {
+      IncCurrExp(RangerFlag, exppts);
+      if (UseLimits)
+      {
+        int cexp = GetRangerExp();
+        int mexp = GetMaxRangerExpForLevel(GetCurrentLevel(RangerFlag)+1);
+        int minxp = GetMinRangerExpForLevel(GetCurrentLevel(RangerFlag));
+        cexp = max(cexp, minxp);
+        SetCurrExp(RangerFlag,  min(cexp,mexp) );
+      }
+   }
+
+   if (isCleric(ctype))
+   {
+      IncCurrExp(ClericFlag, exppts);
+      if (UseLimits)
+      {
+        int cexp = GetClericExp();
+        int mexp = GetMaxClericExpForLevel(GetCurrentLevel(ClericFlag)+1);
+        int minxp = GetMinClericExpForLevel(GetCurrentLevel(ClericFlag));
+        cexp = max(cexp, minxp);
+        SetCurrExp(ClericFlag,  min(cexp,mexp) );
+      }
+   }
+
+   if (isDruid(ctype))
+   {
+      IncCurrExp(DruidFlag, exppts);
+      if (UseLimits)
+      {
+        int cexp = GetDruidExp();
+        int mexp = GetMaxDruidExpForLevel(GetCurrentLevel(DruidFlag)+1);
+        int minxp = GetMinDruidExpForLevel(GetCurrentLevel(DruidFlag));
+        cexp = max(cexp, minxp);
+        SetCurrExp(DruidFlag,  min(cexp,mexp) );
+      }
+   }
+
+   if (isMagicUser(ctype))
+   {
+      IncCurrExp( MagicUserFlag, exppts);
+      if (UseLimits)
+      {
+        int cexp = GetMagicUserExp();
+        int mexp = GetMaxMagicUserExpForLevel(GetCurrentLevel(MagicUserFlag)+1);
+        int minxp = GetMinMagicUserExpForLevel(GetCurrentLevel(MagicUserFlag));
+        cexp = max(cexp, minxp);
+        SetCurrExp(MagicUserFlag,  min(cexp,mexp) );
+      }
+   }
+
+   if (isThief(ctype))
+   {
+      IncCurrExp(ThiefFlag, exppts);
+      if (UseLimits)
+      {
+        int cexp = GetThiefExp();
+        int mexp = GetMaxThiefExpForLevel(GetCurrentLevel(ThiefFlag)+1);
+        int minxp = GetMinThiefExpForLevel(GetCurrentLevel(ThiefFlag));
+        cexp = max(cexp, minxp);
+        SetCurrExp(ThiefFlag,  min(cexp,mexp) );
+      }
+   }
+*/
   const CLASS_DATA *pClass;
   pClass = classData.PeekClass(classID);
   if (pClass == NULL) return;
@@ -5810,9 +6823,6 @@ void CHARACTER::giveCharacterExperience(int exppts, BOOL UseLimits)
   };
 }
 
-
-
-#ifdef OldDualClass20180126
 //*****************************************************************************
 // NAME:    CHARACTER::getCharTHAC0
 //
@@ -5833,16 +6843,12 @@ void CHARACTER::getCharTHAC0()
   int thac0;
 
    //classType prevClass = BogusClass;
-#ifdef OldDualClass20180126
   CLASS_ID prevClass;
-#endif
    //classType ctype = GetAdjClass();
   CLASS_ID adjClass;
   adjClass = GetAdjClass();
-#ifdef OldDualClas20180126
   if (CanUsePrevClass())
      prevClass = GetPreviousClass();
-#endif
 /*
    if (isFighter(ctype))
 //      thac0 = min(thac0, (21 - FighterLevel)); // manikus 7-21-09
@@ -5991,16 +6997,12 @@ void CHARACTER::getCharTHAC0()
     thac0 = pClass->GetCharTHAC0(this);
   };
   THAC0 = thac0;
-#ifdef OldDualClass20180126
   pClass = classData.PeekClass(prevClass);
   if (pClass == NULL) 
   {
     thac0 = 20;
   }
   else
-#else
-  NotImplemented(0x20180126,false);
-#endif
   {
     thac0 = pClass->GetCharTHAC0(this);
   };
@@ -6011,59 +7013,6 @@ void CHARACTER::getCharTHAC0()
 	if (THAC0 > MAX_THAC0)
 		THAC0 = MAX_THAC0;
 }
-#else OldDualClass20180126
-
-//*****************************************************************************
-// NAME:    CHARACTER::getCharTHAC0
-//
-// PURPOSE: 
-//
-// RETURNS: None
-//*****************************************************************************
-void CHARACTER::getCharTHAC0()
-{
-  int i, n, thac0;
-  const BASECLASS_STATS *pBaseclassStats;
-  if (GetType() == MONSTER_TYPE)
-  {
-    //THAC0 = monsterData.GetMonsterTHAC0(origIndex);
-    THAC0 = monsterData.GetMonsterTHAC0(monsterID);
-    return;
-  }
-  n = baseclassStats.GetCount();
-  THAC0 = 20;
-  for (i=0; i<n; i++)
-  {
-    int level;
-    //pBaseclassID = PeekBaseclassID(i);
-    //if (pBaseclassID == NULL) continue;
-    //pBaseclass = baseclassData.PeekBaseclass(*pBaseclassID);
-    //if (pBaseclass == NULL) continue;
-    pBaseclassStats = PeekBaseclassStats(i);
-    if (pBaseclassStats == NULL) continue;
-    if (!CanUseBaseclass(pBaseclassStats)) continue;
-    if (pBaseclassStats->currentLevel > 0)
-    {
-      level = pBaseclassStats->currentLevel;
-    }
-    else
-    {
-      level = pBaseclassStats->previousLevel;
-    };
-    if (level < 1) continue;
-    if (level >HIGHEST_CHARACTER_LEVEL) level = HIGHEST_CHARACTER_LEVEL;
-    if (      (pBaseclassStats->pBaseclassData == NULL)
-          ||  (pBaseclassStats->baseclassID != pBaseclassStats->pBaseclassData->BaseclassID()))
-    {
-      pBaseclassStats->pBaseclassData = baseclassData.PeekBaseclass(pBaseclassStats->baseclassID);
-    };
-    if (pBaseclassStats->pBaseclassData == NULL) continue;
-    thac0 = pBaseclassStats->pBaseclassData->THAC0[level-1];;
-    if (thac0 < THAC0) THAC0 = thac0;
-  };
-}
-#endif OldDualClass20180126
-
 
 //*****************************************************************************
 //    NAME: CHARACTER::GetTHAC0
@@ -6341,7 +7290,7 @@ void CHARACTER::SetThiefSkillRaceAdjustments()
 	if (cw != 0) SetClimbWalls((int)((double)GetClimbWalls() * cw));
 	if (rl != 0) SetReadLanguages((int)((double)GetReadLanguages() * rl));
 
-  die("Not Needed?"); //Not Implemented(0xd41cba, false);
+  NotImplemented(0xd41cba, false);
 }
 */
 
@@ -6351,7 +7300,7 @@ void CHARACTER::SetThiefSkillRaceAdjustments()
 void CHARACTER::UpdateSkill(int *skillModifier, 
                                 const CString& skillName)
 {
-  die("Not Needed?"); //Not Implemented(0xb1ea9, false);
+  NotImplemented(0xb1ea9, false);
   // Apply adjustments for Race, baseclass level, and ability.
 /*  
   const ABILITY_SKILL_ADJ *pSkillAdj;
@@ -6382,7 +7331,138 @@ void CHARACTER::UpdateSkill(int *skillModifier,
 }
 
 #endif
+/*
+//*****************************************************************************
+// NAME:    CHARACTER::getThiefSkillDexAdjustments
+//
+// PURPOSE: 
+//
+// RETURNS: None
+//*****************************************************************************
+void CHARACTER::SetThiefSkillDexAdjustments() 
+{
+  //classType prevClass = BogusClass;
+  CLASS_ID prevClass;
+  if (CanUsePrevClass())
+    prevClass = GetPreviousClass();
 
+
+  if ((!isThief(GetAdjClass())) && (!isThief(prevClass)))
+    return;
+
+  double pp=0.0;
+  double ol=0.0;
+  double rt=0.0;
+  double ms=0.0;
+  double hs=0.0;
+
+  switch (GetDex())
+  {
+  case 9:
+    pp=0.85;ol=0.90; rt=0.90; ms=0.80; hs=0.90;		// manikus 7-21-09
+    break;
+  case 10:
+    pp=0.90;ol=0.95; rt=0.90; ms=0.85; hs=0.95;		//
+    break;
+  case 11:
+    pp=0.95;ol=0;    rt=0.95; ms=0.90; hs=0;			//
+    break;
+  case 12:
+    pp=0;   ol=0;    rt=0;    ms=0.95; hs=0;			//
+    break;
+  case 13:
+  case 14:
+  case 15:
+    pp=0;   ol=0;    rt=0;    ms=0;    hs=0;				//
+    break;
+  case 16:
+    pp=0;   ol=1.05; rt=0;    ms=0;    hs=0;			//
+    break;
+  case 17:
+    pp=1.05;ol=1.10; rt=0;    ms=1.05; hs=1.05;		//
+    break;
+  case 18:
+    pp=1.10;ol=1.15; rt=1.05; ms=1.10; hs=1.10;		//
+    break;
+  default:
+    pp=1.15;ol=1.20; rt=1.10; ms=1.15; hs=1.15;		//
+    break;
+  }
+	if (pp != 0) SetPickPockets((int)((double)GetPickPockets() * pp));
+	if (ol != 0) SetOpenLocks((int)((double)GetOpenLocks() * ol));
+	if (rt != 0) SetFindTraps((int)((double)GetFindTraps() * rt));
+	if (ms != 0) SetMoveSilent((int)((double)GetMoveSilent() * ms));
+	if (hs != 0) SetHideInShadows((int)((double)GetHideInShadows() * hs));
+
+  NotImplemented(0xc176a8, false);
+
+  int pp = 0;
+  int ol = 0;
+  int ft = 0;
+  int ms = 0;
+  int hs = 0;
+  int i, k, n;
+  CLASS_ID cID;
+  cID = classID;
+  for (k=0; k<2; k++, cID=prevClass)
+  {
+    const CLASS_DATA *pClass;
+    pClass = classData.PeekClass(cID);
+    if (pClass == NULL) return;
+    n = pClass->GetCount();
+    for (i=0; i<n; i++)
+    {
+      const BASE_CLASS_DATA *pBaseclass;
+      const BASECLASS_ID *pBaseclassID;
+      pBaseclassID = pClass->PeekBaseclassID(i);
+      pBaseclass = baseclassData.PeekBaseclass(*pBaseclassID);
+      if (pBaseclass == NULL) continue;
+      UpdateAbilitySkill(&pp, Skill_PickPockets,   pBaseclass);
+      UpdateAbilitySkill(&ol, Skill_OpenLocks,     pBaseclass);
+      UpdateAbilitySkill(&ft, Skill_FindTraps,     pBaseclass);
+      UpdateAbilitySkill(&ms, Skill_MoveSilent,    pBaseclass);
+      UpdateAbilitySkill(&hs, Skill_HideInShadows, pBaseclass);
+    };
+  };
+
+}
+*/
+
+/*
+
+//*****************************************************************************
+// NAME:    getThiefBackstabDamageMultiplier
+//
+// PURPOSE: 
+//
+// RETURNS: None
+//*****************************************************************************
+int CHARACTER::GetThiefBackstabDamageMultiplier() const
+{
+  classType prevClass = BogusClass;
+  if (CanUsePrevClass())
+    prevClass = GetPreviousClass();
+
+  if ((!isThief(GetAdjClass())) && (!isThief(prevClass)))
+    return 1;
+
+  int level = max(ThiefLevel, prevThiefLevel);
+
+  if (level <= 4)
+    return 2;
+  else if (level <= 8)
+    return 3;
+  else if (level <= 12)
+    return 4;
+  else
+    return 5;
+  int multiplier;
+  SKILL_ID skillID;
+  skillID = Skill_BackstabMultiplier;
+  if (!GetAdjSkillValue(skillID, this, NULL, NULL, &multiplier)) return 1;
+  return multiplier;
+}
+*/
 
 //*****************************************************************************
 // NAME:    CHARACTER::getThiefSkillArmorAdustments
@@ -6395,6 +7475,31 @@ void CHARACTER::GetThiefSkillArmorAdustments() const
 {
 
 }
+
+/*  Removed 20130215 by direction of MAnikus   PRS
+
+//*****************************************************************************
+// NAME:    CHARACTER::getThiefBackstabAttackAdjustment
+//
+// PURPOSE: 
+//
+// RETURNS: None
+//*****************************************************************************
+int CHARACTER::GetThiefBackstabAttackAdjustment(void) const
+{
+  classType prevClass = BogusClass;
+  if (CanUsePrevClass())
+    prevClass = GetPreviousClass();
+
+  if ((!isThief(GetAdjClass())) && (!isThief(prevClass)))
+    return 0;
+
+  //int level = max(ThiefLevel, prevThiefLevel);
+  NotImplemented(0x1a7654, false);
+  return 1;
+}
+
+*/
 
 
 //*****************************************************************************
@@ -6759,10 +7864,8 @@ void CHARACTER::payForItem(int moneyCost, itemClassType moneyType, int gemCost, 
 {
   if (moneyCost > 0)
   {
-    if ((party.moneyPooled) && (party.poolSack.HaveEnough(moneyType, moneyCost))) {
+    if ((party.moneyPooled) && (party.poolSack.HaveEnough(moneyType, moneyCost)))
       party.poolSack.Subtract(moneyType, moneyCost);
-      party.moneyPooled = !(party.poolSack.IsEmpty());
-    }
     else
       money.Subtract(moneyType, moneyCost);
   }
@@ -6810,50 +7913,101 @@ BOOL CHARACTER::toggleReadyItem(int item)
 //#endif
 
   BOOL success = FALSE;
-  DWORD rdyLoc;
   ITEM_DATA *data = itemData.GetItem(myItems.GetItem(item));
   if (data == NULL) return FALSE;
-  rdyLoc = data->Location_Readied;
+
   if (myItems.IsReady(item))
   {
     myItems.UnReady(item);
     success = !myItems.IsReady(item);
     if (success)
     {
-  		if      (rdyLoc == WeaponHand) UnReadyWeaponScript(item);
-      else if (rdyLoc == ShieldHand) UnReadyShieldScript(item);
-		  else if (rdyLoc == BodyArmor)  UnReadyArmorScript(item);
-		  else if (rdyLoc == Hands)      UnReadyGauntletsScript(item);
-		  else if (rdyLoc == Head)       UnReadyHelmScript(item);
-		  else if (rdyLoc == Waist)      UnReadyBeltScript(item);
-		  else if (rdyLoc == BodyRobe)   UnReadyRobeScript(item);
-		  else if (rdyLoc == Back)       UnReadyCloakScript(item);
-		  else if (rdyLoc == Feet)       UnReadyBootsScript(item);
-		  else if (rdyLoc == Fingers)    UnReadyRingScript(item);
-                                       // should separate this into ring1 and ring2?
-		  else if (rdyLoc == AmmoQuiver) UnReadyAmmoScript(item);
-      else                           UnReadyXXXScript(ON_UNREADY, item);
+      switch(data->Location_Readied)
+      {
+  		case WeaponHand:
+        UnReadyWeapon(item);
+		  	break;
+		  case ShieldHand:
+        UnReadyShield(item);
+			  break;
+		  case BodyArmor:
+        UnReadyArmor(item);
+			  break;
+		  case Hands:
+        UnReadyGauntlets(item);
+			  break;
+		  case Head:
+        UnReadyHelm(item);
+			  break;
+		  case Waist:
+        UnReadyBelt(item);
+			  break;
+		  case BodyRobe:
+        UnReadyRobe(item);
+			  break;
+		  case Back:
+        UnReadyCloak(item);
+			  break;
+		  case Feet:
+        UnReadyBoots(item);
+			  break;
+		  case Fingers: // should separate this into ring1 and ring2?
+        UnReadyRing(item);
+			  break;
+		  case AmmoQuiver:
+        UnReadyAmmo(item);
+			  break;
+      default:
+        UnReadyXXX(ON_UNREADY, item);
+        break;
+      };
     };
 #ifdef UAFEngine
-    //Not Implemented(0xadf4b, FALSE);
+    //NotImplemented(0xadf4b, FALSE);
     //data->specAbs.DisableAllFor(this);
 #endif
   }
   else
   {
-		     if (rdyLoc == WeaponHand) ReadyWeaponScript(item);
-		else if (rdyLoc == ShieldHand) ReadyShieldScript(item);
-		else if (rdyLoc == BodyArmor)  ReadyArmorScript(item);
-		else if (rdyLoc == Hands)      ReadyGauntletsScript(item);
-		else if (rdyLoc == Head)       ReadyHelmScript(item);
-		else if (rdyLoc == Waist)      ReadyBeltScript(item);
-		else if (rdyLoc == BodyRobe)   ReadyRobeScript(item);
-		else if (rdyLoc == Back)       ReadyCloakScript(item);
-		else if (rdyLoc == Feet)       ReadyBootsScript(item);
-		else if (rdyLoc == Fingers)    ReadyRingScript(item);
-                                      // should separate this into ring1 and ring2?
-		else if (rdyLoc == AmmoQuiver) ReadyAmmoScript(item);
-    else ReadyXXXScript(data->Location_Readied, ON_READY, item);
+    switch (data->Location_Readied)
+    {
+		case WeaponHand:
+      ReadyWeapon(item);
+			break;
+		case ShieldHand:
+      ReadyShield(item);
+			break;
+		case BodyArmor:
+      ReadyArmor(item);
+			break;
+		case Hands:
+      ReadyGauntlets(item);
+			break;
+		case Head:
+      ReadyHelm(item);
+			break;
+		case Waist:
+      ReadyBelt(item);
+			break;
+		case BodyRobe:
+      ReadyRobe(item);
+			break;
+		case Back:
+      ReadyCloak(item);
+			break;
+		case Feet:
+      ReadyBoots(item);
+			break;
+		case Fingers: // should separate this into ring1 and ring2?
+      ReadyRing(item);
+			break;
+		case AmmoQuiver:
+      ReadyAmmo(item);
+			break;
+    default:
+      ReadyXXX(data->Location_Readied, ON_READY, item);
+			break;
+    }
     success = myItems.IsReady(item);
 	}
 
@@ -7287,12 +8441,6 @@ BOOL CHARACTER::CanDualClassPaladin() const
 }
 */
 
-
-
-
-
-#ifdef OldDualClass20180126
-
 //*****************************************************************************
 // NAME: CHARACTER::CanUsePrevClass
 //
@@ -7422,30 +8570,8 @@ used by the PC at their previous levels of 6/7.
   return FALSE;
 */
 }
-#else  //OldDualClass20180126
 
-BOOL CHARACTER:: CanUseBaseclass(const BASECLASS_STATS *pBaseclassStats) const
-{
-  // He can use this baseclass if it is a current baseclass.
-  //
-  // He can use this baseclass if it is a previous baseclass
-  // and a current baseclass level is greater than this previous baseclass level.
-  //
-  if (pBaseclassStats->currentLevel > 0) return TRUE;
-  if (pBaseclassStats->previousLevel <= 0) return FALSE;
-  {
-    int i, n;
-    n = baseclassStats.GetCount();
-    for (i=0; i<n; i++)
-    {
-      if (PeekBaseclassStats(i)->previousLevel > 0) continue;
-      if (PeekBaseclassStats(i)->currentLevel > pBaseclassStats->previousLevel) return TRUE;
-    };
-  };
-  return FALSE;
-}
 
-#endif //OldDualClass20180126
 //*****************************************************************************
 // NAME: CHARACTER::IsDualClass
 //
@@ -7485,8 +8611,6 @@ BOOL CHARACTER::IsDualClass() const
   return FALSE;
 }
 
-#ifdef OldDualClass201800126
-
 //*****************************************************************************
 // NAME: CHARACTER::GetPreviousClass
 //
@@ -7511,33 +8635,31 @@ CLASS_ID CHARACTER::GetPreviousClass() const
   if (prevDruidLevel > 0)
     return Druid;
 */
-  int i, j, m, n1, n2;
-  n1 = baseclassStats.GetSize();
-  for (i=0; i<n1; i++)
+  int i, j, m, n;
+  n = baseclassStats.GetSize();
+  for (i=0; i<n; i++)
   {
     if (PeekBaseclassStats(i)->previousLevel > 0)
     //if (baseclassStats[i].previousLevel > 0)
     {
       // Now we need to find a class that matches this baseclass!
-      n2 = classData.GetCount();
-      for (j=0; j<n2; j++)
+      n = classData.GetCount();
+      for (j=0; j<n; j++)
       {
-        m = classData.PeekClass(j)->GetCount();
+        m = classData.PeekClass(i)->GetCount();
         if (m != 1) continue;
-        if (*classData.PeekClass(j)->PeekBaseclassID(0) == PeekBaseclassStats(i)->baseclassID)
+        if (*classData.PeekClass(i)->PeekBaseclassID(0) == PeekBaseclassStats(i)->baseclassID)
         //if (*classData.PeekClass(i)->PeekBaseclassID(0) == baseclassStats[i].baseclassID)
         {
-          return classData.PeekClass(j)->ClassID();
+          return classData.PeekClass(i)->ClassID();
         };
       };
     };
   };
   return CLASS_ID();
 }
-#endif // OldDualClass20180126 
 
 
-/*
 //*****************************************************************************
 // NAME: CHARACTER::GetPreviousClassLevel
 //
@@ -7545,32 +8667,34 @@ CLASS_ID CHARACTER::GetPreviousClass() const
 //*****************************************************************************
 BYTE CHARACTER::GetPreviousClassLevel() const
 {
-  die("Not Needed?"); //Not Implemented(0x5d9365, false);
+/*
+  switch (GetPreviousClass())
+  {
+  case Fighter:
+    return prevFighterLevel;
+  case Cleric:
+    return prevClericLevel;
+  case Ranger:
+    return prevRangerLevel;
+  case Paladin:
+    return prevPaladinLevel;
+  case MagicUser:
+    return prevMULevel;
+  case Thief:
+    return prevThiefLevel;
+  case Druid:
+    return prevDruidLevel;
+  default:
+    return 0;
+  }
+*/
+  NotImplemented(0x5d9365, false);
   return 0;
 }
-*/
 
-BOOL CHARACTER::CanChangeToClass(const CLASS_DATA *pFromClass,
-                                 const CLASS_DATA *pToClass)
+
+BOOL CHARACTER::CanChangeToClass(const CLASS_DATA *pClass)
 {
-/*
- *
- *
- * Manikus instructed me via email that he wanted the
- * engine to have no part in this decision.  He wanted
- * his script to do all the work:
- *
- I would prefer the new Hook to do all the checks. I 
- would like to verify the possible classes one at a 
- time. Character and Class contexts, as suggested, 
- sound like the right place to handle this.
-
--Eric
-
- * But I will leave this code lying around in case
- * he changes his mind.
- * PRS 20170916
-
   const BASECLASS_LIST *pBaseclassList;
   int numBaseclass, baseclassIndex;
   pBaseclassList = pClass->BaseclassList();
@@ -7604,33 +8728,6 @@ BOOL CHARACTER::CanChangeToClass(const CLASS_DATA *pFromClass,
     };
   };
   return TRUE;
-  *
-  *
-  */
-  {
-    HOOK_PARAMETERS hookParameters;
-    SCRIPT_CONTEXT scriptContext;
-    scriptContext.SetClassContext(pFromClass);
-    scriptContext.SetCharacterContext(this);
-    hookParameters[5] = pToClass->ClassID();
-    pFromClass->RunClassScripts("CanChangeFromClass", 
-                                ScriptCallback_RunAllScripts,
-                                NULL,
-                                "Test if this character can change class"
-                                );
-    if (hookParameters[0] != 'Y') return FALSE;
-    hookParameters[0].Empty();
-    scriptContext.SetClassContext(pToClass);
-    scriptContext.SetCharacterContext(this);
-    hookParameters[5] = pFromClass->ClassID();
-    pToClass->RunClassScripts("CanChangeToClass", 
-                               ScriptCallback_RunAllScripts,
-                               NULL,
-                               "Test if this character can change to this class"
-                              );
-    if (hookParameters[0] != 'Y') return FALSE;
-    return TRUE;
-  };
 }      
 
 
@@ -7646,7 +8743,6 @@ BOOL CHARACTER::CanChangeToClass(const CLASS_DATA *pFromClass,
 int CHARACTER::CreateChangeClassList(CArray<CLASS_ID, CLASS_ID&> *pClassArray)
 { // Return number of possible classes.
   int result = 0;
-  if (this == &FakeCharacter) return 0;
   if (pClassArray != NULL)
   {
     pClassArray->RemoveAll();
@@ -7660,8 +8756,7 @@ int CHARACTER::CreateChangeClassList(CArray<CLASS_ID, CLASS_ID&> *pClassArray)
   //  return FALSE;
   {
     const RACE_DATA *pRace;
-    //pRace = raceData.PeekRace(race);
-    pRace = PeekRaceData();
+    pRace = raceData.PeekRace(race);
     if (pRace == NULL) return FALSE;
     if (!pRace->m_canChangeClass)
     {
@@ -7674,8 +8769,6 @@ int CHARACTER::CreateChangeClassList(CArray<CLASS_ID, CLASS_ID&> *pClassArray)
     return 0;
   };
   // Search for a possible new class
-  const CLASS_DATA *pMyClass;
-  pMyClass = classData.PeekClass(this->classID);
   {
     int classIndex, numClass;
     numClass = classData.GetClassCount();
@@ -7688,14 +8781,14 @@ int CHARACTER::CreateChangeClassList(CArray<CLASS_ID, CLASS_ID&> *pClassArray)
       // Check each of the new class' baseclasses.
       //
       {
-        if (CanChangeToClass(pMyClass, pClass))
+        if (CanChangeToClass(pClass))
         {
           result++;
           if (pClassArray != NULL)
           {
-            CLASS_ID classID2Add;
-            classID2Add = pClass->ClassID();
-            pClassArray->Add(classID2Add);
+            CLASS_ID classID;
+            classID = pClass->ClassID();
+            pClassArray->Add(classID);
           };
         };
       };
@@ -7796,38 +8889,6 @@ void CHARACTER::HumanChangeClass(const CLASS_ID& newClassID)
   default: return;
   }
 */
-  /*
-  * Email from Manikus 20171101
-  * When a PC changes class from a non-spellcasting class to a spellcasting class,
-  * or to a different spellcasting, no spells are available of the new class.
-  *
-  * I think this is all about special abilities. I believe all that I need to make
-  * this right is a new hook. We have a hook called TrainingCharacters that is
-  * called at the time immediately after the "Train"button is selected. What I
-  * would like is something that does the same thing when the "Change Class" button
-  * is selected and the change is applied. Does that make sense? Fighter can change
-  * to Cleric, so player selects "Cleric" from the list and presses teh OK button
-  * and the changes are applied and we go back to the Training Hall menu - I would
-  * like the Hook to fire after OK and before the menu - changes are applied, scripts,
-  * if present, are run and we go back to the menu.
-  */
-  {
-    CLASS_DATA *pClass;
-    HOOK_PARAMETERS hookParameters;
-    SCRIPT_CONTEXT scriptContext;
-    CString result;
-    pClass = classData.GetClass(classID);
-    scriptContext.SetClassContext(pClass);
-    scriptContext.SetCharacterContext(this);
-    result = pClass->m_specialAbilities.RunScripts
-                (CHANGE_CLASS_FROM,
-                ScriptCallback_RunAllScripts,
-                NULL,
-                "Character just changed from this class",
-                ScriptSourceType_Class,
-                pClass->ClassID()
-                );
-  }; 
   {
     int i, n;
     n = GetBaseclassStatsCount();
@@ -7836,99 +8897,18 @@ void CHARACTER::HumanChangeClass(const CLASS_ID& newClassID)
       BASECLASS_STATS *pBaseclassStats;
       pBaseclassStats = GetBaseclassStats(i);
       pBaseclassStats->previousLevel = pBaseclassStats->currentLevel;
-      pBaseclassStats->currentLevel = 0;
+      pBaseclassStats->currentLevel = 1;
     };
   };
 
   //SetClass(newClass);
-  {
-    int i, n;
-    const CLASS_DATA *pNewClass;
-    classID = newClassID;
-    pNewClass = classData.PeekClass(classID);
-    // Here we need to ensure that baseclass stats exist
-    // for all baseclasses of the new class.  We will add
-    // new baseclass stats as necessary.
-    n = pNewClass->GetCount(); // baseclass count.
-    for (i=0; i<n; i++)
-    {
-      const BASE_CLASS_DATA *pBaseclass;
-      const BASECLASS_ID *pBaseclassID;
-      pBaseclassID = pNewClass->PeekBaseclassID(i);
-      pBaseclass = baseclassData.PeekBaseclass(*pBaseclassID);
-      // New check to see if we a baseclass stats exists
-      // for this new baseclass.
-      {
-        int j, m;
-        m = GetBaseclassStatsCount();
-        for (j=0; j<m; j++)
-        {
-          if (PeekBaseclassStats(i)->baseclassID 
-                        == pBaseclass->BaseclassID())
-          {
-            break;
-          };
-        };
-        if (j != m) continue;  //baseclass stats entry already exists
-        {
-          BASECLASS_STATS bcs;
-          bcs.baseclassID = *pBaseclassID;
-          bcs.currentLevel = 1;
-          bcs.x_experience = 0;
-          bcs.preDrainLevel = 0;
-          bcs.previousLevel = 0;
-          baseclassStats.Add(bcs);
-        };
-      };
-    };
-  };
-  /* Unready all items when character changes class.   */
-  {
-    POSITION pos;
-    for (pos = myItems.GetHeadPosition(); pos!=NULL;)
-    {
-      ITEM *pItem;
-      pItem = &myItems.GetNext(pos);
-      pItem->ClearReadyLocation();
-    };
-  };
-  /*
-  * Email from Manikus 20171101
-  * When a PC changes class from a non-spellcasting class to a spellcasting class,
-  * or to a different spellcasting, no spells are available of the new class.
-  *
-  * I think this is all about special abilities. I believe all that I need to make
-  * this right is a new hook. We have a hook called TrainingCharacters that is
-  * called at the time immediately after the "Train"button is selected. What I
-  * would like is something that does the same thing when the "Change Class" button
-  * is selected and the change is applied. Does that make sense? Fighter can change
-  * to Cleric, so player selects "Cleric" from the list and presses teh OK button
-  * and the changes are applied and we go back to the Training Hall menu - I would
-  * like the Hook to fire after OK and before the menu - changes are applied, scripts,
-  * if present, are run and we go back to the menu.
-  */
-  {
-    CLASS_DATA *pClass;
-    HOOK_PARAMETERS hookParameters;
-    SCRIPT_CONTEXT scriptContext;
-    CString result;
-    pClass = classData.GetClass(classID);
-    scriptContext.SetClassContext(pClass);
-    scriptContext.SetCharacterContext(this);
-    result = pClass->m_specialAbilities.RunScripts
-                (CHANGE_CLASS_TO,
-                ScriptCallback_RunAllScripts,
-                NULL,
-                "Character just changed to this class",
-                ScriptSourceType_Class,
-                pClass->ClassID()
-                );
-  }; 
+  classID = newClassID;
+
 }
 
 
 //void CHARACTER::SetClass(classType newClass)
-void CHARACTER::SetClass(const CLASS_ID& newClassID)
+void CHARACTER::SetClass(const CLASS_ID& classID)
 {
   /*
   charClass = newClass;
@@ -7962,9 +8942,9 @@ void CHARACTER::SetClass(const CLASS_ID& newClassID)
   const BASECLASS_ID *pBaseclassID;
   BASECLASS_STATS newBcStats;
   int i, n;
-  this->classID = newClassID;
+  this->classID = classID;
   // Set all baseclass levels to 1;
-  pNewClass = classData.PeekClass(newClassID);
+  pNewClass = classData.PeekClass(classID);
   if (pNewClass == NULL) return;
   n = pNewClass->GetCount();
   baseclassStats.RemoveAll();
@@ -8019,27 +8999,24 @@ BOOL CHARACTER::CanCastSpells()
       if (!pCombatant->RunCombatantScripts(
                      CAN_CAST_SPELLS, 
                      ScriptCallback_LookForChar,
-                     "N",
-                     "Test if combatant can cast spells"
+                     "N"
                              ).IsEmpty()) return FALSE;
     };
 
     if (!RunCharacterScripts(
                     CAN_CAST_SPELLS, 
                     ScriptCallback_LookForChar,
-                    "N",
-                    "Test if this combatant can cast spells"
+                    "N"
                             ).IsEmpty()) return FALSE;
 
     if (pClass!=NULL)
     {
-      if (!pClass->RunClassScripts(CAN_CAST_SPELLS, 
+      if (!pClass->m_specialAbilities.RunScripts
+                   (CAN_CAST_SPELLS, 
                     ScriptCallback_LookForChar,
                     "N",
-                    "Test if this combatant can cast spells"))
-      {
-        return FALSE;
-      };
+                    "Class ",
+                    pClass->m_name).IsEmpty()) return FALSE;
     };
   };
   /*
@@ -8051,19 +9028,19 @@ BOOL CHARACTER::CanCastSpells()
   if (GetAdjSpecAb(SA_HoldPerson,&src,&skey))
   {
     SetNbrAttacks(0.0);
-    Not Implemented(0x5f4d0, FALSE); //QueueUsedSpecAb(SA_HoldPerson,src,skey);
+    NotImplemented(0x5f4d0, FALSE); //QueueUsedSpecAb(SA_HoldPerson,src,skey);
     return FALSE;
   }
   else if (GetAdjSpecAb(SA_Sleep,&src,&skey))
   {
     SetNbrAttacks(0.0);
-    Not Implemented(0xcca2, FALSE);//QueueUsedSpecAb(SA_Sleep,src,skey);
+    NotImplemented(0xcca2, FALSE);//QueueUsedSpecAb(SA_Sleep,src,skey);
     return FALSE;
   }
   else if (GetAdjSpecAb(SA_Silence,&src,&skey))
   {
     SetNbrAttacks(0.0);
-    Not Implemented(0xd32a, FALSE); //QueueUsedSpecAb(SA_Silence,src,skey);
+    NotImplemented(0xd32a, FALSE); //QueueUsedSpecAb(SA_Silence,src,skey);
     return FALSE;
   } 
   */
@@ -8145,17 +9122,17 @@ BOOL CHARACTER::CanMemorizeSpells(int circumstance)
                                  &scriptResult,
                                  result);
 
-    pClass->RunClassScripts
+    pClass->m_specialAbilities.RunScripts
                  (CAN_MEMORIZE_SPELLS, 
                   ScriptCallback_YessesAndNoes,
                   result,
-                  "Test if this character can memorize spells"
-                  );
-    this->RunCharacterScripts(CAN_MEMORIZE_SPELLS, 
-                              ScriptCallback_YessesAndNoes,
-                              result,
-                              "Test if this character can memorize spells"
-                              );
+                  "Class ",
+                  pClass->m_name);
+    specAbs.RunScripts(CAN_MEMORIZE_SPELLS, 
+                            ScriptCallback_YessesAndNoes,
+                            result,
+                            name,
+                            "");
 
   };
   return result[circumstance] == 'Y';
@@ -8180,7 +9157,7 @@ void CHARACTER::giveCharacterDamage(
                     int dmgDice, 
                     int dmgDiceQty, 
                     int dmgBon, 
-                    spellSaveVersusType spellSave, 
+                    spellSaveVsType spellSave, 
                     int saveBonus,
                     CHARACTER *pAttacker)
 {
@@ -8200,7 +9177,7 @@ void CHARACTER::giveCharacterDamage(
   else
   {
     result = RollDice(dmgDice, dmgDiceQty, dmgBon);          
-    saved = DidSaveVersus(spellSave, saveBonus, NULL, NULL);
+    saved = DidSaveVs(spellSave, saveBonus, NULL, NULL);
     
     if (saved)
     {
@@ -8228,9 +9205,8 @@ void CHARACTER::giveCharacterDamage(
     CString msg;
     msg.Format("%s takes %i damage",
                GetName(), result);
-    
     FormatPausedText(pausedTextData, msg);
-    DisplayPausedText(pausedTextData, whiteColor, 0);    
+    DisplayPausedText(pausedTextData);    
 #endif
   }
 }
@@ -8307,31 +9283,31 @@ CBRESULT ScriptCallback_AddToHookParameter_1(CBFUNC func, CString *scriptResult,
 
 
 //*****************************************************************************
-// NAME:    CHARACTER::DidSaveVersus
+// NAME:    CHARACTER::didCharacterSaveVs
 //
 // PURPOSE: 
 //
 // RETURNS: None
 //*****************************************************************************
-BOOL CHARACTER::DidSaveVersus(spellSaveVersusType stype, 
+BOOL CHARACTER::DidSaveVs(spellSaveVsType stype, 
                           int bonus, 
                           SPELL_DATA *pSpell,
                           CHARACTER *pAttacker)
 {
    CString scriptName;
    SKILL_ID skillID;
-   const CString *pSaveVersus;
+   const CString *pSaveVs;
    switch (stype)
    {
-   case ParPoiDM:     pSaveVersus = &Save_Vs_PPDM; break;
-   case PetPoly:      pSaveVersus = &Save_Vs_PP;   break;
-   case RodStaffWand: pSaveVersus = &Save_Vs_RSW;  break;
-   case Sp:           pSaveVersus = &Save_Vs_SP;   break;
-   case BreathWeapon: pSaveVersus = &Save_Vs_BR;   break;
+   case ParPoiDM:     pSaveVs = &Save_Vs_PPDM; break;
+   case PetPoly:      pSaveVs = &Save_Vs_PP;   break;
+   case RodStaffWand: pSaveVs = &Save_Vs_RSW;  break;
+   case Sp:           pSaveVs = &Save_Vs_SP;   break;
+   case BreathWeapon: pSaveVs = &Save_Vs_BR;   break;
    default:
      return FALSE;
    };
-   skillID = *pSaveVersus;
+   skillID = *pSaveVs;
 
 
    int mr = GetAdjMagicResistance();
@@ -8344,8 +9320,39 @@ BOOL CHARACTER::DidSaveVersus(spellSaveVersusType stype,
 
    BOOL success = FALSE; 
    int score=0;
-   score = GetAdjSkillValue(skillID, false, true);
+//   int tmp;
+   score = GetAdjSkillValue(skillID);
 
+/*
+   switch (stype)
+   {
+   case ParPoiDM:
+      tmp=(GetAdjSaveVsPPDM() - bonus);
+      score = max(tmp, 1);
+      scriptName = "SaveVsPPDM";
+      break;
+   case PetPoly:
+      tmp=(GetAdjSaveVsPP() - bonus);
+      score = max(tmp, 1);
+      scriptName = "SaveVsPP";
+      break;
+   case RodStaffWand:
+      tmp=(GetAdjSaveVsRSW() - bonus);
+      score = max(tmp, 1);
+      scriptName = "SaveVsRSW";
+      break;
+   case Sp:
+      tmp=(GetAdjSaveVsSp() - bonus);
+      score = max(tmp, 1);
+      scriptName = "SaveVsSp";
+      break;
+   case BreathWeapon:
+      tmp=(GetAdjSaveVsBr() - bonus);
+      score = max(tmp, 1);    
+      scriptName = "SaveVsBW";
+      break;
+   }
+*/
    score = min(score, 20);
    int roll = RollDice(20,1);
 
@@ -8362,9 +9369,6 @@ BOOL CHARACTER::DidSaveVersus(spellSaveVersusType stype,
 #endif
 
 #ifdef UAFEngine
-/*
- * All of the Save_Vs scripts are deprecated.
- * Saving throws depend on skills (See GetAdjSkillValue() a few line up).
   {
     // We are going to allow scripts to modify the score.
     HOOK_PARAMETERS hookParameters;
@@ -8462,7 +9466,6 @@ BOOL CHARACTER::DidSaveVersus(spellSaveVersusType stype,
     roll  = min(roll, 20);
     roll  = max(roll,  1);
   };
-  */
 #endif
 
 
@@ -8522,7 +9525,7 @@ int CHARACTER::GetPrimeSpellCastingScore(const BASE_CLASS_DATA *pBaseclass, cons
   case RangerFlag:    return GetAdjWis();
   case DruidFlag:     return GetAdjWis();
   }
-  ASS ERT(FALSE);
+  ASSERT(FALSE);
   return 0;
 */
   //if (pBaseclass->m_primeCasting == Ability_Wisdom)       return GetAdjWis();
@@ -8550,7 +9553,7 @@ int CHARACTER::PrimeSpellCastingScore(int spellSchool)
   case MagicUserSchool: return GetAdjInt();
   case ClericSchool:    return GetAdjWis();
   }
-  ASS ERT(FALSE);
+  ASSERT(FALSE);
   return 0;
 }
 */
@@ -8625,225 +9628,6 @@ int CLASS_DATA::LocateBaseclass(const BASECLASS_ID& baseclassID) const
   };
   return -1;
 }
-
-//*****************************************************************************
-// NAME:    CHARACTER::KnowSpellyyy   ('yyy' to differentiate from the spellbook function)
-//
-// PURPOSE: 
-//
-// RETURNS: None
-//*****************************************************************************
-BOOL CHARACTER::KnowSpellyyy(const SPELL_DATA *pSpell, BOOL know)
-{
-  BOOL result;
-  result = m_spellbook.KnowSpellxxx(pSpell, know);
-  if (!result) return FALSE;
-  if (know)
-  { // Remove from ASL entry $KnowableSpells$
-    DelKnowableSpell(pSpell->SpellID());
-  }
-  else
-  { // Add to ASL entry $KnowableSpells
-  };
-  return TRUE;
-};
-
-#ifdef OldDualClass20180126
-void CHARACTER::UpdateSpellAbilityForBaseclass(const BASE_CLASS_DATA *pBaseclass, int effectiveBaseclassLevel)
-{
-  int m, j;
-  m = pBaseclass->GetCastingInfoCount();
-  for (j=0; j<m; j++)
-  {
-    int k, spellLevel;
-    int primeScore, bonusScore, maxSpells, maxSpellLevel, baseclassLevel;
-    const BYTE *pMaxSpellsByPrime;
-    const BYTE *pMaxSpellLevelsByPrime;
-    const BYTE *pSpellLimits;
-    const CASTING_INFO *pCastingInfo;
-    const SCHOOL_ID *pSchoolID;
-    const CString *pPrimeAbility;
-    const CString *pBonusAbility;
-    SCHOOL_ABILITY *pSchoolAbility;
-    pCastingInfo = pBaseclass->PeekCastingInfo(j);
-    pSchoolID = &pCastingInfo->schoolID;
-    // Do we already have a spell ability for this school?
-    k = spellAbility.LocateSchoolAbility(*pSchoolID);
-    if (k < 0)
-    {
-      SCHOOL_ABILITY schoolAbility;
-      schoolAbility.schoolID = *pSchoolID;
-      k = spellAbility.GetSchoolAbilityCount();
-      // We need to add a school to the spellAbility
-      spellAbility.Add(schoolAbility);
-    };
-    pSchoolAbility             = spellAbility.GetSchoolAbility(k);
-    pPrimeAbility              = &pCastingInfo->primeAbility;
-    pBonusAbility              = &pBaseclass->m_spellBonusAbility;
-    //baseclassLevel             = GetCurrentLevel(*pBaseclassID);
-    baseclassLevel             = effectiveBaseclassLevel;
-    pMaxSpellsByPrime          = pCastingInfo->m_maxSpellsByPrime;
-    pMaxSpellLevelsByPrime     = pCastingInfo->m_maxSpellLevelsByPrime;
-    primeScore                 = GetAbilityScore(*pPrimeAbility);
-    bonusScore                 = GetAbilityScore(*pBonusAbility);
-    pSpellLimits               = pCastingInfo->m_spellLimits[baseclassLevel-1];
-    {
-      int idx;
-      maxSpellLevel            = 0;
-      for (idx=0; idx<MAX_SPELL_LEVEL; idx++)
-      {
-        if (pSpellLimits[idx] != 0) maxSpellLevel = idx+1;
-      };
-    };
-    maxSpells                  = pMaxSpellsByPrime[primeScore-1];
-    if (maxSpells > pSchoolAbility->maxSpells)
-    {
-      pSchoolAbility->maxSpells = maxSpells;
-    };
-    // Replace 20171116 PRS
-    //if (maxSpellLevel > pSchoolAbility->maxAbilitySpellLevel)
-    //{  
-    //  pSchoolAbility->maxAbilitySpellLevel = maxSpellLevel;
-    //};
-    pSchoolAbility->maxAbilitySpellLevel = pMaxSpellLevelsByPrime[primeScore-1];
-    for (spellLevel=1; spellLevel<=MAX_SPELL_LEVEL; spellLevel++)
-    {
-      if (pSpellLimits[spellLevel-1] >= pSchoolAbility->base[spellLevel-1])
-      {
-        pSchoolAbility->base[spellLevel-1] = pSpellLimits[spellLevel-1];
-        if (baseclassLevel > pSchoolAbility->baseclassLevel[spellLevel-1])
-        {
-          pSchoolAbility->baseclassLevel[spellLevel-1] = baseclassLevel;
-          // The highest baseclass level that contributed the largest 
-          // number of base spells at this spell level.
-        };
-      };
-    };
-    {  // Add the bonus spells for high baseclass levels.
-      int idx, num;
-      num = pBaseclass->m_bonusSpells.GetSize()/3;
-      for (idx =0; idx<num; idx++)
-      {
-        if (bonusScore >= pBaseclass->m_bonusSpells[3* idx])
-        {
-          int level, bonus;
-          level = pBaseclass->m_bonusSpells[3* idx +2];
-          if (level > pSchoolAbility->maxAbilitySpellLevel) continue;
-          bonus = pBaseclass->m_bonusSpells[3* idx +1];
-          pSchoolAbility->bonus[level-1] += bonus;
-        };
-      };
-    };
-  };
-}
-#else
-void CHARACTER::UpdateSpellAbilityForBaseclass(const BASECLASS_STATS *pBaseclassStats)
-{
-  int m, j, effectiveBaseclassLevel;
-  const BASE_CLASS_DATA *pBaseclass;
-  if (!CanUseBaseclass(pBaseclassStats)) return;
-  if (pBaseclassStats->currentLevel > 0)
-  {
-    effectiveBaseclassLevel = pBaseclassStats->currentLevel;
-  }
-  else
-  {
-    effectiveBaseclassLevel = pBaseclassStats->previousLevel;
-  };
-  if (     (pBaseclassStats->pBaseclassData == NULL)
-       ||  (pBaseclassStats->pBaseclassData->BaseclassID() != pBaseclassStats->baseclassID))
-  {
-    pBaseclassStats->pBaseclassData = baseclassData.PeekBaseclass(pBaseclassStats->baseclassID);
-  };
-  pBaseclass = pBaseclassStats->pBaseclassData;
-  if (pBaseclass == NULL) return;
-  m = pBaseclass->GetCastingInfoCount();
-  for (j=0; j<m; j++)
-  {
-    int k, spellLevel;
-    int primeScore, bonusScore, maxSpells, maxSpellLevel, baseclassLevel;
-    const BYTE *pMaxSpellsByPrime;
-    const BYTE *pMaxSpellLevelsByPrime;
-    const BYTE *pSpellLimits;
-    const CASTING_INFO *pCastingInfo;
-    const SCHOOL_ID *pSchoolID;
-    const CString *pPrimeAbility;
-    const CString *pBonusAbility;
-    SCHOOL_ABILITY *pSchoolAbility;
-    pCastingInfo = pBaseclass->PeekCastingInfo(j);
-    pSchoolID = &pCastingInfo->schoolID;
-    // Do we already have a spell ability for this school?
-    k = spellAbility.LocateSchoolAbility(*pSchoolID);
-    if (k < 0)
-    {
-      SCHOOL_ABILITY schoolAbility;
-      schoolAbility.schoolID = *pSchoolID;
-      k = spellAbility.GetSchoolAbilityCount();
-      // We need to add a school to the spellAbility
-      spellAbility.Add(schoolAbility);
-    };
-    pSchoolAbility             = spellAbility.GetSchoolAbility(k);
-    pPrimeAbility              = &pCastingInfo->primeAbility;
-    pBonusAbility              = &pBaseclass->m_spellBonusAbility;
-    //baseclassLevel             = GetCurrentLevel(*pBaseclassID);
-    baseclassLevel             = effectiveBaseclassLevel;
-    pMaxSpellsByPrime          = pCastingInfo->m_maxSpellsByPrime;
-    pMaxSpellLevelsByPrime     = pCastingInfo->m_maxSpellLevelsByPrime;
-    primeScore                 = GetAbilityScore(*pPrimeAbility);
-    bonusScore                 = GetAbilityScore(*pBonusAbility);
-    pSpellLimits               = pCastingInfo->m_spellLimits[baseclassLevel-1];
-    {
-      int idx;
-      maxSpellLevel            = 0;
-      for (idx=0; idx<MAX_SPELL_LEVEL; idx++)
-      {
-        if (pSpellLimits[idx] != 0) maxSpellLevel = idx+1;
-      };
-    };
-    maxSpells                  = pMaxSpellsByPrime[primeScore-1];
-    if (maxSpells > pSchoolAbility->maxSpells)
-    {
-      pSchoolAbility->maxSpells = maxSpells;
-    };
-    // Replace 20171116 PRS
-    //if (maxSpellLevel > pSchoolAbility->maxAbilitySpellLevel)
-    //{  
-    //  pSchoolAbility->maxAbilitySpellLevel = maxSpellLevel;
-    //};
-    pSchoolAbility->maxAbilitySpellLevel = pMaxSpellLevelsByPrime[primeScore-1];
-//    for (spellLevel=1; spellLevel<=MAX_SPELL_LEVEL; spellLevel++)
-    for (spellLevel=1; spellLevel<=maxSpellLevel; spellLevel++)
-    {
-      if (pSpellLimits[spellLevel-1] >= pSchoolAbility->base[spellLevel-1])
-      {
-        pSchoolAbility->base[spellLevel-1] = pSpellLimits[spellLevel-1];
-        if (baseclassLevel > pSchoolAbility->baseclassLevel[spellLevel-1])
-        {
-          pSchoolAbility->baseclassLevel[spellLevel-1] = baseclassLevel;
-          // The highest baseclass level that contributed the largest 
-          // number of base spells at this spell level.
-        };
-      };
-    };
-    {  // Add the bonus spells for high baseclass levels.
-      int idx, num;
-      num = pBaseclass->m_bonusSpells.GetSize()/3;
-      for (idx =0; idx<num; idx++)
-      {
-        if (bonusScore >= pBaseclass->m_bonusSpells[3* idx])
-        {
-          int level, bonus;
-          level = pBaseclass->m_bonusSpells[3* idx +2];
-          if (level > maxSpellLevel) continue;
-          if (level > pSchoolAbility->maxAbilitySpellLevel) continue;
-          bonus = pBaseclass->m_bonusSpells[3* idx +1];
-          pSchoolAbility->bonus[level-1] += bonus;
-        };
-      };
-    };
-  };
-};
-#endif
 
 //*****************************************************************************
 // NAME:    CHARACTER::UpdateSpellAbility
@@ -9028,11 +9812,11 @@ void CHARACTER::UpdateSpellAbility()
 //                                                          baseclassLevel,
 //                                                          primeSpellCastingScore,
 //                                                         *pSpellSchoolID);
-            Not Implemented(0xc319,false);
+            NotImplemented(0xc319,false);
 //            if (spelllevel <= maxlevel)
 //            {     
 //              //if (!m_spellbook.KnowSpell(flag, SpellSchoolMask, spellID, spelllevel, TRUE))
-//              if (!m_spellbook.fiKnowSpell(*pBaseclassID, *pSpellSchoolID, spellID, spelllevel, TRUE))
+//              if (!m_spellbook.KnowSpell(*pBaseclassID, *pSpellSchoolID, spellID, spelllevel, TRUE))
 //              {
 //                spelladdfailed++;
 //              }
@@ -9058,8 +9842,7 @@ void CHARACTER::UpdateSpellAbility()
   WriteDebugString("\tSpells Not Added (not auto given to MU) = %u\n", spellsnotscribeable);  
   WriteDebugString("\tSpells Not Added (failed call to KnowSpell) = %u\n", spelladdfailed);  
   */
-//#define UpdateSpellOld
-#ifdef UpdateSpellOld
+  
   const CLASS_DATA *pClass;
   if (spellAbility.valid) return;
   spellAbility.Clear();
@@ -9116,11 +9899,11 @@ void CHARACTER::UpdateSpellAbility()
         bonusScore                 = GetAbilityScore(*pBonusAbility);
         pSpellLimits               = pCastingInfo->m_spellLimits[baseclassLevel-1];
         {
-          int idx;
+          int i;
           maxSpellLevel            = 0;
-          for (idx=0; idx<MAX_SPELL_LEVEL; idx++)
+          for (i=0; i<MAX_SPELL_LEVEL; i++)
           {
-            if (pSpellLimits[idx] != 0) maxSpellLevel = idx+1;
+            if (pSpellLimits[i] != 0) maxSpellLevel = i+1;
           };
         };
         maxSpells                  = pMaxSpellsByPrime[primeScore-1];
@@ -9128,15 +9911,10 @@ void CHARACTER::UpdateSpellAbility()
         {
           pSchoolAbility->maxSpells = maxSpells;
         };
-
-        // Replace 20171116 PRS
-        //if (maxSpellLevel > pSchoolAbility->maxAbilitySpellLevel)
-        //{  
-        //  pSchoolAbility->maxAbilitySpellLevel = maxSpellLevel;
-        //};
-        pSchoolAbility->maxAbilitySpellLevel = pMaxSpellLevelsByPrime[primeScore-1];
-
-
+        if (maxSpellLevel > pSchoolAbility->maxSpellLevel)
+        {
+          pSchoolAbility->maxSpellLevel = maxSpellLevel;
+        };
         for (spellLevel=1; spellLevel<=MAX_SPELL_LEVEL; spellLevel++)
         {
           if (pSpellLimits[spellLevel-1] >= pSchoolAbility->base[spellLevel-1])
@@ -9151,16 +9929,16 @@ void CHARACTER::UpdateSpellAbility()
           };
         };
         {  // Add the bonus spells for high baseclass levels.
-          int idx, num;
-          num = pBaseclass->m_bonusSpells.GetSize()/3;
-          for (idx =0; idx<num; idx++)
+          int i, n;
+          n = pBaseclass->m_bonusSpells.GetSize()/3;
+          for (i=0; i<n; i++)
           {
-            if (bonusScore >= pBaseclass->m_bonusSpells[3* idx])
+            if (bonusScore >= pBaseclass->m_bonusSpells[3*i])
             {
               int level, bonus;
-              level = pBaseclass->m_bonusSpells[3* idx +2];
-              if (level > pSchoolAbility->maxAbilitySpellLevel) continue;
-              bonus = pBaseclass->m_bonusSpells[3* idx +1];
+              level = pBaseclass->m_bonusSpells[3*i+2];
+              if (level > pSchoolAbility->maxSpellLevel) continue;
+              bonus = pBaseclass->m_bonusSpells[3*i+1];
               pSchoolAbility->bonus[level-1] += bonus;
             };
           };
@@ -9168,44 +9946,6 @@ void CHARACTER::UpdateSpellAbility()
       };
     };
   };
-#else
-  if (spellAbility.valid) return;
-  spellAbility.Clear();
-  spellAbility.valid = TRUE;
-#ifdef OldDualClass20180126
-  const CLASS_DATA *pClass;
-  {
-    // Add the spell schools this character has access to.
-    int i, n;
-    pClass = classData.PeekClass(classID);
-    if (pClass == NULL) return;
-    n = pClass->GetCount();
-    for (i=0; i<n; i++)
-    {
-      int baseclassIndex;
-      const BASE_CLASS_DATA *pBaseclass;
-      const BASECLASS_ID *pBaseclassID;
-      //const BASE_CLASS_DATA *pBaseclass;
-      pBaseclassID = pClass->PeekBaseclassID(i);
-      baseclassIndex = baseclassData.LocateBaseclass(*pBaseclassID);
-      if (baseclassIndex < 0) continue;
-      pBaseclass = baseclassData.PeekBaseclass(baseclassIndex);
-      UpdateSpellAbilityForBaseclass(pBaseclass, GetCurrentLevel(*pBaseclassID));
-    };
-  };
-#else
-  {
-    int i, n;
-    n = baseclassStats.GetCount();
-    for (i=0; i<n; i++)
-    {
-      const BASECLASS_STATS *pBaseclassStats;
-      pBaseclassStats = PeekBaseclassStats(i);
-      UpdateSpellAbilityForBaseclass(pBaseclassStats);
-    };
-  };
-#endif
-#endif
   {
 /*
  *   // Now go through the list of spells and add all those
@@ -9500,7 +10240,7 @@ void CHAR_LIST::Serialize(CArchive &ar, double version)
   int i;    
   if (ar.IsStoring())
   {
-    int n;
+    int i, n;
     ar << GetCount();
     //POSITION pos = chars.GetHeadPosition();
     //while (pos != NULL)
@@ -9533,7 +10273,7 @@ void CHAR_LIST::Serialize(CAR &ar, double version)
   int i;    
   if (ar.IsStoring())
   {
-    int n;
+    int i, n;
     ar << GetCount();
     //POSITION pos = chars.GetHeadPosition();
     //while (pos != NULL)
@@ -9597,7 +10337,7 @@ void CHAR_LIST::Export(void)
 
 #include <io.h>
 
-bool CHAR_LIST::Import(BOOL quiet)
+void CHAR_LIST::Import(void)
 {
   int newc, oldc;
   long result, handle;
@@ -9609,50 +10349,35 @@ bool CHAR_LIST::Import(BOOL quiet)
   for (handle=result=_findfirst(f, &fdata); result!=-1; result=_findnext(handle,&fdata))
   {
     int i, n;
-    bool success;
     CString fname;
-    CHARACTER newCharacter;
+    CHARACTER character;
     CFile cf;
     fname = rte.DataDir() + fdata.name;
     if (!cf.Open(fname, CFile::modeRead)) continue;
     JReader jr(&cf);
-    success = true;
-    try
+    jr.Initialize();
+    character.Import(jr);
+    n = GetCount();
+    for (i=0; i<n; i++)
     {
-      jr.Initialize();
-      newCharacter.Import(jr);
-    }
-    catch (int)
-    {
-      MsgBoxInfo ("Error importing character");
-      success = false;
-    }
-    if (success)
-    {
-      n = GetCount();
-      for (i=0; i<n; i++)
+      if (GetCharacter(i)->GetName() == character.GetName())
       {
-        if (GetCharacter(i)->GetName() == newCharacter.GetName())
-        {
-          chars.SetAt(i, newCharacter);
-          oldc++;
-          break;
-        };
-      };
-      if (i == n) 
-      {
-        chars.Add(newCharacter);
-        newc++;
+        chars.SetAt(i, character);
+        oldc++;
+        break;
       };
     };
+    if (i == n) 
+    {
+      chars.Add(character);
+      newc++;
+    };
   };
-  if (!quiet)
   {
     CString msg;
     msg.Format("%d new and %d old characters successfully imported", newc, oldc);
     MsgBoxInfo(msg);
   };
-  return true;
 }
 
 
@@ -10040,7 +10765,7 @@ CString CHARACTER::getInfo(void)
                 GetMaxHitPoints(),
                 GetEncumbrance(),
                 maxEncumbrance,
-                GetAdjMaxMovement(DEFAULT_SPELL_EFFECT_FLAGS, "Retrieve character stats - max movement"),
+                GetAdjMaxMovement(),
                 GetAdjStr(),
                 GetAdjInt(),
                 GetAdjWis(),
@@ -10098,7 +10823,7 @@ CString CHARACTER::getItemList(int id)
 //*****************************************************************************
 void CHARACTER::ReadyBestWpn(int dist, BOOL isLargeTarget)
 {
-  ReadyWeaponScript(NO_READY_ITEM);
+  ReadyWeapon(NO_READY_ITEM);
 
   // need to check for usable items
   // need to check for targets requiring magical weapons
@@ -10130,8 +10855,7 @@ void CHARACTER::ReadyBestWpn(int dist, BOOL isLargeTarget)
       {
         miscErrorType err;
           //&& (myItems.CanReady(myItems.GetKeyAt(pos), GetItemMask(), this))
-        //err = myItems.CanReady(myItems.GetKeyAt(pos), this);
-        err = myItems.CanReadyItem(&myItems.PeekAtPos(pos), this);
+        err = myItems.CanReady(myItems.GetKeyAt(pos), this);
         if (err == NoError)
         {
           //&& (WpnCanAttackAtRange(myItems.PeekAtPos(pos).m_giID, dist)))
@@ -10219,7 +10943,7 @@ void CHARACTER::ReadyBestWpn(int dist, BOOL isLargeTarget)
       myItems.UnReady(myItems.GetReadiedItem(ShieldHand, 0));    
   }
 
-  ReadyWeaponScript(IdxToUse);
+  ReadyWeapon(IdxToUse);
   if (WpnUsesAmmo(myItems.GetItem(IdxToUse)))
     ReadyBestAmmo(isLargeTarget);
 }
@@ -10236,8 +10960,7 @@ void CHARACTER::ListShields(COMBAT_SUMMARY_COMBATANT *pcsc)
       if (data->Location_Readied == ShieldHand)
       {
         miscErrorType err;
-        //err = myItems.CanReady(myItems.GetKeyAt(pos), this);
-        err = myItems.CanReadyItem(&myItems.PeekAtPos(pos), this);
+        err = myItems.CanReady(myItems.GetKeyAt(pos), this);
         if (err == NoError)
         {
           SHIELD_SUMMARY shieldSummary;
@@ -10269,7 +10992,7 @@ void CHARACTER::ReadyBestShield()
       && (myItems.GetReadiedItem(ShieldHand, 0) == myItems.GetReadiedItem(WeaponHand, 0)))
     return;
 
-  ReadyShieldScript(NO_READY_ITEM);
+  ReadyShield(NO_READY_ITEM);
 
   int defIdx = NO_READY_ITEM;
   int def = 0;
@@ -10288,8 +11011,7 @@ void CHARACTER::ReadyBestShield()
       {
         miscErrorType err;
           //&& (myItems.CanReady(myItems.GetKeyAt(pos), GetItemMask(), this)))
-        //err = myItems.CanReady(myItems.GetKeyAt(pos), this);
-        err = myItems.CanReadyItem(&myItems.PeekAtPos(pos), this);
+        err = myItems.CanReady(myItems.GetKeyAt(pos), this);
         if (err == NoError)
         {
           if (data->Protection_Base + data->Protection_Bonus < def)
@@ -10313,7 +11035,7 @@ void CHARACTER::ReadyBestShield()
   // else try for best defensive bonus item
   if (defIdx != NO_READY_ITEM)
   {
-    ReadyShieldScript(defIdx);
+    ReadyShield(defIdx);
     return;
   }
 }
@@ -10326,7 +11048,7 @@ void CHARACTER::ReadyBestShield()
 //*****************************************************************************
 void CHARACTER::ReadyBestArmor()
 {
-  ReadyArmorScript(NO_READY_ITEM);  //Discard current Armor
+  ReadyArmor(NO_READY_ITEM);  //Discard current Armor
 
   int defIdx = NO_READY_ITEM;
   int def = 0;
@@ -10349,8 +11071,7 @@ void CHARACTER::ReadyBestArmor()
       {
         miscErrorType err;
           //&& (myItems.CanReady(myItems.GetKeyAt(pos), GetItemMask(), this)))
-        //err = myItems.CanReady(myItems.GetKeyAt(pos), this);
-        err = myItems.CanReadyItem(&myItems.PeekAtPos(pos), this);
+        err = myItems.CanReady(myItems.GetKeyAt(pos), this);
         if (err == NoError)
         {
           if (data->Protection_Base + data->Protection_Bonus < def)
@@ -10374,7 +11095,7 @@ void CHARACTER::ReadyBestArmor()
   // else try for best defensive bonus item
   if (defIdx != NO_READY_ITEM)
   {
-    ReadyArmorScript(defIdx);
+    ReadyArmor(defIdx);
     return;
   }
 }
@@ -10386,7 +11107,7 @@ void CHARACTER::ReadyBestArmor()
 //*****************************************************************************
 void CHARACTER::ReadyBestAmmo(BOOL isLargeTarget)
 {
-  ReadyAmmoScript(NO_READY_ITEM);
+  ReadyAmmo(NO_READY_ITEM);
 
   // need to check for targets requiring magical weapons
 
@@ -10406,8 +11127,7 @@ void CHARACTER::ReadyBestAmmo(BOOL isLargeTarget)
     
     miscErrorType err;    
     //if (   (myItems.CanReady(myItems.GetKeyAt(pos), GetItemMask(), this))
-    //err = myItems.CanReady(myItems.GetKeyAt(pos), this);
-    err = myItems.CanReadyItem(&myItems.PeekAtPos(pos), this);
+    err = myItems.CanReady(myItems.GetKeyAt(pos), this);
         //&& ((data = itemData.GetItem(myItems.PeekAtPos(pos).m_giID)) != NULL))
     if ((err==NoError) && ((data = itemData.GetItem(myItems.PeekAtPos(pos).itemID)) != NULL))
 
@@ -10452,21 +11172,21 @@ void CHARACTER::ReadyBestAmmo(BOOL isLargeTarget)
   // for now, choose item with most damage
   if (dmgIdx != NO_READY_ITEM)
   {
-    ReadyAmmoScript(dmgIdx);
+    ReadyAmmo(dmgIdx);
     return;
   }
 
   // else try for best attack bonus item
   if (attIdx != NO_READY_ITEM)
   {
-    ReadyAmmoScript(attIdx);
+    ReadyAmmo(attIdx);
     return;
   }
 
   // else try for best defensive bonus item
   if (defIdx != NO_READY_ITEM)
   {
-    ReadyAmmoScript(defIdx);
+    ReadyAmmo(defIdx);
     return;
   }
 }
@@ -10477,10 +11197,10 @@ void CHARACTER::ReadyBestAmmo(BOOL isLargeTarget)
 // PURPOSE: 
 //
 //*****************************************************************************
-void CHARACTER::UnreadyItemByLocation(DWORD rdyLoc, bool specAbsOK)
+void CHARACTER::UnreadyItemByType(itemReadiedType loctype, bool specAbsOK)
 {
   //int myitemidx = myItems.GetReady(loctype);
-  int myitemidx = myItems.GetReadiedItem(rdyLoc, 0);
+  int myitemidx = myItems.GetReadiedItem(loctype, 0);
 #ifdef UAFEngine
   ITEM_DATA *pData = itemData.GetItem(myItems.GetItem(myitemidx));
   if (pData!=NULL) 
@@ -10547,21 +11267,24 @@ void CHARACTER::DisplayCurrSpellEffects(const CString &SrcFunc)
 // PURPOSE: 
 //
 //*****************************************************************************
-BOOL CHARACTER::ReadyItemByLocation(DWORD rdyLoc, int index, bool specAbsOK)
+BOOL CHARACTER::ReadyItemByType(itemReadiedType loctype, int index, bool specAbsOK)
 {
   if (index == NO_READY_ITEM)
   {
     // unready all items of this type
-    UnreadyItemByLocation(rdyLoc, specAbsOK);
+    UnreadyItemByType(loctype, specAbsOK);
     return TRUE;
   }
 
-  //if (myItems.CanReady(index, this) != NoError) return FALSE;
-  if (myItems.CanReadyKey(index, this) != NoError) return FALSE;
-  //Not Implemented(0x4f9044, false);
+  //if (!myItems.CanReady(index, GetItemMask(), this)) return FALSE;
+  if (myItems.CanReady(index, this) != NoError) return FALSE;
+/*
+  //UnreadyItemByType(loctype);
+  myItems.Ready(index, GetItemMask(), this); 
+*/ //NotImplemented(0x4f9044, false);
   // We see if the character has any of the item's Allowed Baseclasses.
 #ifdef UAFEngine
-  myItems.Ready(index, this, rdyLoc); 
+  myItems.Ready(index, this); 
   if (myItems.IsReady(index))
   {
     ITEM_DATA *pData = itemData.GetItem(myItems.GetItem(index));
@@ -10603,7 +11326,7 @@ BOOL CHARACTER::ReadyItemByLocation(DWORD rdyLoc, int index, bool specAbsOK)
         while (msg.GetLength()>0)
         {
           FormatPausedText(pausedTextData,msg);
-          DisplayPausedText(pausedTextData, whiteColor, 0);
+          DisplayPausedText(pausedTextData);
           msg = FormatSpecAbMsg(SPECAB_MSG_READY);
         }
       }
@@ -10684,14 +11407,8 @@ bool CHARACTER::CanReady(int index)
       scriptContext.SetCharacterContext(this);
       scriptContext.SetItemContext(pItem);
       scriptContext.SetItemContextKey(index);
-      pItem->RunItemScripts(CAN_READY, 
-                            ScriptCallback_RunAllScripts, 
-                            NULL, 
-                            "Test if character can ready item");
-      answer = RunCharacterScripts(CAN_READY, 
-                                   ScriptCallback_RunAllScripts, 
-                                   NULL,
-                                   "Test if character can ready item");
+      pItem->specAbs.RunScripts(CAN_READY, ScriptCallback_RunAllScripts, NULL, name, "");
+      answer = specAbs.RunScripts(CAN_READY, ScriptCallback_RunAllScripts, NULL, name, "");
       ClearCharContext();
       if ((answer.GetLength()>0) && (answer.GetAt(0) == 'N'))
       {
@@ -10703,9 +11420,9 @@ bool CHARACTER::CanReady(int index)
 }
 
 
-void CHARACTER::ReadyXXXScript(DWORD rdyLoc, char *scriptName, int index)
+void CHARACTER::ReadyXXX(itemReadiedType  location, char *scriptName, int index)
 {
-  if (ReadyItemByLocation(rdyLoc, index, true))
+  if (ReadyItemByType(location, index, true))
   {
     if (index != NO_READY_ITEM)
     {
@@ -10719,17 +11436,14 @@ void CHARACTER::ReadyXXXScript(DWORD rdyLoc, char *scriptName, int index)
       scriptContext.SetCharacterContext(this);
       scriptContext.SetItemContext(pItem);
       scriptContext.SetItemContextKey(index);
-      pItem->RunItemScripts(scriptName,
-                            ScriptCallback_RunAllScripts, 
-                            NULL,
-                            "Character just readied an item");
+      pItem->specAbs.RunScripts(scriptName, ScriptCallback_RunAllScripts, NULL, name, "");
       //specAbs.RunScripts(scriptName, ScriptCallback_RunAllScripts, NULL, name, "");
       ClearCharContext();
     };
   };
 }
 
-void CHARACTER::UnReadyXXXScript(char *scriptName, int index)
+void CHARACTER::UnReadyXXX(char *scriptName, int index)
 {
   ActorType actor;
   ITEM_DATA *pItem;
@@ -10741,10 +11455,7 @@ void CHARACTER::UnReadyXXXScript(char *scriptName, int index)
   scriptContext.SetCharacterContext(this);
   scriptContext.SetItemContext(pItem);
   scriptContext.SetItemContextKey(index);
-  pItem->RunItemScripts(scriptName, 
-                        ScriptCallback_RunAllScripts, 
-                        NULL, 
-                        "Character just un-readied an item");
+  pItem->specAbs.RunScripts(scriptName, ScriptCallback_RunAllScripts, NULL, name,"");
   //specAbs.RunScripts(scriptName, ScriptCallback_RunAllScripts, NULL, name,"");
   ClearCharContext();
 }
@@ -10757,15 +11468,15 @@ void CHARACTER::UnReadyXXXScript(char *scriptName, int index)
 // PURPOSE: 
 //
 //*****************************************************************************
-void CHARACTER::ReadyWeaponScript(int index) 
+void CHARACTER::ReadyWeapon(int index) 
 { 
 //  ReadyXXX(WeaponHand, ON_READY_WEAPON, index);
-  ReadyXXXScript(WeaponHand, ON_READY, index);
+  ReadyXXX(WeaponHand, ON_READY, index);
 }
-void CHARACTER::UnReadyWeaponScript(int index) 
+void CHARACTER::UnReadyWeapon(int index) 
 { 
 //  UnReadyXXX(ON_UNREADY_WEAPON, index);
-  UnReadyXXXScript(ON_UNREADY, index);
+  UnReadyXXX(ON_UNREADY, index);
 }
 //*****************************************************************************
 //    NAME: CHARACTER::ReadyShield
@@ -10773,15 +11484,15 @@ void CHARACTER::UnReadyWeaponScript(int index)
 // PURPOSE: 
 //
 //*****************************************************************************
-void CHARACTER::ReadyShieldScript(int index) 
+void CHARACTER::ReadyShield(int index) 
 { 
 //  ReadyXXX(ShieldHand, ON_READY_SHIELD, index);
-  ReadyXXXScript(ShieldHand, ON_READY, index);
+  ReadyXXX(ShieldHand, ON_READY, index);
 }
-void CHARACTER::UnReadyShieldScript(int index) 
+void CHARACTER::UnReadyShield(int index) 
 { 
 //  UnReadyXXX(ON_UNREADY_SHIELD, index);
-  UnReadyXXXScript(ON_UNREADY, index);
+  UnReadyXXX(ON_UNREADY, index);
 }
 //*****************************************************************************
 //    NAME: CHARACTER::ReadyArmor
@@ -10789,15 +11500,15 @@ void CHARACTER::UnReadyShieldScript(int index)
 // PURPOSE: 
 //
 //*****************************************************************************
-void CHARACTER::ReadyArmorScript(int index) 
+void CHARACTER::ReadyArmor(int index) 
 { 
 //  ReadyXXX(BodyArmor, ON_READY_ARMOR, index);
-  ReadyXXXScript(BodyArmor, ON_READY, index);
+  ReadyXXX(BodyArmor, ON_READY, index);
 }
-void CHARACTER::UnReadyArmorScript(int index) 
+void CHARACTER::UnReadyArmor(int index) 
 { 
   //ReadyXXX(ON_UNREADY_ARMOR, index);
-  UnReadyXXXScript(ON_UNREADY, index);
+  UnReadyXXX(ON_UNREADY, index);
 }
 //*****************************************************************************
 //    NAME: CHARACTER::ReadyGauntlets
@@ -10805,15 +11516,15 @@ void CHARACTER::UnReadyArmorScript(int index)
 // PURPOSE: 
 //
 //*****************************************************************************
-void CHARACTER::ReadyGauntletsScript(int index) 
+void CHARACTER::ReadyGauntlets(int index) 
 { 
 //ReadyXXX(Hands, ON_READY_GAUNTLETS, index);
-  ReadyXXXScript(Hands, ON_READY, index);
+  ReadyXXX(Hands, ON_READY, index);
 }
-void CHARACTER::UnReadyGauntletsScript(int index) 
+void CHARACTER::UnReadyGauntlets(int index) 
 { 
 //UnReadyXXX(ON_UNREADY_GAUNTLETS, index);
-  UnReadyXXXScript(ON_UNREADY, index);
+  UnReadyXXX(ON_UNREADY, index);
 }
 //*****************************************************************************
 //    NAME: CHARACTER::ReadyHelm
@@ -10821,15 +11532,15 @@ void CHARACTER::UnReadyGauntletsScript(int index)
 // PURPOSE: 
 //
 //*****************************************************************************
-void CHARACTER::ReadyHelmScript(int index) 
+void CHARACTER::ReadyHelm(int index) 
 { 
 //ReadyXXX(Head, ON_READY_HELM, index);
-  ReadyXXXScript(Head, ON_READY, index);
+  ReadyXXX(Head, ON_READY, index);
 }
-void CHARACTER::UnReadyHelmScript(int index) 
+void CHARACTER::UnReadyHelm(int index) 
 { 
 //UnReadyXXX(ON_UNREADY_HELM, index);
-  UnReadyXXXScript(ON_UNREADY, index);
+  UnReadyXXX(ON_UNREADY, index);
 }
 //*****************************************************************************
 //    NAME: CHARACTER::ReadyBelt
@@ -10837,15 +11548,15 @@ void CHARACTER::UnReadyHelmScript(int index)
 // PURPOSE: 
 //
 //*****************************************************************************
-void CHARACTER::ReadyBeltScript(int index) 
+void CHARACTER::ReadyBelt(int index) 
 { 
 //ReadyXXX(Waist, ON_READY_BELT, index);
-  ReadyXXXScript(Waist, ON_READY, index);
+  ReadyXXX(Waist, ON_READY, index);
 }
-void CHARACTER::UnReadyBeltScript(int index) 
+void CHARACTER::UnReadyBelt(int index) 
 { 
 //UnReadyXXX(ON_UNREADY_BELT, index);
-  UnReadyXXXScript(ON_UNREADY, index);
+  UnReadyXXX(ON_UNREADY, index);
 }
 //*****************************************************************************
 //    NAME: CHARACTER::ReadyRobe
@@ -10853,15 +11564,15 @@ void CHARACTER::UnReadyBeltScript(int index)
 // PURPOSE: 
 //
 //*****************************************************************************
-void CHARACTER::ReadyRobeScript(int index) 
+void CHARACTER::ReadyRobe(int index) 
 { 
 //ReadyXXX(BodyRobe, ON_READY_ROBE, index);
-  ReadyXXXScript(BodyRobe, ON_READY, index);
+  ReadyXXX(BodyRobe, ON_READY, index);
 }
-void CHARACTER::UnReadyRobeScript(int index) 
+void CHARACTER::UnReadyRobe(int index) 
 { 
 //UnReadyXXX(ON_UNREADY_ROBE, index);
-  UnReadyXXXScript(ON_UNREADY, index);
+  UnReadyXXX(ON_UNREADY, index);
 }
 //*****************************************************************************
 //    NAME: CHARACTER::ReadyCloak
@@ -10869,15 +11580,15 @@ void CHARACTER::UnReadyRobeScript(int index)
 // PURPOSE: 
 //
 //*****************************************************************************
-void CHARACTER::ReadyCloakScript(int index) 
+void CHARACTER::ReadyCloak(int index) 
 { 
 //ReadyXXX(Back, ON_READY_CLOAK, index);
-  ReadyXXXScript(Back, ON_READY, index);
+  ReadyXXX(Back, ON_READY, index);
 }
-void CHARACTER::UnReadyCloakScript(int index) 
+void CHARACTER::UnReadyCloak(int index) 
 { 
 //UnReadyXXX(ON_UNREADY_CLOAK, index);
-  UnReadyXXXScript(ON_UNREADY, index);
+  UnReadyXXX(ON_UNREADY, index);
 }
 //*****************************************************************************
 //    NAME: CHARACTER::ReadyBoots
@@ -10885,15 +11596,15 @@ void CHARACTER::UnReadyCloakScript(int index)
 // PURPOSE: 
 //
 //*****************************************************************************
-void CHARACTER::ReadyBootsScript(int index) 
+void CHARACTER::ReadyBoots(int index) 
 { 
 //ReadyXXX(Feet, ON_READY_BOOTS, index);
-  ReadyXXXScript(Feet, ON_READY, index);
+  ReadyXXX(Feet, ON_READY, index);
 }
-void CHARACTER::UnReadyBootsScript(int index) 
+void CHARACTER::UnReadyBoots(int index) 
 { 
 //UnReadyXXX(ON_UNREADY_BOOTS, index);
-  UnReadyXXXScript(ON_UNREADY, index);
+  UnReadyXXX(ON_UNREADY, index);
 }
 //*****************************************************************************
 //    NAME: CHARACTER::ReadyRing
@@ -10901,15 +11612,15 @@ void CHARACTER::UnReadyBootsScript(int index)
 // PURPOSE: 
 //
 //*****************************************************************************
-void CHARACTER::ReadyRingScript(int index) 
+void CHARACTER::ReadyRing(int index) 
 { 
 //ReadyXXX(Fingers, ON_READY_RING, index);
-  ReadyXXXScript(Fingers, ON_READY, index);
+  ReadyXXX(Fingers, ON_READY, index);
 }
-void CHARACTER::UnReadyRingScript(int index) 
+void CHARACTER::UnReadyRing(int index) 
 { 
 //UnReadyXXX(ON_UNREADY_RING, index);
-  UnReadyXXXScript(ON_UNREADY, index);
+  UnReadyXXX(ON_UNREADY, index);
 }
 //*****************************************************************************
 //    NAME: CHARACTER::ReadyAmmo
@@ -10917,15 +11628,15 @@ void CHARACTER::UnReadyRingScript(int index)
 // PURPOSE: 
 //
 //*****************************************************************************
-void CHARACTER::ReadyAmmoScript(int index) 
+void CHARACTER::ReadyAmmo(int index) 
 { 
 //ReadyXXX(AmmoQuiver, ON_READY_AMMO, index);
-  ReadyXXXScript(AmmoQuiver, ON_READY, index);
+  ReadyXXX(AmmoQuiver, ON_READY, index);
 }
-void CHARACTER::UnReadyAmmoScript(int index) 
+void CHARACTER::UnReadyAmmo(int index) 
 { 
 //UnReadyXXX(ON_UNREADY_AMMO, index);
-  UnReadyXXXScript(ON_UNREADY, index);
+  UnReadyXXX(ON_UNREADY, index);
 }
 
 //*****************************************************************************
@@ -10973,15 +11684,9 @@ float CHARACTER::determineNbrAttacks()
   scriptContext.SetCharacterContext(this);
   if (pCombatant != NULL)
   {
-    pCombatant->RunCombatantScripts(GET_NUMBER_OF_ATTACKS, 
-                                    ScriptCallback_MinMax, 
-                                    minmax, 
-                                    "Determine number of attacks");
+    pCombatant->combatantSA.RunScripts(GET_NUMBER_OF_ATTACKS, ScriptCallback_MinMax, minmax, name, "");
   };
-  RunCharacterScripts(GET_NUMBER_OF_ATTACKS, 
-                      ScriptCallback_MinMax, 
-                      minmax, 
-                      "Determine number of attacks");
+  specAbs.RunScripts(GET_NUMBER_OF_ATTACKS, ScriptCallback_MinMax, minmax, name, "");
   ClearCharContext();
 
   if (minmax[1] != 9999999)
@@ -11414,6 +12119,26 @@ BOOL CHARACTER::IsAffectedBySpellAttribute(const CString& SpellAttribName)
   return (char_asl.Find(SpellAttribName) != NULL);
 }
 
+/*
+int *CHARACTER::LocateAffectedAttributeAdjustment(SPELL_EFFECTS_DATA *pSE)
+{
+  switch(pSE->affectedAttr_IFKEY)
+  {
+    // Ensure that the adjusted value has been computed.
+    case CHAR_ADJUSTED_STR:     GetAdjStr();    return &strength_adjustment;
+    case CHAR_ADJUSTED_STRMOD:  GetAdjStrMod(); return &strength_adjustment;
+    case CHAR_ADJUSTED_CHA:     GetAdjCha();    return &charisma_adjustment;
+    case CHAR_ADJUSTED_CON:     GetAdjCon();    return &constitution_adjustment;
+    case CHAR_ADJUSTED_DEX:     GetAdjDex();    return &dexterity_adjustment;
+    case CHAR_ADJUSTED_INT:     GetAdjInt();    return &intelligence_adjustment;
+    case CHAR_ADJUSTED_WIS:     GetAdjWis();    return &wisdom_adjustment;;
+    default:
+    {
+      NotImplemented(0x7bbd, false); return NULL;
+    };
+  };
+}
+*/
 
 // parent is the key from global list of active spells
 //*****************************************************************************
@@ -11422,7 +12147,7 @@ BOOL CHARACTER::IsAffectedBySpellAttribute(const CString& SpellAttribName)
 // PURPOSE: 
 //
 //*****************************************************************************
-BOOL CHARACTER::RemoveSpellEffect(DWORD parent, const SPELL_DATA *pSpell, bool endSpell)
+BOOL CHARACTER::RemoveSpellEffect(DWORD parent, SPELL_DATA *pSpell)
 {
   if (parent<0) return FALSE; // activeSpellList key
   bool found = false;
@@ -11452,39 +12177,27 @@ BOOL CHARACTER::RemoveSpellEffect(DWORD parent, const SPELL_DATA *pSpell, bool e
     pos=tmp;
   }
   
+  if (found)
+  {
+    if (pSpell!=NULL)
+    {
+      //NotImplemented(0xc4ea,FALSE);
+      //pSpell->specAbs.DisableAllFor(this);
+      ActorType actor;
+      GetContext(&actor);
+      SetCharContext(&actor);
+      SetTargetContext(&actor);
+      
+      pSpell->ExecuteSpellEndScript(NULL, this);
+      
+      ClearCharContext();
+      ClearTargetContext();    
+      WriteDebugString("Removing spell effects from %s for %s\n",
+                       name, pSpell->Name);
+    }   
+    
+  }
 
-  /* 20141229  Version 1.0303  PRS.
-   * I want the SpellEndScript to match up one-to-one with the SpellBeginScript.
-   * As it was, we ran the Begin Script once for each target the spell attacked.
-   * Then we ran the End Script for each spell effect that was removed.  The result
-   * was that the Begin Script might run without any End Script or one Begin
-   * Script might result in several End Scripts.  Moreover, the spell effects might
-   * end at a much later time when the state of the caster could easily have
-   * undergone dramtic changes.
-   *
-   * So.....Now we run the Begin Script, apply any effects to the target, and
-   * immediately run the End Script.  One-for-one in the same instant of time.
-   *if (found)
-   *{
-   *  if (pSpell!=NULL)
-   *  {
-   *    //Not Implemented(0xc4ea,FALSE);
-   *    //pSpell->specAbs.DisableAllFor(this);
-   *    ActorType actor;
-   *    GetContext(&actor);
-   *    SetCharContext(&actor);
-   *    SetTargetContext(&actor);
-   *    
-   *    pSpell->ExecuteSpellEndScript(NULL, this);
-   *    
-   *    ClearCharContext();
-   *    ClearTargetContext();    
-   *    WriteDebugString("Removing spell effects from %s for %s\n",
-   *                     name, pSpell->Name);
-   *  }   
-   *  
-   *}
-   */
   DisplayCurrSpellEffects("RemoveSpellEffect");
   return found;
 }
@@ -11534,7 +12247,7 @@ CString CHARACTER::RemoveSpellEffect(const CString& SEIdentifier)
   //return found;
 }
 
-CString CHARACTER::RunSEScripts(const CString& scriptName, LPCSTR comment)
+CString CHARACTER::RunSEScripts(const CString& scriptName)
 {
   bool scriptProcessed;
   CString result;
@@ -11573,10 +12286,11 @@ CString CHARACTER::RunSEScripts(const CString& scriptName, LPCSTR comment)
         scriptContext.SetCharacterContext(this);
         SEIdentifier.Format("%s[%d]", pSpell->Name, SESpellKey);
         hookParameters[5] = SEIdentifier;
-        result += pSpell->RunSpellScripts(scriptName, 
-                                          ScriptCallback_RunAllScripts, 
-                                          NULL, 
-                                          comment);
+        result += pSpell->specAbs.RunScripts(scriptName, 
+                                            ScriptCallback_RunAllScripts, 
+                                            NULL, 
+                                            "Run SE Scripts", 
+                                            pSpell->Name);
 
 
 
@@ -11619,8 +12333,7 @@ CString CHARACTER::ForEachPossession(const CString& scriptName)
         pItem->m_scriptProcessed = true;
         result += pItemData->RunItemScripts(scriptName, 
                                             ScriptCallback_RunAllScripts, 
-                                            NULL,
-                                            "Processing $ForEachPossession(actor, scriptName)");
+                                            NULL);
         scriptProcessed = true;
         break;
       };
@@ -11656,7 +12369,7 @@ void CHARACTER::CheckForExpiredSpellEffects()
         //SPELL_DATA *pSpell = spellData.GetSpellData(m_spellEffects.GetAt(pos).SourceSpell_ID());
         SPELL_DATA *pSpell = spellData.GetSpell(m_spellEffects.PeekAt(pos)->SourceSpell_ID());
 
-        removed = RemoveSpellEffect(m_spellEffects.PeekAt(pos)->parent, pSpell, false);
+        removed = RemoveSpellEffect(m_spellEffects.PeekAt(pos)->parent, pSpell);
       }  
 
       if (!removed)
@@ -11852,104 +12565,6 @@ BOOL CHARACTER::AddSpecAb(SPELL_EFFECTS_DATA &data)
   return TRUE;
 }
 
-
-//*****************************************************************************
-//    NAME: CHARACTER::DoesSavingThrowSucceed
-//
-// PURPOSE: 
-//
-//*****************************************************************************
-BOOL CHARACTER::DoesSavingThrowSucceed(SPELL_DATA *pSdata,
-                                       SAVING_THROW_DATA &stData, 
-                                       BOOL friendlyFire,
-                                       CHARACTER *pCaster,
-                                       CString *displayText)
-{
-  // Saving Throws:
-  //
-  //   It is assumed that no saving throw is needed when casting a spell
-  //   on yourself, or on willing recipients. The party members are
-  //   always assumed to be willing.
-  //
-  //   spellSaveVersusType { ParPoiDM, PetPoly, RodStaffWand, Sp, BreathWeapon };
-  //   
-  //   Retrieve needed save value for target based on SaveVersusType. Each type
-  //   will have a single value that increases with target level. Roll 20-sided
-  //   dice for target's saving throw. If roll is less than SaveVersus value, no
-  //   save is made and full spell affect is applied. If roll is equal to or
-  //   greater than SaveVersus, then SaveEffectType is used.
-  //
-  //   spellSaveEffectType { NoSave, SaveNegates, SaveForHalf, UseTHAC0 };
-  //
-  //   NoSave: full affect applied to target
-  //   SaveNegates: no affect applied to target
-  //   SaveForHalf: if numeric attribute affected, apply half, otherwise ignore
-  //   UseTHAC0: if saving throw less than THAC0, full affect, else none
-
-  // need to ignore this for self or party members!
-
-
-  // Requested by Eric 20121017 PRS  
-  //if (!friendlyFire || pCaster->targets.m_area)
-  {
-    int bonus = (int)pSdata->ExecuteSavingThrowScript(stData);
-    stData.success = TRUE;
-    stData.noEffectWhatsoever = FALSE;
-    stData.changeResult = 1.0;
-    if (pSdata->Save_Result == UseTHAC0)
-    {
-      int adjTHAC0, diceRoll, AC;
-      diceRoll = RollDice(20, 1, bonus);
-      adjTHAC0 = pCaster->GetAdjTHAC0();
-      AC = GetAdjAC();
-      if (diceRoll > AC-adjTHAC0)
-      {
-        stData.changeResult = 0.0;
-        stData.noEffectWhatsoever = TRUE;
-      }
-      else
-      {
-        stData.success = FALSE;
-      };
-      if (logDebuggingInfo)
-      {
-        WriteDebugString("DoesSavingThrowSucceed(UseTHAC0); THAC0=%d DiceRoll=%d; %s\n",
-          adjTHAC0, diceRoll, stData.success ? "Success" : "Failure");
-      };
-    }
-    else
-    {
-      if (DidSaveVersus(pSdata->Save_Vs, bonus, pSdata, pCaster))
-      {
-        switch (pSdata->Save_Result)
-        {
-        case NoSave: // Full affect in spite of save.
-          break;
-        case SaveNegates: // no affect
-          stData.noEffectWhatsoever = TRUE; ;
-          stData.changeResult = 0.0;
-          break;
-        case SaveForHalf:
-          stData.changeResult = stData.changeResult / 2.0;
-          break;
-        }
-      }
-      else
-        stData.success = FALSE;
-    }
-
-    if (stData.success)
-      pSdata->ExecuteSavingThrowSucceededScript(stData, displayText);
-    else
-      pSdata->ExecuteSavingThrowFailedScript(stData, displayText);
-
-  }
-
-  return stData.success;
-}
-
-
-
 //*****************************************************************************
 //    NAME: CHARACTER::CalcSpellEffectChangeValue
 //
@@ -11971,6 +12586,70 @@ void CHARACTER::CalcSpellEffectChangeValue(SPELL_DATA *pSdata,
   saData.ClearChangeResult();
   saData.GetChange(); // rolls delta value and saves for future lookup by ApplyChange()
 
+  // Saving Throws:
+  //
+  //   It is assumed that no saving throw is needed when casting a spell
+  //   on yourself, or on willing recipients. The party members are
+  //   always assumed to be willing.
+  //
+  //   spellSaveVsType { ParPoiDM, PetPoly, RodStaffWand, Sp, BreathWeapon };
+  //   
+  //   Retrieve needed save value for target based on SaveVsType. Each type
+  //   will have a single value that increases with target level. Roll 20-sided
+  //   dice for target's saving throw. If roll is less than SaveVs value, no
+  //   save is made and full spell affect is applied. If roll is equal to or
+  //   greater than SaveVs, then SaveEffectType is used.
+  //
+  //   spellSaveEffectType { NoSave, SaveNegates, SaveForHalf, UseTHAC0 };
+  //
+  //   NoSave: full affect applied to target
+  //   SaveNegates: no affect applied to target
+  //   SaveForHalf: if numeric attribute affected, apply half, otherwise ignore
+  //   UseTHAC0: if saving throw less than THAC0, full affect, else none
+
+  // need to ignore this for self or party members!
+
+
+  // Requested by Eric 20121017 PRS  
+  //if (!friendlyFire || pCaster->targets.m_area)
+  {
+    int bonus = (int)saData.ExecuteSavingThrowScript();
+    bool failed_st = false;
+
+    if (pSdata->Save_Result == UseTHAC0)
+    {
+      if (RollDice(20,1,bonus) >= GetAdjTHAC0())
+        saData.changeResult = 0.0;
+      else
+        failed_st = true;
+    }
+    else
+    {
+      if (DidSaveVs(pSdata->Save_Vs, bonus, pSdata, pCaster))
+      {
+        switch (pSdata->Save_Result)
+        {
+        case NoSave: // full affect
+          failed_st = true;
+          break;
+        case SaveNegates: // no affect
+          saData.NoEffectWhatsoever(true); ;
+          break;
+        case SaveForHalf:
+          saData.changeResult = saData.changeResult / 2.0;
+          break;
+        }
+      }
+      else
+        failed_st = true;
+    }
+
+    if (failed_st)
+      saData.ExecuteSavingThrowFailedScript();
+    else
+      saData.ExecuteSavingThrowSucceededScript();
+
+  }
 }
 
 extern const unsigned int char_HITPOINTS;
@@ -11983,21 +12662,13 @@ extern const unsigned int char_HITPOINTS;
 //*****************************************************************************
 BOOL CHARACTER::AddSpellEffect(SPELL_EFFECTS_DATA &data, 
                                const CHARACTER *pAttacker,
-                               InvokeSpellOptions *pInvokeOptions,
-                               LPCSTR comment)
+                               InvokeSpellOptions *pInvokeOptions)
 {
   double delta=data.changeResult;
   bool isPerm;
   SPELL_DATA *pSdata;
 
-  // ***************
-  // 20141219 Manikus complained that spell effects were being applied in spite
-  // of a successful saving throw.
   // if not cumulative with other effects having same name
-  if (data.flags & SPELL_EFFECTS_DATA::EFFECT_NONE) return FALSE;
-  // ***************
-
-
   if ((data.flags & SPELL_EFFECTS_DATA::EFFECT_CUMULATIVE) == 0)
   {
     // not cumulative, check for existing same spell effect in list
@@ -12022,35 +12693,23 @@ BOOL CHARACTER::AddSpellEffect(SPELL_EFFECTS_DATA &data,
       if ((m_spellEffects.PeekAt(tmp)->flags & SPELL_EFFECTS_DATA::EFFECT_CHARSPECAB) == 0)
       {        
         //SPELL_DATA *pSpell = spellData.GetSpellData(m_spellEffects.GetAt(tmp).SourceSpell_ID());
-        //SPELL_DATA *pSpell = spellData.GetSpell(m_spellEffects.PeekAt(tmp)->SourceSpell_ID());
+        SPELL_DATA *pSpell = spellData.GetSpell(m_spellEffects.PeekAt(tmp)->SourceSpell_ID());
         m_spellEffects.RemoveAt(tmp);
         
-      /* 20141229  Version 1.0303  PRS.
-       * I want the SpellEndScript to match up one-to-one with the SpellBeginScript.
-       * As it was, we ran the Begin Script once for each target the spell attacked.
-       * Then we ran the End Script for each spell effect that was removed.  The result
-       * was that the Begin Script might run without any End Script or one Begin
-       * Script might result in several End Scripts.  Moreover, the spell effects might
-       * end at a much later time when the state of the caster could easily have
-       * undergone dramtic changes.
-       *
-       * So.....Now we run the Begin Script, apply any effects to the target, and
-       * immediately run the End Script.  One-for-one in the same instant of time.
-       *  if (pSpell!=NULL)
-       *  {
-       *    Not Implemented(0xd432c0, FALSE);//pSpell->specAbs.DisableAllFor(this);
-       *
-       *    ActorType actor;
-       *    GetContext(&actor);
-       *    SetCharContext(&actor);
-       *    SetTargetContext(&actor);
-       *
-       *    pSpell->ExecuteSpellEndScript(NULL, this);
-       *
-       *    ClearCharContext();
-       *    ClearTargetContext();    
-       *  }   
-       */
+        if (pSpell!=NULL)
+        {
+          NotImplemented(0xd432c0, FALSE);//pSpell->specAbs.DisableAllFor(this);
+    
+          ActorType actor;
+          GetContext(&actor);
+          SetCharContext(&actor);
+          SetTargetContext(&actor);
+    
+          pSpell->ExecuteSpellEndScript(NULL, this);
+    
+          ClearCharContext();
+          ClearTargetContext();    
+        }   
       }
     }
     DisplayCurrSpellEffects("AddSpellEffect");
@@ -12068,7 +12727,7 @@ BOOL CHARACTER::AddSpellEffect(SPELL_EFFECTS_DATA &data,
     pSdata = spellData.GetSpell(data.SourceSpell_ID());
     if (pSdata==NULL) 
     {
-      die(0xab502);
+      ASSERT(FALSE);
       WriteDebugString("NOT Applying spell effect (spell key bogus): %s, delta %f, cumulative %i\n", 
         data.AffectedAttr(), data.changeResult, (data.flags & SPELL_EFFECTS_DATA::EFFECT_CUMULATIVE));
       return FALSE;
@@ -12132,14 +12791,14 @@ BOOL CHARACTER::AddSpellEffect(SPELL_EFFECTS_DATA &data,
           // no spell affects for string types
           return FALSE;
           break;
-        case IF_TYPE_BYTE:   val = GetDataBYTE(attKey,&actor,comment);   break;
+        case IF_TYPE_BYTE:   val = GetDataBYTE(attKey,&actor);   break;
         case IF_TYPE_WORD:   val = GetDataWORD(attKey,&actor);   break;
         case IF_TYPE_DWORD:  val = GetDataDWORD(attKey,&actor);  break;
         case IF_TYPE_FLOAT:  val = GetDataFLOAT(attKey,&actor);  break;
         case IF_TYPE_UBYTE:  val = GetDataUBYTE(attKey,&actor);  break;
         case IF_TYPE_UWORD:  val = GetDataUWORD(attKey,&actor);  break;
         case IF_TYPE_UDWORD: val = GetDataUDWORD(attKey,&actor); break;
-        default: die(0xab503); return FALSE; break;
+        default: ASSERT(FALSE); return FALSE; break;
         }
       };
 
@@ -12159,11 +12818,12 @@ BOOL CHARACTER::AddSpellEffect(SPELL_EFFECTS_DATA &data,
         scriptContext.SetTargetContext(this);
         scriptContext.SetSpellContext(pSpell);
 
-        result = pSpell->RunSpellScripts(
+        result = pSpell->specAbs.RunScripts(
                 COMPUTE_SPELL_DAMAGE,
                 ScriptCallback_RunAllScripts,
                 NULL,
-                "Add spell effect - Computing damage");
+                pSpell->Name,
+                "");
         if (!result.IsEmpty())
         {
           int temp;
@@ -12186,11 +12846,12 @@ BOOL CHARACTER::AddSpellEffect(SPELL_EFFECTS_DATA &data,
               pMonsterData = monsterData.PeekMonster(monsterID);
               if (pMonsterData != NULL)
               {
-                result = pMonsterData->RunMonsterScripts(
+                result = pMonsterData->specAbs.RunScripts(
                         COMPUTE_SPELL_DAMAGE,
                         ScriptCallback_RunAllScripts,
                         NULL,
-                        "Adding spell effect - Computing damage");
+                        pMonsterData->Name,
+                        "");
                 if (!result.IsEmpty())
                 {
                   int temp;
@@ -12205,11 +12866,12 @@ BOOL CHARACTER::AddSpellEffect(SPELL_EFFECTS_DATA &data,
         };
         if (this->m_pCombatant != NULL)
         {
-          result = this->m_pCombatant->RunCombatantScripts(
+          result = this->m_pCombatant->combatantSA.RunScripts(
                   COMPUTE_SPELL_DAMAGE,
                   ScriptCallback_RunAllScripts,
                   NULL,
-                  "Adding spell effect - Computing damage");
+                  this->GetName(),
+                  "");
           if (!result.IsEmpty())
           {
             int temp;
@@ -12224,8 +12886,7 @@ BOOL CHARACTER::AddSpellEffect(SPELL_EFFECTS_DATA &data,
           result = pAttacker->RunCharacterScripts(
                   COMPUTE_SPELL_DAMAGE,
                   ScriptCallback_RunAllScripts,
-                  NULL,
-                  "Adding spell effect - Computing damage");
+                  NULL);
           if (!result.IsEmpty())
           {
             int temp;
@@ -12239,8 +12900,7 @@ BOOL CHARACTER::AddSpellEffect(SPELL_EFFECTS_DATA &data,
           result = this->RunCharacterScripts(
                   COMPUTE_SPELL_DAMAGE,
                   ScriptCallback_RunAllScripts,
-                  NULL,
-                  "Adding spell effect - Computing damage");
+                  NULL);
           if (!result.IsEmpty())
           {
             int temp;
@@ -12267,23 +12927,21 @@ BOOL CHARACTER::AddSpellEffect(SPELL_EFFECTS_DATA &data,
         case IF_TYPE_UBYTE:  SetDataUBYTE(attKey, val,&actor);  break;
         case IF_TYPE_UWORD:  SetDataUWORD(attKey, val,&actor);  break;
         case IF_TYPE_UDWORD: SetDataUDWORD(attKey, val,&actor); break;
-        default: die(0xab504); break;
+        default: ASSERT(FALSE); break;
         };
   
         actor.m_canFinishCasting = false;
-        if (logDebuggingInfo)
-        {
-          WriteDebugString("Applying perm spell effect to %s: %s, delta %f, result %f, cumulative %i\n",
-            GetName(),
-            data.AffectedAttr(),
-            delta,
-            val,
-            (data.flags&SPELL_EFFECTS_DATA::EFFECT_CUMULATIVE) ? 1 : 0);
-        };
+    
+        WriteDebugString("Applying perm spell effect to %s: %s, delta %f, result %f, cumulative %i\n", 
+                        GetName(),
+                        data.AffectedAttr(), 
+                        delta, 
+                        val, 
+                        (data.flags&SPELL_EFFECTS_DATA::EFFECT_CUMULATIVE)?1:0);
       };
     }
     else
-    {  // It must be a virtual Trait
+    {
       // there is no CHARACTER value that represents this attribute, so
       // we need to store it in the spellEffects list
         
@@ -12350,8 +13008,7 @@ BOOL CHARACTER::AddTemporaryEffect(const CString& attrName,
                                    int            duration,
                                    int            delta,
                                    const CString& text,
-                                   const CString& source,
-                                   LPCSTR comment)
+                                   const CString& source)
 {
   IF_KEYWORD_INDEX ifKey;
   SPELL_EFFECTS_DATA seData;
@@ -12398,7 +13055,7 @@ BOOL CHARACTER::AddTemporaryEffect(const CString& attrName,
   SPELL_DATA *pSdata = spellData.GetSpell(data.SourceSpell_ID());
   if (pSdata==NULL) 
   {
-    ASS ERT(FALSE);
+    ASSERT(FALSE);
     WriteDebugString("NOT Applying spell effect (spell key bogus): %s, delta %f, cumulative %i\n", 
       data.affectedAttr, data.changeResult, (data.flags & SPELL_EFFECTS_DATA::EFFECT_CUMULATIVE));
     return FALSE;
@@ -12461,7 +13118,7 @@ BOOL CHARACTER::AddTemporaryEffect(const CString& attrName,
       case IF_TYPE_UBYTE:  val = GetDataUBYTE(attKey,&actor);  break;
       case IF_TYPE_UWORD:  val = GetDataUWORD(attKey,&actor);  break;
       case IF_TYPE_UDWORD: val = GetDataUDWORD(attKey,&actor); break;
-      default: ASS ERT(FALSE); return FALSE; break;
+      default: ASSERT(FALSE); return FALSE; break;
       }
 
       // apply delta value to affected attribute
@@ -12588,7 +13245,7 @@ BOOL CHARACTER::AddTemporaryEffect(const CString& attrName,
       case IF_TYPE_UBYTE:  SetDataUBYTE(attKey, val,&actor);  break;
       case IF_TYPE_UWORD:  SetDataUWORD(attKey, val,&actor);  break;
       case IF_TYPE_UDWORD: SetDataUDWORD(attKey, val,&actor); break;
-      default: ASS ERT(FALSE); break;
+      default: ASSERT(FALSE); break;
       };
 
       actor.m_canFinishCasting = false;
@@ -12652,7 +13309,7 @@ BOOL CHARACTER::AddTemporaryEffect(const CString& attrName,
     }
   }
 */
-  AddSpellEffect(seData, NULL, NULL, comment);
+  AddSpellEffect(seData, NULL, NULL);
   DisplayCurrSpellEffects("AddSpellEffect");
   return TRUE;
 }
@@ -12717,9 +13374,7 @@ BOOL CHARACTER::RemoveTemporaryEffect(const CString& mask)
 //
 //*****************************************************************************
 
-BOOL CHARACTER::AddLingeringSpellEffect(SPELL_EFFECTS_DATA &data,
-                                        const CHARACTER *pAttacker, 
-                                        LPCSTR comment)
+BOOL CHARACTER::AddLingeringSpellEffect(SPELL_EFFECTS_DATA &data, const CHARACTER *pAttacker)
 {
   double delta=data.changeResult;
 
@@ -12748,35 +13403,23 @@ BOOL CHARACTER::AddLingeringSpellEffect(SPELL_EFFECTS_DATA &data,
       if ((m_spellEffects.PeekAt(tmp)->flags & SPELL_EFFECTS_DATA::EFFECT_CHARSPECAB) == 0)
       {        
         //SPELL_DATA *pSpell = spellData.GetSpellData(m_spellEffects.GetAt(tmp).SourceSpell_ID());
-        //SPELL_DATA *pSpell = spellData.GetSpell(m_spellEffects.PeekAt(tmp)->SourceSpell_ID());
+        SPELL_DATA *pSpell = spellData.GetSpell(m_spellEffects.PeekAt(tmp)->SourceSpell_ID());
         m_spellEffects.RemoveAt(tmp);
         
-      /* 20141229  Version 1.0303  PRS.
-       * I want the SpellEndScript to match up one-to-one with the SpellBeginScript.
-       * As it was, we ran the Begin Script once for each target the spell attacked.
-       * Then we ran the End Script for each spell effect that was removed.  The result
-       * was that the Begin Script might run without any End Script or one Begin
-       * Script might result in several End Scripts.  Moreover, the spell effects might
-       * end at a much later time when the state of the caster could easily have
-       * undergone dramtic changes.
-       *
-       * So.....Now we run the Begin Script, apply any effects to the target, and
-       * immediately run the End Script.  One-for-one in the same instant of time.
-       *  if (pSpell!=NULL)
-       *  {
-       *    Not Implemented(0xd432c0, FALSE);//pSpell->specAbs.DisableAllFor(this);
-       *
-       *    ActorType actor;
-       *    GetContext(&actor);
-       *    SetCharContext(&actor);
-       *    SetTargetContext(&actor);
-       *
-       *    pSpell->ExecuteSpellEndScript(NULL, this);
-       *
-       *    ClearCharContext();
-       *    ClearTargetContext();    
-       *  }   
-       */
+        if (pSpell!=NULL)
+        {
+          NotImplemented(0xd432c0, FALSE);//pSpell->specAbs.DisableAllFor(this);
+    
+          ActorType actor;
+          GetContext(&actor);
+          SetCharContext(&actor);
+          SetTargetContext(&actor);
+    
+          pSpell->ExecuteSpellEndScript(NULL, this);
+    
+          ClearCharContext();
+          ClearTargetContext();    
+        }   
       }
     }
     DisplayCurrSpellEffects("AddSpellEffect");
@@ -12787,7 +13430,7 @@ BOOL CHARACTER::AddLingeringSpellEffect(SPELL_EFFECTS_DATA &data,
  SPELL_DATA *pSdata = spellData.GetSpell(data.SourceSpell_ID());
   if (pSdata==NULL) 
   {
-    die(0xab505);
+    ASSERT(FALSE);
     WriteDebugString("NOT Applying spell effect (spell key bogus): %s, delta %f, cumulative %i\n", 
       data.AffectedAttr(), data.changeResult, (data.flags & SPELL_EFFECTS_DATA::EFFECT_CUMULATIVE));
     return FALSE;
@@ -12839,14 +13482,14 @@ BOOL CHARACTER::AddLingeringSpellEffect(SPELL_EFFECTS_DATA &data,
         // no spell affects for string types
         return FALSE;
         break;
-      case IF_TYPE_BYTE:   val = GetDataBYTE(attKey,&actor, comment);   break;
+      case IF_TYPE_BYTE:   val = GetDataBYTE(attKey,&actor);   break;
       case IF_TYPE_WORD:   val = GetDataWORD(attKey,&actor);   break;
       case IF_TYPE_DWORD:  val = GetDataDWORD(attKey,&actor);  break;
       case IF_TYPE_FLOAT:  val = GetDataFLOAT(attKey,&actor);  break;
       case IF_TYPE_UBYTE:  val = GetDataUBYTE(attKey,&actor);  break;
       case IF_TYPE_UWORD:  val = GetDataUWORD(attKey,&actor);  break;
       case IF_TYPE_UDWORD: val = GetDataUDWORD(attKey,&actor); break;
-      default: die(0xab506); return FALSE; break;
+      default: ASSERT(FALSE); return FALSE; break;
       }
 
       // apply delta value to affected attribute
@@ -12865,11 +13508,12 @@ BOOL CHARACTER::AddLingeringSpellEffect(SPELL_EFFECTS_DATA &data,
         scriptContext.SetTargetContext(this);
         scriptContext.SetSpellContext(pSpell);
 
-        result = pSpell->RunSpellScripts(
+        result = pSpell->specAbs.RunScripts(
                 COMPUTE_SPELL_DAMAGE,
                 ScriptCallback_RunAllScripts,
                 NULL,
-                "Lingering spell effect - Compute damage");
+                pSpell->Name,
+                "");
         if (!result.IsEmpty())
         {
           int temp;
@@ -12892,11 +13536,12 @@ BOOL CHARACTER::AddLingeringSpellEffect(SPELL_EFFECTS_DATA &data,
               pMonsterData = monsterData.PeekMonster(monsterID);
               if (pMonsterData != NULL)
               {
-                result = pMonsterData->RunMonsterScripts(
+                result = pMonsterData->specAbs.RunScripts(
                         COMPUTE_SPELL_DAMAGE,
                         ScriptCallback_RunAllScripts,
                         NULL,
-                        "Lingering spell effect - Compute damage");
+                        pMonsterData->Name,
+                        "");
                 if (!result.IsEmpty())
                 {
                   int temp;
@@ -12911,11 +13556,12 @@ BOOL CHARACTER::AddLingeringSpellEffect(SPELL_EFFECTS_DATA &data,
         };
         if (this->m_pCombatant != NULL)
         {
-          result = this->m_pCombatant->RunCombatantScripts(
+          result = this->m_pCombatant->combatantSA.RunScripts(
                   COMPUTE_SPELL_DAMAGE,
                   ScriptCallback_RunAllScripts,
                   NULL,
-                  "Lingering spell effect - Compute damage");
+                  this->GetName(),
+                  "");
           if (!result.IsEmpty())
           {
             int temp;
@@ -12930,8 +13576,7 @@ BOOL CHARACTER::AddLingeringSpellEffect(SPELL_EFFECTS_DATA &data,
           result = pAttacker->RunCharacterScripts(
                   COMPUTE_SPELL_DAMAGE,
                   ScriptCallback_RunAllScripts,
-                  NULL,
-                  "Lingering spell effect - Compute damage");
+                  NULL);
           if (!result.IsEmpty())
           {
             int temp;
@@ -12945,8 +13590,7 @@ BOOL CHARACTER::AddLingeringSpellEffect(SPELL_EFFECTS_DATA &data,
           result = this->RunCharacterScripts(
                   COMPUTE_SPELL_DAMAGE,
                   ScriptCallback_RunAllScripts,
-                  NULL,
-                  "Lingering spell effect - Compute damage");
+                  NULL);
           if (!result.IsEmpty())
           {
             int temp;
@@ -12971,17 +13615,15 @@ BOOL CHARACTER::AddLingeringSpellEffect(SPELL_EFFECTS_DATA &data,
       case IF_TYPE_UBYTE:  SetDataUBYTE(attKey, val,&actor);  break;
       case IF_TYPE_UWORD:  SetDataUWORD(attKey, val,&actor);  break;
       case IF_TYPE_UDWORD: SetDataUDWORD(attKey, val,&actor); break;
-      default: die(0xab507); break;
+      default: ASSERT(FALSE); break;
       }
-      if (logDebuggingInfo)
-      {
-        WriteDebugString("Applying perm spell effect to %s: %s, delta %f, result %f, cumulative %i\n",
-          GetName(),
-          data.AffectedAttr(),
-          delta,
-          val,
-          (data.flags&SPELL_EFFECTS_DATA::EFFECT_CUMULATIVE) ? 1 : 0);
-      };
+  
+      WriteDebugString("Applying perm spell effect to %s: %s, delta %f, result %f, cumulative %i\n", 
+                       GetName(),
+                       data.AffectedAttr(), 
+                       delta, 
+                       val, 
+                       (data.flags&SPELL_EFFECTS_DATA::EFFECT_CUMULATIVE)?1:0);
     }
     else
     {
@@ -13078,7 +13720,6 @@ void CHARACTER::ApplySpellEffectAdjustments(DWORD /*flags*/, IF_KEYWORD_INDEX ke
   }
 }
 
-
 //*****************************************************************************
 //    NAME: CHARACTER::AdjustEffectData
 //
@@ -13100,10 +13741,19 @@ void CHARACTER::AdjustEffectData(const IF_KEYWORD_INDEX key, int val)
   data.data += val;
 
   bool RemoveSpell = false;
-  die("Not Needed?"); //Not Implemented(0xcccd54,FALSE);//specialAbilitiesType sa = ConvertRuntimeIfTextToSpecAb(akey);
+  NotImplemented(0xcccd54,FALSE);//specialAbilitiesType sa = ConvertRuntimeIfTextToSpecAb(akey);
 
 
-  die("Not Needed?"); //Not Implemented(0x5c9bf6, FALSE);
+  NotImplemented(0x5c9bf6, FALSE); /*
+  switch (sa)
+  {
+  case SA_MirrorImage:
+    // check image count, if reduced to zero
+    // then this sa has no more benefit
+    RemoveSpell = (data.data == 0);
+    break;
+  }*/
+
   if (RemoveSpell)
   {    
     ACTIVE_SPELL *pSpell = activeSpellList.Get(data.parent);
@@ -13127,6 +13777,7 @@ void CHARACTER::AdjustEffectData(const IF_KEYWORD_INDEX key, int val)
     }
   }
 }
+
 #endif // engine-only magic code
 
 //*****************************************************************************
@@ -13148,9 +13799,9 @@ int CHARACTER::GetAdjTHAC0(DWORD flags) const
   if (wpn != NO_READY_ITEM)
   {  
     //GLOBAL_ITEM_ID giID = myItems.GetItem(wpn);
-    ITEM_ID wpnID = myItems.GetItem(wpn);
+    ITEM_ID itemID = myItems.GetItem(wpn);
     //ITEM_DATA *pData = itemData.GetItem(giID);
-    ITEM_DATA *pData = itemData.GetItem(wpnID);
+    ITEM_DATA *pData = itemData.GetItem(itemID);
     if (pData != NULL)
       tmp -= pData->Attack_Bonus; // subtract weapon attack bonus
   }
@@ -13421,7 +14072,6 @@ int CHARACTER::GetAdjAge(DWORD flags) const
   return val;
 #endif
 }
-
 //*****************************************************************************
 //    NAME: CHARACTER::GetAdjMaxAge
 //
@@ -13449,7 +14099,7 @@ int CHARACTER::GetAdjMaxAge(DWORD flags) const
 // PURPOSE: 
 //
 //*****************************************************************************
-BYTE CHARACTER::GetAdjMaxMovement(DWORD flags, LPCTSTR comment) const
+BYTE CHARACTER::GetAdjMaxMovement(DWORD flags) const
 {
 #ifdef UAFEDITOR
   return GetMaxMovement();
@@ -13457,6 +14107,11 @@ BYTE CHARACTER::GetAdjMaxMovement(DWORD flags, LPCTSTR comment) const
   
   if (IsCombatActive())
   {
+    //DWORD src;
+    //GLOBAL_SPELL_ID skey;
+    //NotImplemented(0xdfe129, FALSE);
+
+
     {
       ActorType actor;
       HOOK_PARAMETERS hookParameters;
@@ -13472,10 +14127,7 @@ BYTE CHARACTER::GetAdjMaxMovement(DWORD flags, LPCTSTR comment) const
       // Removed 20101228 PRS....sometimes called outside of combat!!! Like taking treasure.
       //pCombatant = this->GetCombatant();
       //scriptContext.SetCombatantContext(pCombatant);
-      RunCharacterScripts(       GET_ADJ_MAX_MOVEMENT, 
-                                 ScriptCallback_MinMax, 
-                         (void *)minmax,
-                                 comment);
+      specAbs.RunScripts(GET_ADJ_MAX_MOVEMENT, ScriptCallback_MinMax, (void *)minmax, name, "");
 #ifdef newCombatant
       pCombatant = m_pCombatant;
 #else
@@ -13483,10 +14135,7 @@ BYTE CHARACTER::GetAdjMaxMovement(DWORD flags, LPCTSTR comment) const
 #endif
       if (pCombatant != NULL)
       {
-        pCombatant->RunCombatantScripts(GET_ADJ_MAX_MOVEMENT, 
-                                        ScriptCallback_MinMax, 
-                                        (void *)minmax, 
-                                        comment);
+        pCombatant->combatantSA.RunScripts(GET_ADJ_MAX_MOVEMENT, ScriptCallback_MinMax, (void *)minmax, name, "");
       };
       scriptContext.Clear();
       ClearCharContext();
@@ -13535,7 +14184,7 @@ BYTE CHARACTER::GetAdjMaxMovement(DWORD flags, LPCTSTR comment) const
 #ifdef complexAbilities
 void ABILITY_ADJUSTMENT::operator =(const ABILITY_ADJUSTMENT& src)
 {
-  Not Implemented(0xd41, false);
+  NotImplemented(0xd41, false);
 }
 
 CHARACTER::ABILITY_SCORE::ABILITY_SCORE(void)
@@ -13571,7 +14220,7 @@ void CHARACTER::ABILITY_SCORE::Clear(void)
   n = GetAbilityCount();
   for (i=0; i<n; i++)
   {
-    Not Implemented(0x41cb, false);
+    NotImplemented(0x41cb, false);
   };
   totalAdjustments = 0;
 }
@@ -13591,7 +14240,7 @@ void CHARACTER::ABILITY_SCORE::SetPermValue(int v)
 
 void CHARACTER::AbilityScores::Serialize(CAR& car, double version)
 {
-  Not Implemented(0xfa7, false);
+  NotImplemented(0xfa7, false);
 }
 
 #endif
@@ -14020,8 +14669,121 @@ int CHARACTER::GetAdjMagicResistance(DWORD flags) const
   return val;
 #endif
 }
+//*****************************************************************************
+//    NAME: CHARACTER::GetAdjSaveVsPPDM
+//
+// PURPOSE: 
+//
+//*****************************************************************************
+int CHARACTER::GetAdjSaveVsPPDM(DWORD flags) const
+{
+/*
 
+#ifdef UAFEDITOR
+  return GetSaveVsPPDM();
+#else
+  const char akey[]="$CHAR_SAVEVSPPDM";
+  double val = GetSaveVsPPDM();
+  ApplySpellEffectAdjustments(flags, akey, val);
+  val = max(1,val);
+  val = min(20,val);
+  return val;
+#endif
+*/ NotImplemented(0x14ca9,false);
+  return 0;
+}
+//*****************************************************************************
+//    NAME: CHARACTER::GetAdjSaveVsPP
+//
+// PURPOSE: 
+//
+//*****************************************************************************
+int CHARACTER::GetAdjSaveVsPP(DWORD flags) const
+{
 
+/*
+#ifdef UAFEDITOR
+  return GetSaveVsPP();
+#else
+  const char akey[]="$CHAR_SAVEVSPP";
+  double val = GetSaveVsPP();
+  ApplySpellEffectAdjustments(flags, akey, val);
+  val = max(1,val);
+  val = min(20,val);
+  return val;
+#endif
+*/ NotImplemented(0x24a84, false);
+  return 0;
+}
+//*****************************************************************************
+//    NAME: CHARACTER::GetAdjSaveVsRSW
+//
+// PURPOSE: 
+//
+//*****************************************************************************
+int CHARACTER::GetAdjSaveVsRSW(DWORD flags) const
+{
+
+/*
+#ifdef UAFEDITOR
+  return GetSaveVsRSW();
+#else
+  const char akey[]="$CHAR_SAVEVSRSW";
+  double val = GetSaveVsRSW();
+  ApplySpellEffectAdjustments(flags, akey, val);
+  val = max(1,val);
+  val = min(20,val);
+  return val;
+#endif
+*/ NotImplemented(0x34ea8,false);
+  return 0;
+
+}
+//*****************************************************************************
+//    NAME: CHARACTER::GetAdjSaveVsBr
+//
+// PURPOSE: 
+//
+//*****************************************************************************
+int CHARACTER::GetAdjSaveVsBr(DWORD flags) const
+{
+/*
+#ifdef UAFEDITOR
+  return GetSaveVsBr();
+#else
+  const char akey[]="$CHAR_SAVEVSBR";
+  double val = GetSaveVsBr();
+  ApplySpellEffectAdjustments(flags, akey, val);
+  val = max(1,val);
+  val = min(20,val);
+  return val;
+#endif
+*/ NotImplemented(0x44d09, false);
+  return 0;
+}
+//*****************************************************************************
+//    NAME: CHARACTER::GetAdjSaveVsSp
+//
+// PURPOSE: 
+//
+//*****************************************************************************
+int CHARACTER::GetAdjSaveVsSp(DWORD flags) const
+{
+
+/*
+#ifdef UAFEDITOR
+  return GetSaveVsSp();
+#else
+  const char akey[]="$CHAR_SAVEVSSP";
+  double val = GetSaveVsSp();
+  ApplySpellEffectAdjustments(flags, akey, val);
+  val = max(1,val);
+  val = min(20,val);
+  return val;
+#endif
+*/ NotImplemented(0x54a12,false);
+  return 0;
+}
 //*****************************************************************************
 //    NAME: CHARACTER::GetAdjHitBonus
 //
@@ -14418,7 +15180,7 @@ int CHARACTER::GetAdjSpecAb(specialAbilitiesType sa, DWORD *pSource, CString *pS
 
   if (specAbs.FindAbility(sa) == NULL)
   {
-//    ASS ERT(FALSE);
+//    ASSERT(FALSE);
     return 0;
   }
 
@@ -14430,7 +15192,7 @@ int CHARACTER::GetAdjSpecAb(specialAbilitiesType sa, DWORD *pSource, CString *pS
   if (akey.GetLength()==0) return 0;
 
   double val = 0.0;
-  die ("Not Needed?"); //Not Implemented(0x4f6da8, FALSE);
+  NotImplemented(0x4f6da8, FALSE);
   return val;
 #endif
 }
@@ -14448,12 +15210,11 @@ void CHARACTER::SetSpecAb(specialAbilitiesType sa, BYTE enable, DWORD flags)
 
   if (specialAbilitiesData.FindAbility(sa) == NULL)
   {
-    die(0xab508);
+    ASSERT(FALSE);
     return;
   }
 
-  die("Not Needed?"); //Not Implemented(0x3aee,FALSE);
-/*
+  NotImplemented(0x3aee,FALSE); /*
   if (strcmp(sa, spellAbilitiesText[(int)SA_Poisoned]) == 0)
   {
     if (HasPoisonImmunity()) return;
@@ -14462,8 +15223,7 @@ void CHARACTER::SetSpecAb(specialAbilitiesType sa, BYTE enable, DWORD flags)
            || (strcmp(sa, spellAbilitiesText[(int)SA_CharmPerson]) == 0))
   {
     if (!CanBeHeldOrCharmed()) return;
-  }
-*/
+  }*/
 
   // cannot stack special abilities
   // if already have this one, just return
@@ -14486,7 +15246,7 @@ void CHARACTER::SetSpecAb(specialAbilitiesType sa, BYTE enable, DWORD flags)
                SPELL_EFFECTS_DATA::EFFECT_TARGET |
                SPELL_EFFECTS_DATA::EFFECT_ABS;
 
-  die("Not Needed?"); //Not Implemented(0x4a2a1a,FALSE);
+  NotImplemented(0x4a2a1a,FALSE);
 
   if (enable)
     AddSpecAb(data);
@@ -14557,6 +15317,68 @@ void CHARACTER::SetMagicResistance(int val)
   magicResistance=val;
 }
 
+/*
+//*****************************************************************************
+//    NAME: CHARACTER::SetSaveVsPPDM
+//
+// PURPOSE: 
+//
+//*****************************************************************************
+void CHARACTER::SetSaveVsPPDM(int val)
+{
+  val = max(1,val);
+  val = min(20,val);
+  saveVsParPsnDMag = val;
+}
+//*****************************************************************************
+//    NAME: CHARACTER::SetSaveVsPP
+//
+// PURPOSE: 
+//
+//*****************************************************************************
+void CHARACTER::SetSaveVsPP(int val)
+{
+  val = max(1,val);
+  val = min(20,val);
+  saveVsPetPoly = val;
+}
+//*****************************************************************************
+//    NAME: CHARACTER::SetSaveVsRSW
+//
+// PURPOSE: 
+//
+//*****************************************************************************
+void CHARACTER::SetSaveVsRSW(int val)
+{
+  val = max(1,val);
+  val = min(20,val);
+  saveVsRdStWnd = val;
+}
+//*****************************************************************************
+//    NAME: CHARACTER::SetSaveVsBr
+//
+// PURPOSE: 
+//
+//*****************************************************************************
+void CHARACTER::SetSaveVsBr(int val)
+{
+  val = max(1,val);
+  val = min(20,val);
+  saveVsBreath = val;
+}
+//*****************************************************************************
+//    NAME: CHARACTER::SetSaveVsSp
+//
+// PURPOSE: 
+//
+//*****************************************************************************
+void CHARACTER::SetSaveVsSp(int val)
+{
+  val = max(1,val);
+  val = min(20,val);
+  saveVsSpell = val;
+}
+*/
 //*****************************************************************************
 //    NAME: CHARACTER::SetStr
 //
@@ -14708,7 +15530,6 @@ void CHARACTER::SetAge(int val)
   if (val < 1) val=1;
   age = val;
 }
-
 
 //*****************************************************************************
 //    NAME: CHARACTER::SetTHAC0
@@ -14911,20 +15732,15 @@ int CHARACTER::GetCurrExp(const BASECLASS_ID& baseclassID)
   case RangerFlag:    return GetAdjRangerExp();
   case DruidFlag:     return GetAdjDruidExp();
   }
-  ASS ERT(FALSE);
+  ASSERT(FALSE);
 */
   int i;
-  const BASECLASS_STATS *pStats;
   i = LocateBaseclassStats(baseclassID);
   if (i < 0) return 0;
-  pStats = PeekBaseclassStats(i);
-  if (pStats->previousLevel > 0) return 0;
-  return pStats->x_experience;
+  return PeekBaseclassStats(i)->experience;
 }
 
-#define excluded20170926
-#ifdef excluded20170926
-#ifdef UAFEDITOR
+
 //*****************************************************************************
 //    NAME: CHARACTER::ClearExperience
 //
@@ -14948,11 +15764,10 @@ void CHARACTER::ClearExperience(void)
   {
     BASECLASS_STATS *pbcs;
     pbcs = GetBaseclassStats(i);
-    pbcs->x_experience = 0;
+    pbcs->experience = 0;
   };
 }
-#endif
-#endif
+
 
 //*****************************************************************************
 //    NAME: CHARACTER::SetCurrExp
@@ -14979,9 +15794,7 @@ int CHARACTER::SetCurrExp(const BASECLASS_ID& baseclassID, int exp)
 */
   BASECLASS_STATS *pbcs;
   pbcs = GetBaseclassStats(baseclassID);
-  if (pbcs == NULL) return 0;
-  if (pbcs->previousLevel > 0) return 0;
-  pbcs->x_experience = exp;
+  if (pbcs != NULL) pbcs->experience = exp;
   return exp;
 }
 
@@ -15010,9 +15823,7 @@ void CHARACTER::ClearLevels(void)
     pbcs = GetBaseclassStats(i);
     pbcs->currentLevel = 0;
   };
-#ifdef OldDualClass20180126
   temp__canUsePrevClass = -1;
-#endif
 }
 /*
 //*****************************************************************************
@@ -15055,12 +15866,10 @@ void CHARACTER::SetLevel(const BASECLASS_ID& baseclassID, int lvl)
     BASECLASS_STATS *pBaseclassStats;
     pBaseclassStats = GetBaseclassStats(i);
     //pBaseclassStats = &baseclassStats[i];
-#ifdef OldDualClass20180126
     if (pBaseclassStats->currentLevel != lvl)
     {
       temp__canUsePrevClass = -1;
     };
-#endif
     pBaseclassStats->currentLevel = lvl;
   };
   //switch (bct)
@@ -15086,12 +15895,10 @@ void CHARACTER::SetLevel(int lvl)
     BASECLASS_STATS *pBaseclassStats;
     pBaseclassStats = GetBaseclassStats(i);
     //pBaseclassStats = &baseclassStats[i];
-#ifdef OldDualClass20180126
     if (pBaseclassStats->currentLevel != lvl)
     {
       temp__canUsePrevClass = -1;
     };
-#endif
     pBaseclassStats->currentLevel = lvl;    
   };
 }
@@ -15135,13 +15942,23 @@ void CHARACTER::SetCurrExp(const BASECLASS_ID& baseclassID, int exp)
 int CHARACTER::GetCurrLevel(const BASECLASS_ID& baseclassID) const
 {
   //baseclassKey bct;
-  const BASECLASS_STATS *pStats;
+  int arrayIndex;
   //bct = baseclassData.FindName(baseclassName);
   //arrayIndex = baseclassData.LocateBaseclass(baseclassID);
-  pStats = this->PeekBaseclassStats(baseclassID);
-  if (pStats == NULL) return -1;
-  if (pStats->previousLevel > 0) return 0;
-  return pStats->currentLevel;
+  arrayIndex = this->LocateBaseclassStats(baseclassID);
+/*  {
+    case 0: return FighterLevel;
+    case 1: return ClericLevel;
+    case 2: return RangerLevel;
+    case 3: return PaladinLevel;
+    case 4: return MULevel;
+    case 5: return ThiefLevel;
+    case 6: return DruidLevel;
+  }
+  return -1;
+*/
+  if (arrayIndex < 0) return -1;
+  return PeekBaseclassStats(arrayIndex)->currentLevel;
   //return baseclassStats[arrayIndex].currentLevel;
 }
 
@@ -15173,10 +15990,9 @@ int CHARACTER::GetAllowedLevel(const BASECLASS_ID& baseclassID) const
   return -1;
 */
   if (arrayIndex < 0) return -1;
-  if (PeekBaseclassStats(arrayIndex)->previousLevel > 0) return 0;
   pBaseclass = baseclassData.PeekBaseclass(baseclassID);
   if (pBaseclass == NULL) return -1;
-  allowedLevel =  pBaseclass->GetLevel(PeekBaseclassStats(arrayIndex)->x_experience);
+  allowedLevel =  pBaseclass->GetLevel(PeekBaseclassStats(arrayIndex)->experience);
   //allowedLevel =  pBaseclass->GetLevel(baseclassStats[arrayIndex].experience);
   maxLevel = GetLevelCap(pBaseclass);
   if (maxLevel != NoSkill)
@@ -15240,13 +16056,10 @@ int CHARACTER::IncCurrExp(const BASECLASS_ID& baseclassID, int exp)
   ASSERT(FALSE);
   return 0;
 */
-  //int arrayIndex;
-  BASECLASS_STATS *pStats;
-  pStats = GetBaseclassStats(baseclassID);
-  //arrayIndex = LocateBaseclassStats(baseclassID);
-  //if (arrayIndex < 0) return 0;
-  if (pStats == NULL) return 0;
-  return pStats->IncCurExperience(exp);
+  int arrayIndex;
+  arrayIndex = LocateBaseclassStats(baseclassID);
+  if (arrayIndex < 0) return 0;
+  return (GetBaseclassStats(arrayIndex)->experience += exp);
   //return (baseclassStats[arrayIndex].experience += exp);
 }
 
@@ -15254,7 +16067,7 @@ int CHARACTER::IncCurrExp(const BASECLASS_ID& baseclassID, int exp)
  
 The original UAF decided whether the party could detect
 magic by whether or not it had a memorized spell that
-was capable of detecting magic.
+was able of detecting magic.
 
 Manikus wants this capability to be a character trait.
 He asks "Can the active character detect magic?"
@@ -15841,7 +16654,7 @@ BOOL CHARACTER::AddTarget(CHARACTER &targ, int range)
 #ifdef newCombatant
   if (m_pCombatant != NULL)
   {
-    return m_pCombatant->C_AddTarget(*targ.m_pCombatant, range);
+    return m_pCombatant->AddTarget(*targ.m_pCombatant, range);
   };
 #endif
   ASSERT( IsCombatActive() == FALSE ); // combat magic handled in combat.cpp
@@ -15849,7 +16662,7 @@ BOOL CHARACTER::AddTarget(CHARACTER &targ, int range)
   //if ((targets.m_FriendlyFireOk==FALSE) && (targ.IsPartyMember())) return FALSE;
   if ((targets.m_canTargetFriend==FALSE) && (targ.IsPartyMember())) return FALSE;
   if ((targets.m_canTargetEnemy==FALSE) && (!targ.IsPartyMember())) return FALSE;
-  return targets.STD_AddTarget(targ.uniquePartyID, targ.GetNbrHD(), range, -1, -1);
+  return targets.AddTarget(targ.uniquePartyID, targ.GetNbrHD(), range, -1, -1);
 }
 
 #ifdef newCombatant
@@ -15942,13 +16755,13 @@ BOOL CHARACTER::AddTargetSelf()
 //
 // Saving Throws:
 //
-//   spellSaveVersusType { ParPoiDM, PetPoly, RodStaffWand, Sp, BreathWeapon };
+//   spellSaveVsType { ParPoiDM, PetPoly, RodStaffWand, Sp, BreathWeapon };
 //   
-//   Retrieve needed save value for target based on SaveVersusType. Each type
+//   Retrieve needed save value for target based on SaveVsType. Each type
 //   will have a single value that increases with target level. Roll 20-sided
-//   dice for target's saving throw. If roll is less than SaveVersus value, no
+//   dice for target's saving throw. If roll is less than SaveVs value, no
 //   save is made and full spell affect is applied. If roll is equal to or
-//   greater than SaveVersus, then SaveEffectType is used.
+//   greater than SaveVs, then SaveEffectType is used.
 //
 //   spellSaveEffectType { NoSave, SaveNegates, SaveForHalf, UseTHAC0 };
 //
@@ -15995,7 +16808,6 @@ int CHARACTER::InvokeSpellOnTarget(CHARACTER& targ,
                                    ToHitComputation *pToHitComputation)
 {
   BOOL ss;
-  SAVING_THROW_DATA stData;
   if (spellSucceeded == NULL) spellSucceeded = &ss;
   if (displayText != NULL)
   {
@@ -16029,116 +16841,6 @@ int CHARACTER::InvokeSpellOnTarget(CHARACTER& targ,
       return activeSpellKey;
   }
 
-
-  
-  {
-    CString result;
-    HOOK_PARAMETERS hookParameters;
-    SCRIPT_CONTEXT scriptContext;
-    const CLASS_DATA *pClass;
-    const RACE_DATA *pRace;
-    CString spellName;
-    //SetItemContext(giID);
-    scriptContext.SetSpellContext(pSdata);  // Includes spell Context!
-    scriptContext.SetTargetContext(&targ);
-    scriptContext.SetAttackerContext(this);
-    //pClass = classData.GetClassData(this->GetClass());
-    pClass = classData.PeekClass(this->GetClass());
-    //pRace = raceData.GetRaceData(targ.race());
-    //pRace = raceData.PeekRace(targ.race);
-    pRace = targ.PeekRaceData();
-    scriptContext.SetClassContext(pClass);
-    spellName = pSdata->Name;
-  //  hookParameters[5].Format("%d",m_toHitDiceRoll);
-  //  hookParameters[6].Format("%d",m_effectiveTHAC0);
-    result = pSdata->RunSpellScripts
-                 (DOES_SPELL_ATTACK_SUCCEED,
-                  ScriptCallback_LookForChar,
-                  "YN",
-                  "Invoke spell on target");
-    if (result.IsEmpty())
-    {
-      if (pRace != NULL)
-      {
-        result = pRace->RunRaceScripts
-                    (DOES_SPELL_ATTACK_SUCCEED,
-                     ScriptCallback_LookForChar,
-                     "YN",
-                    "Invoke spell on target");
-      };
-    }
-    if (result.IsEmpty())
-    {
-      if (targ.GetType() == MONSTER_TYPE)
-      {
-        //int monsterIndex;
-        //monsterIndex = targ.m_pCombatant->origKey;
-        {
-          //MONSTER_DATA *pMonsterData;
-          const MONSTER_DATA *pMonsterData;
-          pMonsterData = monsterData.PeekMonster(monsterID);
-          if (pMonsterData != NULL)
-          {
-            result = pMonsterData->RunMonsterScripts
-                      (DOES_SPELL_ATTACK_SUCCEED,
-                       ScriptCallback_LookForChar,
-                       "YN",
-                       "Invoke spell on target");
-          };
-        };
-      };
-    };
-    if (result.IsEmpty())
-    {
-
-      result = targ.RunCharacterScripts
-                (DOES_SPELL_ATTACK_SUCCEED,
-                 ScriptCallback_LookForChar,
-                 "YN",
-                 "Invoke spell on target");
-    };
-
-    *spellSucceeded = TRUE;
-    if (!result.IsEmpty())
-    {
-      if (result[0] == 'N')
-      {
-        *spellSucceeded = FALSE;
-      };
-    };
-    if (displayText != NULL)
-    {
-      *displayText = hookParameters[5];
-    };
-  };
-
-  
-  if (!(*spellSucceeded)) 
-  {
-    return activeSpellKey;
-  };
-
-
-  stData.changeResult = 1.0;
-  stData.noEffectWhatsoever = FALSE;
-  stData.pCaster = this;
-  stData.pTarget = &targ;
-  stData.pSpell = pSdata;
-  stData.success = FALSE;
-  if (pSdata->Save_Result != NoSave)
-  {
-    targ.DoesSavingThrowSucceed(pSdata,
-                                stData,
-                                targ.GetIsFriendly() == GetIsFriendly(), 
-                                this,
-                                displayText);
-  };
-  if (stData.noEffectWhatsoever)
-  {
-    return activeSpellKey;
-  };
-
-
   ActorType cActor;  //Caster
   ActorType tActor;  //Target
   {
@@ -16158,29 +16860,111 @@ int CHARACTER::InvokeSpellOnTarget(CHARACTER& targ,
     result = pSdata->ExecuteSpellBeginScript(this, &targ, pToHitComputation);
     if (abortIfSetPartyXY && (setPartyXY_x >= 0))
     {
-      pSdata->ExecuteSpellEndScript(this, &targ);
       return activeSpellKey;
     };
     if (!result)
-    {
-      pSdata->ExecuteSpellEndScript(this, &targ);
       return activeSpellKey;
-    };
   };
     
   if (activeSpellKey < 0)
   {
     if (pSdata->Duration_Rate != Permanent)
-      activeSpellKey=activeSpellList.GetNextKey();  //Global active Spell List
+      activeSpellKey=activeSpellList.GetNextKey();
   }
   
 
+  
+  {
+    CString result;
+    HOOK_PARAMETERS hookParameters;
+    SCRIPT_CONTEXT scriptContext;
+    const CLASS_DATA *pClass;
+    const RACE_DATA *pRace;
+    CString spellName;
+    //SetItemContext(giID);
+    scriptContext.SetSpellContext(pSdata);  // Includes spell Context!
+    scriptContext.SetTargetContext(&targ);
+    scriptContext.SetAttackerContext(this);
+    //pClass = classData.GetClassData(this->GetClass());
+    pClass = classData.PeekClass(this->GetClass());
+    //pRace = raceData.GetRaceData(targ.race());
+    pRace = raceData.PeekRace(targ.race);
+    scriptContext.SetClassContext(pClass);
+    spellName = pSdata->Name;
+  //  hookParameters[5].Format("%d",m_toHitDiceRoll);
+  //  hookParameters[6].Format("%d",m_effectiveTHAC0);
+    result = pSdata->specAbs.RunScripts
+                (DOES_SPELL_ATTACK_SUCCEED,
+                 ScriptCallback_LookForChar,
+                 "YN",
+                 this->name,
+                 spellName);
+    if (result.IsEmpty())
+    {
+      if (pRace != NULL)
+      {
+        result = pRace->m_specAbs.RunScripts
+                    (DOES_SPELL_ATTACK_SUCCEED,
+                     ScriptCallback_LookForChar,
+                     "YN",
+                    this->name,
+                    spellName);
+      };
+    }
+    if (result.IsEmpty())
+    {
+      if (targ.GetType() == MONSTER_TYPE)
+      {
+        //int monsterIndex;
+        //monsterIndex = targ.m_pCombatant->origKey;
+        {
+          //MONSTER_DATA *pMonsterData;
+          const MONSTER_DATA *pMonsterData;
+          pMonsterData = monsterData.PeekMonster(monsterID);
+          if (pMonsterData != NULL)
+          {
+            result = pMonsterData->specAbs.RunScripts
+                      (DOES_SPELL_ATTACK_SUCCEED,
+                       ScriptCallback_LookForChar,
+                       "YN",
+                      this->name,
+                      spellName);
+          };
+        };
+      };
+    };
+    if (result.IsEmpty())
+    {
+
+      result = targ.specAbs.RunScripts
+                (DOES_SPELL_ATTACK_SUCCEED,
+                 ScriptCallback_LookForChar,
+                 "YN",
+                this->name,
+                spellName);
+    };
+
+    *spellSucceeded = TRUE;
+    if (!result.IsEmpty())
+    {
+      if (result[0] == 'N')
+      {
+        *spellSucceeded = FALSE;
+      };
+    };
+    if (displayText != NULL)
+    {
+      *displayText = hookParameters[5];
+    };
+  };
+
+  
+  if (!(*spellSucceeded)) return activeSpellKey;
 
 
-  bool effectAdded= false;
   // run script for each effect
   POSITION pos = pSdata->m_EffectedAttributes.GetHeadPosition();
-//  if (pos != NULL)
+  if (pos != NULL)
   {
     while (pos != NULL)
     {
@@ -16207,30 +16991,17 @@ int CHARACTER::InvokeSpellOnTarget(CHARACTER& targ,
         {
           // 20110201 PRS CalcSpellEffectChangeValue(pSdata,saData,TRUE);            
           targ.CalcSpellEffectChangeValue(pSdata,saData,targ.GetIsFriendly() == GetIsFriendly(), this); 
-          if (targ.AddSpellEffect(saData, this, pInvokeOptions,"Invoking a spell on target"))
+          if (targ.AddSpellEffect(saData, this, pInvokeOptions))
           {
             // force a scan of the current char status
             //Do this at FinalSpellStage  targ.TakeDamage(0, FALSE, pInvokeOptions, &targ==this, NULL);
-            effectAdded = true;
           }      
         }          
       }
     }
   }
-//  else
-  //if (!effectAdded)
-  /* There are several reasons that 'AddSpellEffect()' will return true even though
-   * it has added no effect.  In fact, it may have deleted an effect!!!!!
-   * So, if we want to guarantee that at least on effect has been added, then
-   * must add a 'do-nothing' effect ourselves.
-   */
-
-  /* To tell the truth, I see no reason to add a NOP spell effect.
-   * The 'activeSpellList' will contain an entry for any spell that 
-   * will expire in a finite amount of time.  That entry will trigger
-   * the 'Spell End Script'.  PRS 20150104
+  else
   {
-    ASSERT(FALSE); // we should not do this for permanent spells
     if (activeSpellKey >= 0)
     {
       // no affected attributes, add placeholder
@@ -16255,7 +17026,6 @@ int CHARACTER::InvokeSpellOnTarget(CHARACTER& targ,
       targ.AddSpellEffect(saData, this, pInvokeOptions);
     }
   }
-   */
 
   // add special abilities
   {
@@ -16268,10 +17038,7 @@ int CHARACTER::InvokeSpellOnTarget(CHARACTER& targ,
     scriptContext.SetTargetContext(&targ);
     hookParameters[5].Format("%d", targets.m_MapTargetX);
     hookParameters[6].Format("%d", targets.m_MapTargetY);
-    pSdata->RunSpellScripts(INVOKE_SPELL_ON_TARGET, 
-                            ScriptCallback_RunAllScripts, 
-                            NULL, 
-                            "Invoke spell on target");
+    pSdata->specAbs.RunScripts(INVOKE_SPELL_ON_TARGET, ScriptCallback_RunAllScripts, NULL, "Spell", pSdata->Name);
     //int PostSpecAbCount = targ.spellEffects.GetCount();
     //int Diff = PostSpecAbCount - PreSpecAbCount;
     //if (Diff > 0)
@@ -16304,7 +17071,6 @@ int CHARACTER::InvokeSpellOnTarget(CHARACTER& targ,
   ClearCharContext();      
 
   if (pSdata->Duration_Rate != Permanent) // Instantaneous = permanent = never expires
-                                          // So there is no need for an 'activeSpellList' entry.
   {            
     ASSERT( activeSpellKey >= 0);
 
@@ -16316,7 +17082,6 @@ int CHARACTER::InvokeSpellOnTarget(CHARACTER& targ,
       //GetContext(&aspell.caster, pSdata->schoolMask);
       GetContext(&aspell.caster, pSdata->schoolID);
       aspell.caster = cActor;
-      aspell.target = tActor;
       aspell.key = activeSpellKey;
       //aspell.spellKey = pSdata->m_gsID; // spell db key
       aspell.spellID = pSdata->SpellID(); // spell db key
@@ -16329,9 +17094,9 @@ int CHARACTER::InvokeSpellOnTarget(CHARACTER& targ,
       {
         // add affected map locations to active spell record
         aspell.lingerData.mapdata.RemoveAll();
-        POSITION tpos = targets.m_maptarglist.GetHeadPosition();
-        while (tpos != NULL)
-          aspell.lingerData.mapdata.AddTail(targets.m_maptarglist.GetNext(tpos));
+        POSITION pos = targets.m_maptarglist.GetHeadPosition();
+        while (pos != NULL)
+          aspell.lingerData.mapdata.AddTail(targets.m_maptarglist.GetNext(pos));
 
         // add targets to active spell record so that linger spell checks
         // won't re-target same dudes once they move (unless allowed by OnceOnly flag)
@@ -16356,10 +17121,11 @@ int CHARACTER::InvokeSpellOnTarget(CHARACTER& targ,
         {
           hookParameters[5] = m_pCombatant->GetSecondarySpellIDBeingCast();
         };
-        result = pSdata->RunSpellScripts(SPELL_CASTER_LEVEL, 
-                                          ScriptCallback_RunAllScripts, 
-                                          NULL,
-                                          "Invoke spell on target");
+        result = pSdata->specAbs.RunScripts(SPELL_CASTER_LEVEL, 
+                                            ScriptCallback_RunAllScripts, 
+                                            NULL, 
+                                            "Spell", 
+                                            pSdata->Name);
         if (result.GetLength()> 0)
         {
           sscanf(result,"%d",&casterLevel);
@@ -16379,10 +17145,11 @@ int CHARACTER::InvokeSpellOnTarget(CHARACTER& targ,
         scriptContext.SetSpellContext(pSdata);
         scriptContext.SetAttackerContext(this);
         hookParameters[5].Format("%d", int(val));
-        result = pSdata->RunSpellScripts(SPELL_DURATION, 
-                                         ScriptCallback_RunAllScripts, 
-                                         NULL, 
-                                         "Invoke spell on target");
+        result = pSdata->specAbs.RunScripts(SPELL_DURATION, 
+                                            ScriptCallback_RunAllScripts, 
+                                            NULL, 
+                                            "Spell", 
+                                            pSdata->Name);
         if (result.GetLength()> 0)
         {
           sscanf(result,"%lf",&val);
@@ -16415,49 +17182,15 @@ int CHARACTER::InvokeSpellOnTarget(CHARACTER& targ,
         aspell.StopTime = val+party.getElapsedMinutes();        
         break;
       default: 
-        die(0xab509); 
+        ASSERT(FALSE); 
         break;
       }
         
-      activeSpellList.xAddWithCurrKey(aspell);
+      activeSpellList.AddWithCurrKey(aspell);
     }
   }
 
   DisplayCurrSpellEffects("InvokeSpellOnTarget");
-  // 20161123 
-  //  I am investigating when to run the Begin/End Scripts for a lingering spell.
-  //  I found this following line removed.  I wonder why.  Where will the end script be run?
-  //  We need to run it once for each beginscript.....and we executed the begin script above.
-  //  Hmmmmm.....
-  //
-  // 10161206  The following comment copied from CHARACTER::addSpellEffect/
-      /* 20141229  Version 1.0303  PRS.
-       * I want the SpellEndScript to match up one-to-one with the SpellBeginScript.
-       * As it was, we ran the Begin Script once for each target the spell attacked.
-       * Then we ran the End Script for each spell effect that was removed.  The result
-       * was that the Begin Script might run without any End Script or one Begin
-       * Script might result in several End Scripts.  Moreover, the spell effects might
-       * end at a much later time when the state of the caster could easily have
-       * undergone dramtic changes.
-       *
-       * So.....Now we run the Begin Script, apply any effects to the target, and
-       * immediately run the End Script.  One-for-one in the same instant of time.
-       */
-  //ASSERT(FALSE);  //Not now   pSdata->ExecuteSpellEndScript(this, &targ);
-  {
-    // Added 20161126.  We seem to have forgotten that every SpellBeginScript should
-    // be matched with a SpellEndScript.  In the simple case that I tested, no end script
-    // was ever run.  I wonder where we thought it might take place.
-    // Oh, Well.  I'll put it here for now.  PRS
-    //
-    // 20161206 PRS
-    // I see now that we ran the End script when the activeSpellList entry (if present)
-    // was removed.  That is bad.  So I deleted the code at 
-    // ACTIVE_SPELL_LIST::DeactivateActiveSpell which ran the End Script when the
-    // expired entry was removed.
-
-    pSdata->ExecuteSpellEndScript(this, &targ);
-  };
   return activeSpellKey;
 }
 
@@ -16470,14 +17203,11 @@ int CHARACTER::InvokeLingerSpellOnTarget(CHARACTER& targ,
                                          const SPELL_ID& spellID,
                                          CString *displayText,
                                          BOOL *spellSucceeded,
-                                         InvokeSpellOptions *pInvokeOptions,
-                                         bool abortIfSetPartyXY,
-                                         ToHitComputation *pToHitComputation)
+                                         InvokeSpellOptions *invokeOptions,
+                                         bool abortIfSetPartyXY)
 {
   BOOL ss;
-  SAVING_THROW_DATA stData;
   if (spellSucceeded == NULL) spellSucceeded = &ss;
-
   if (displayText != NULL)
   {
     displayText->Empty();
@@ -16564,26 +17294,27 @@ int CHARACTER::InvokeLingerSpellOnTarget(CHARACTER& targ,
     //pClass = classData.GetClassData(this->GetClass());
     pClass = classData.PeekClass(this->GetClass());
     //pRace = raceData.GetRaceData(targ.race());
-    //pRace = raceData.PeekRace(targ.race);
-    pRace = targ.PeekRaceData();
+    pRace = raceData.PeekRace(targ.race);
     scriptContext.SetClassContext(pClass);
     spellName = pSdata->Name;
   //  hookParameters[5].Format("%d",m_toHitDiceRoll);
   //  hookParameters[6].Format("%d",m_effectiveTHAC0);
-    result = pSdata->RunSpellScripts
+    result = pSdata->specAbs.RunScripts
                 (DOES_SPELL_ATTACK_SUCCEED,
                  ScriptCallback_LookForChar,
                  "YN",
-                 "Invoke lingering spell on target");
+                 this->name,
+                 spellName);
     if (result.IsEmpty())
     {
       if (pRace != NULL)
       {
-        result = pRace->RunRaceScripts
+        result = pRace->m_specAbs.RunScripts
                     (DOES_SPELL_ATTACK_SUCCEED,
                      ScriptCallback_LookForChar,
                      "YN",
-                     "Invoke lingering spell on target");
+                    this->name,
+                    spellName);
       };
     }
     if (result.IsEmpty())
@@ -16599,11 +17330,12 @@ int CHARACTER::InvokeLingerSpellOnTarget(CHARACTER& targ,
           pMonsterData = monsterData.PeekMonster(monsterID);
           if (pMonsterData != NULL)
           {
-            result = pMonsterData->RunMonsterScripts
+            result = pMonsterData->specAbs.RunScripts
                       (DOES_SPELL_ATTACK_SUCCEED,
                        ScriptCallback_LookForChar,
                        "YN",
-                       "Invoke lingering spell on target");
+                      this->name,
+                      spellName);
           };
         };
       };
@@ -16611,11 +17343,12 @@ int CHARACTER::InvokeLingerSpellOnTarget(CHARACTER& targ,
     if (result.IsEmpty())
     {
 
-      result = targ.RunCharacterScripts
+      result = targ.specAbs.RunScripts
                 (DOES_SPELL_ATTACK_SUCCEED,
                  ScriptCallback_LookForChar,
                  "YN",
-                 "Invoke lingering spell on target");
+                this->name,
+                spellName);
     };
 
     *spellSucceeded = TRUE;
@@ -16636,33 +17369,10 @@ int CHARACTER::InvokeLingerSpellOnTarget(CHARACTER& targ,
   if (!(*spellSucceeded)) return activeSpellKey;
 
 
-  stData.changeResult = 1.0;
-  stData.noEffectWhatsoever = FALSE;
-  stData.pCaster = this;
-  stData.pTarget = &targ;
-  stData.pSpell = pSdata;
-  stData.success = FALSE;
-  if (pSdata->Save_Result != NoSave)
-  {
-    targ.DoesSavingThrowSucceed(pSdata,
-                                stData,
-                                targ.GetIsFriendly() == GetIsFriendly(), 
-                                this,
-                                displayText);
-  };
-  if (stData.noEffectWhatsoever)
-  {
-    return activeSpellKey;
-  };
-
-
-
-
   
   
  
   // run script for each effect
-  bool effectAdded = false;
   POSITION pos = pSdata->m_EffectedAttributes.GetHeadPosition();
   if (pos != NULL)
   {
@@ -16692,12 +17402,11 @@ int CHARACTER::InvokeLingerSpellOnTarget(CHARACTER& targ,
         {
           // 20110201 PRS CalcSpellEffectChangeValue(pSdata,saData,TRUE);            
           targ.CalcSpellEffectChangeValue(pSdata,saData,targ.GetIsFriendly(), this);  
-          // 20171205 PRS this was being done twice.  Why?    targ.AddLingeringSpellEffect(saData, this);
-          if (targ.AddLingeringSpellEffect(saData, this, "Invoking lingering spell on target"))
+          targ.AddLingeringSpellEffect(saData, this);
+          if (targ.AddLingeringSpellEffect(saData, this))
           {
-            effectAdded = true;
             // force a scan of the current char status
-            // Do this at final spell stage  targ.TakeDamage(0, FALSE, pInvokeOptions, &targ==this, NULL);
+            targ.TakeDamage(0, FALSE, invokeOptions, &targ==this, NULL);
           }      
         }          
       }
@@ -16742,10 +17451,7 @@ int CHARACTER::InvokeLingerSpellOnTarget(CHARACTER& targ,
     scriptContext.SetTargetContext(&targ);
     hookParameters[5].Format("%d", targets.m_MapTargetX);
     hookParameters[6].Format("%d", targets.m_MapTargetY);
-    pSdata->RunSpellScripts(INVOKE_SPELL_ON_TARGET, 
-                            ScriptCallback_RunAllScripts, 
-                            NULL, 
-                            "Invoke lingering spell on target");
+    pSdata->specAbs.RunScripts(INVOKE_SPELL_ON_TARGET, ScriptCallback_RunAllScripts, NULL, "Spell", pSdata->Name);
     //int PostSpecAbCount = targ.spellEffects.GetCount();
     //int Diff = PostSpecAbCount - PreSpecAbCount;
     //if (Diff > 0)
@@ -16761,15 +17467,15 @@ int CHARACTER::InvokeLingerSpellOnTarget(CHARACTER& targ,
         //Diff--;
       //}
     //}
-    if (pInvokeOptions != NULL)
+    if (invokeOptions != NULL)
     {
       if (targ.hitPoints <= -10)
       {
-        pInvokeOptions->m_whatSpriteNeeded = DeathSprite;
+        invokeOptions->m_whatSpriteNeeded = DeathSprite;
       }
       else if (targ.hitPoints <= 0)
       {
-        pInvokeOptions->m_whatSpriteNeeded = DyingSprite;
+        invokeOptions->m_whatSpriteNeeded = DyingSprite;
       };
     };
   };
@@ -16930,26 +17636,14 @@ void CHARACTER::SpellActivate(const PENDING_SPELL    &data,
   SPELL_DATA *pSdata = spellData.GetSpell(data.spellID);
   if (pSdata==NULL) 
   {
-    die(0xab50a);
+    ASSERT(FALSE);
     return;
   }
-#ifdef SpellInitiationScript
-  pSdata->ExecuteSpellInitiationScript(this);
-  int activeSpellKey = -2;  // Indicate that SpellInititionScript has been run
-#endif
 
-
-
-  
-#ifndef SpellInitiationScript 
-  // Let activeSpellKey be -1 unless something is actually added
-  // to the activeSpellList.  In that way, we will know whether to
-  // run the SpellTerminationScripts now or rely on the code that
-  // removes the activeSpellEntry to run the SpellTerminationScript.
+  int activeSpellKey=-1;
   if (pSdata->Duration_Rate != Permanent)
     activeSpellKey = activeSpellList.GetNextKey();
-#endif
- 
+
   // in non-combat mode, all targets are party members
   for (int i=0;i<targets.NumTargets();i++)
   {
@@ -16978,12 +17672,6 @@ void CHARACTER::SpellActivate(const PENDING_SPELL    &data,
                                          pToHitComputation);
     if (setPartyXY_x >= 0)
     {
-#ifdef SpellInitiationScript
-      if (activeSpellKey < 0)
-      { // Else removing the activeSpellEntry will run the Termination Script
-        pSdata->ExecuteSpellTerminationScript(this);
-      };
-#endif
       return;
     };
   }
@@ -16997,18 +17685,6 @@ void CHARACTER::SpellActivate(const PENDING_SPELL    &data,
   //
   WriteDebugString("Spell %s activated by %s\n", pSdata->SpellID(), GetName());
   pSdata->PlayCast();
-#ifdef SpellInitiationScript
-  if (activeSpellKey < 0)
-  { // Else removing the activeSpellEntry will run the Termination Script
-    if (activeSpellKey != -2)  // Was the SpellInitiationScript executed
-    {
-      die(0x552d);
-    };
-    pSdata->ExecuteSpellTerminationScript(this);
-    activeSpellKey = -1;
-  };
-#endif
-
 }
 
 //*****************************************************************************
@@ -17068,7 +17744,7 @@ BOOL CHARACTER::CastSpell(const SPELL_ID& spellID, bool abortIfSetPartyXY, bool 
 //void CHARACTER::QueueUsedSpecAb(specialAbilitiesType sa, WORD src, GLOBAL_SPELL_ID skey) const
 void CHARACTER::QueueUsedSpecAb(specialAbilitiesType sa, WORD src, const SPELL_ID& spellID) const
 {
-  die("Not Needed?"); //Not Implemented(0xdaf754,FALSE);
+  NotImplemented(0xdaf754,FALSE);
 }
 
 //*****************************************************************************
@@ -17267,11 +17943,7 @@ BOOL CHARACTER::ModifyAttackRollDice(const CHARACTER *pTarget,const int num, con
 // PURPOSE: 
 //
 //*****************************************************************************
-BOOL CHARACTER::ModifyAttackDamageDice(const CHARACTER *pTarget,
-                                       const int num, 
-                                       const int sides, 
-                                       int* pBonus, 
-                                       BOOL* pNonLethal) const
+BOOL CHARACTER::ModifyAttackDamageDice(const CHARACTER *pTarget,const int num, const int sides, int* pBonus, BOOL* pNonLethal) const
 {
   DWORD src;
   //GLOBAL_SPELL_ID skey;
@@ -17303,86 +17975,37 @@ BOOL CHARACTER::ModifyAttackDamageDice(const CHARACTER *pTarget,
   //if (GetAdjClass() == Ranger)
   if (pTarget->HasRangerDmgPenalty())
   {
-    //SKILL_ID rangerBonusSkillID;
+    SKILL_ID rangerBonusSkillID;
     const BASE_CLASS_DATA *pBaseclass;
-    CLASS_ID adjClassID;
-//    double maxRaceAdj, maxBaseclassAdj;
-    adjClassID = GetAdjClass();
-    //rangerBonusSkillID = Skill_RangerBonusLevel;
+    CLASS_ID classID;
+    const BASECLASS_ID *pBaseclassID;
+    classID = GetAdjClass();
+    rangerBonusSkillID = Skill_RangerBonusLevel;
     const CLASS_DATA *pClass;
-
-    int rangerBonus;
-    pClass = classData.PeekClass(adjClassID);
-    rangerBonus = GetAdjSkillValue(Skill_RangerBonusLevel, false, true);
-    if ((rangerBonus != NoSkill) && (pClass != NULL))
-    {
-      int numBaseclass, i;
-      SCRIPT_CONTEXT scriptContext;
-      HOOK_PARAMETERS hookParameters;
-      scriptContext.SetAttackerContext(this);
-      scriptContext.SetTargetContext(pTarget);
-      hookParameters[5].Format("%d", rangerBonus);
-      numBaseclass = pClass->GetCount();
-      for(i=0; i<numBaseclass; i++)
-      {
-        SKILL_ID skillID;
-        skillID = Skill_RangerBonusLevel;
-        pBaseclass = baseclassData.PeekBaseclass(*pClass->PeekBaseclassID(i));
-        if ((pBaseclass != NULL) && (pBaseclass->PeekSkill(skillID) != NULL))
-        {
-          scriptContext.SetBaseClassContext(pBaseclass);
-          pBaseclass->RunBaseClassScripts(RANGER_DAMAGE_BONUS, 
-                                          ScriptCallback_RunAllScripts, 
-                                          NULL, 
-                                          "ModifyAttackDamageDice");
-        };
-      };      
-        rangerBonus = atoi(hookParameters[5]);
-    };
-    if (rangerBonus != NoSkill)
-    {
-      *pBonus += rangerBonus;
-    };
-
-
-/*
     int maxLevel = 0;
-//    maxRaceAdj = maxBaseclassAdj = NoSkillAdj;
-    pClass = classData.PeekClass(adjClassID);
-    // Search the attacker's baseclasses for the largest RangerBonusLevel
+    pClass = classData.PeekClass(classID);
+    // Search the attacker's baseclasses for the largest RangerDamage level
     if (pClass != NULL)
     {
-      int i,n;
+      int i, n;
       n = pClass->GetCount();
       for (i=0; i<n; i++)
       {
-        int index;
         pBaseclassID = pClass->PeekBaseclassID(i);
-        index = baseclassData.LocateBaseclass(*pBaseclassID);
-        if (index < 0) continue;
-        pBaseclass = baseclassData.GetBaseclass(index);
+        pBaseclass = baseclassData.PeekBaseclass(*pBaseclassID);
         if (pBaseclass != NULL)
         {
           int currentLevel;
           int rangerBonusLevel;
-          SKILL_COMPUTATION SC(this, Skill_RangerBonusLevel, false);
           const RACE_DATA *pRace;
-          //rangerBonusLevel = pBaseclass->GetSkillValue(rangerBonusSkillID);
-          //pBaseclass->GetSkillValue(rangerBonusSkillID);
-          pBaseclass->GetSkillValue(SC);
-          rangerBonusLevel = SC.baseVal + 0.5;
+          rangerBonusLevel = pBaseclass->GetSkillValue(rangerBonusSkillID);
           if (rangerBonusLevel == NoSkill) continue;
-          pBaseclass->UpdateSkillValue(SC);
+          rangerBonusLevel = pBaseclass->UpdateSkillValue(this, rangerBonusSkillID, rangerBonusLevel);
           pRace = raceData.PeekRace(race);
-          Not Implemented(0x4a08, false);
           if (pRace != NULL)
           {
-            //rangerBonusLevel = pRace->UpdateSkillValue(this, rangerBonusSkillID, NULL, rangerBonusLevel, &maxRaceAdj);
-            //rangerBonusLevel = pRace->UpdateSkillValue(this, 
-            //pRace->UpdateSkillValue(this, 
-            pRace->UpdateSkillValue(SC);
+            rangerBonusLevel = pRace->UpdateSkillValue(this, rangerBonusSkillID, NULL, rangerBonusLevel);
           };
-          rangerBonusLevel = SC.finalAdjustedValue + 0.5;
           currentLevel = GetCurrentLevel(*pBaseclassID);
           if (currentLevel >= rangerBonusLevel)
           {
@@ -17392,9 +18015,7 @@ BOOL CHARACTER::ModifyAttackDamageDice(const CHARACTER *pTarget,
       };
       *pBonus += maxLevel;
     };
-*/
   };
-
 
   //if (GetAdjSpecAb(SA_Enfeebled,&src,&skey))
   if (GetAdjSpecAb(SA_Enfeebled,&src,&spellID))
@@ -17813,14 +18434,12 @@ void CHARACTER::ModifyAttackDamageDiceForItemAsTarget(const CHARACTER *pAttacker
     scriptContext.SetAttackerContext(pAttacker);
     scriptContext.SetTargetContext(this);
     scriptContext.SetItemContext(pItem);
-    RunCharacterScripts(GET_ITEM_TARGET_HIT_BONUS, 
-                        ScriptCallback_RelOrAbs, 
-                        relAbs, 
-                        "Modify attack damage dice for item as target");
-    pItem->RunItemScripts(GET_ITEM_TARGET_HIT_BONUS,
-                          ScriptCallback_RelOrAbs,
-                          relAbs,
-                          "Modify attack damage dice for item as target");
+    specAbs.RunScripts(GET_ITEM_TARGET_HIT_BONUS, ScriptCallback_RelOrAbs, relAbs, name, "");
+    pItem->specAbs.RunScripts(GET_ITEM_TARGET_HIT_BONUS,
+                              ScriptCallback_RelOrAbs,
+                              relAbs,
+                              pItem->UniqueName(),
+                              "");
   };
   *pBonus = relAbs[1] + relAbs[0];
   return;
@@ -18148,8 +18767,7 @@ void CHARACTER::ComputeCombatViewValues(void)
 
 void CHARACTER::ComputeCharacterViewValues(void)
 {
-  displayValues.AdjMaxMovement = GetAdjMaxMovement(DEFAULT_SPELL_EFFECT_FLAGS, 
-                                                   "Compute character view values");
+  displayValues.AdjMaxMovement = GetAdjMaxMovement();
   displayValues.MaxMovement    = GetMaxMovement();
 }
 
@@ -18182,7 +18800,7 @@ void CHARACTER::ProcessLingeringSpellEffects(void)
           CHARACTER *pCaster;
           pCaster = GetCombatant(pActor)->m_pCharacter;
           CalcSpellEffectChangeValue(pSpData, *pSE, GetIsFriendly(), pCaster);
-          if (AddLingeringSpellEffect(*pSE, pCaster, "Processing Lingering Spell Effect"))
+          if (AddLingeringSpellEffect(*pSE, pCaster))
           {
             needScan = true;
           }      
@@ -18512,6 +19130,15 @@ DEFID ( "undeadType"              ,string      ,UndeadType),
 DEFID ( "size"                    ,enum        ,Size),
 
 //    AS(ar,name);
+/*
+    ar << FighterExperience;
+    ar << ClericExperience;
+    ar << RangerExperience;
+    ar << PaladinExperience;
+    ar << MUExperience;
+    ar << ThiefExperience;
+    ar << DruidExperience;
+*/
 //    ar << THAC0;
 DEFID ( "THAC0"                   ,long        ,THAC0),
 //    ar << morale;
@@ -18576,6 +19203,52 @@ DEFID("hit bonus",long,HitBonus),
     ar << dmgBonus;
 DEFID("damage bonus",ling,DamageBonus),
     ar << magicResistance;
+    //ar << saveVsParPsnDMag;
+    //ar << saveVsPetPoly;
+    //ar << saveVsRdStWnd;
+    //ar << saveVsBreath;
+    //ar << saveVsSpell;
+    //ar << pickPockets;
+    //ar << openLocks;
+    //ar << findRemoveTrap;
+    //ar << moveSilent;
+    //ar << hideInShadows;
+    //ar << hearNoise;
+    //ar << climbWalls;
+    //ar << readLanguages;
+
+/*
+    ar << FighterLevel;
+    ar << ClericLevel;
+    ar << RangerLevel;
+    ar << PaladinLevel;
+    ar << MULevel;
+    ar << ThiefLevel;
+    ar << DruidLevel;
+    ar << prevFighterLevel;
+    ar << prevClericLevel;
+    ar << prevRangerLevel;
+    ar << prevPaladinLevel;
+    ar << prevMULevel;
+    ar << prevThiefLevel;
+    ar << prevDruidLevel;
+    ar << pdFighterLevel;
+    ar << pdClericLevel;
+    ar << pdRangerLevel;
+    ar << pdPaladinLevel;
+    ar << pdMULevel;
+    ar << pdThiefLevel;
+    ar << pdDruidLevel;
+*/
+//    {
+//      int i, count;
+//      count = GetBaseclassStatsCount();
+//      ar << count;
+//      for (i=0; i<count; i++)
+//      {
+//        baseclassStats[i].Serialize(ar);
+//      };
+//    };
 DEFID("baseclass",string,Baseclass),
 
 //    ar << IsPreGen;
@@ -18624,6 +19297,54 @@ DEFID("spell effect",string,SpellEffect),
     blockageData.Serialize(ar);
 DEFID("blockage",string,BlockageData),
 
+
+
+
+
+
+
+/*
+
+
+DEFID ( "Key"                     ,long        ,Key),
+DEFID ( "id name"                 ,string      ,IDname),
+DEFID ( "launch sound"            ,file        ,LaunchSound),
+DEFID ( "hit sound"               ,file        ,HitSound),
+DEFID ( "miss sound"              ,file        ,MissSound),
+DEFID ( "missile sprite"          ,spritedata  ,SpriteData),
+DEFID ( "hit sprite"              ,spritedata  ,HitSpriteData),
+DEFID ( "ROF per round"           ,float       ,ROFperRound),
+DEFID ( "combat range"            ,long        ,Range),
+DEFID ( "cost"                    ,long        ,Cost),
+DEFID ( "hands to carry"          ,long        ,HandsToUse),
+DEFID ( "baseclass"               ,flags       ,Baseclass),
+DEFID ( "small/medium damage dice",dice        ,SmallDamageDice),
+DEFID ( "large damage dice"       ,dice        ,LargeDamageDice),
+DEFID ( "AC base"                 ,long        ,ACbase),
+DEFID ( "AC bonus"                ,long        ,ACbonus),
+DEFID ( "attack bonus"            ,long        ,AttackBonus),
+DEFID ( "experience"              ,long        ,Experience),
+DEFID ( "encumbrance"             ,long        ,Encumbrance),
+DEFID ( "cursed"                  ,BOOL        ,Cursed),
+DEFID ( "non lethal"              ,BOOL        ,NonLethal),
+DEFID ( "readied location"        ,DWORD       ,ReadiedLocation),
+DEFID ( "location carried"        ,DWORD       ,LocationCarried), // For backward compatibility
+DEFID ( "bundle quantity"         ,long        ,BundleQuantity),
+DEFID ( "Special Ability"         ,string      ,SpecialAbility),
+DEFID ( "ASL"                     ,string,     ,ASL),
+DEFID ( "weapon type"             ,enum        ,WeaponType),
+DEFID ( "ammo type"               ,string      ,AmmoType),
+DEFID ( "usable"                  ,BOOL        ,Usable),
+DEFID ( "scribtable"              ,BOOL        ,Scribable),
+DEFID ( "can drop"                ,BOOL        ,Droppable),
+DEFID ( "CanHalveJoin"            ,BOOL        ,CanHalveJoin),
+DEFID ( "number of charges"       ,long        ,NumberCharges),
+DEFID ( "recharge rate"           ,enum        ,RechargeRate),
+DEFID ( "spell effect"            ,string      ,SpellEffect),
+//DEFID ( "spell level"             ,long        ,SpellLevel),
+//DEFID ( "spell class"             ,enum        ,SpellClass),
+
+*/
 #endif //finished  - awaiting Rainbower
 CONFIGID( "" ,CONFIG_DATA_end ,NULL)
 };

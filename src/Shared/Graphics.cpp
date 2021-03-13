@@ -16,7 +16,7 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ******************************************************************************/
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 
 //#include "externs.h"
 #ifdef UAFEDITOR
@@ -24,10 +24,10 @@
 #endif
 
 #ifdef UAFEngine
-#include "..\UAFWin\Dungeon.h"
-#include "..\UAFWin\MouseThread.h"
+#include "../UAFWin/Dungeon.h"
+#include "../UAFWin/MouseThread.h"
 #include "GlobalData.h"
-#include "..\UAFWin\FormattedText.h"
+#include "../UAFWin/FormattedText.h"
 #endif
 
 #include "Graphics.h"

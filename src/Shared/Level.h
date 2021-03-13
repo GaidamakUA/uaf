@@ -20,7 +20,7 @@
 #define __LEVEL_H__
 
 //#include "externs.h"
-#include "items.h"
+#include "Items.h"
 #include "PicData.h"
 #include "PicSlot.h"
 #include "GameEvent.h"
@@ -84,16 +84,15 @@ struct AREA_MAP_DATA
   BYTE zone;         // what zone is this spot in?
   BOOL eventExists;  // is there a root event linked to this spot?
 
-  BYTE wall[4]; // North, south, east, west
-//  BYTE northWall; // index into wall slots
-//  BYTE southWall; // Obsolete...see below.
-//  BYTE eastWall;
-//  BYTE westWall;
-  BlockageType blockage[4];  // North, south, east, west
-//  BlockageType northBlockage; // blockages for all 4 sides
-//  BlockageType southBlockage; // Obsolete.  See below.
-//  BlockageType eastBlockage;
-//  BlockageType westBlockage;
+  BYTE northWall; // index into wall slots
+  BYTE southWall; // Obsolete...see below.
+  BYTE eastWall;
+  BYTE westWall;
+
+  BlockageType northBlockage; // blockages for all 4 sides
+  BlockageType southBlockage; // Obsolete.  See below.
+  BlockageType eastBlockage;
+  BlockageType westBlockage;
 
   BlockageType& blockages(int dir);
   BYTE& backgrounds(int dir);
@@ -213,7 +212,7 @@ public:
 #endif
 #ifdef UAFEDITOR
   CONFIG_ITEM_STATUS Export(JWriter& jw);
-  CONFIG_ITEM_STATUS Import(JReader& jr);
+  CONFIG_ITEM_STATUS Import(JReader& jw);
   CONFIG_ITEM_STATUS ExportCell(JWriter& jw, int x, int y);
   CONFIG_ITEM_STATUS ImportCell(JReader& jr);
   CONFIG_ITEM_STATUS ImportCells(JReader& jr);
@@ -246,7 +245,7 @@ public:
   BOOL haveLockedDoor(int x, int y, int facing);
   BOOL haveSpelledDoor(int x, int y, int facing);
   //BOOL haveTimeEvent(int x, int y, int day, int hour, int minute, GameEvent **stepEvent);
-  //BOOL haveStepEvent(int x, int y, int stepCount, GameEvent **stepEvent);
+  BOOL haveStepEvent(int x, int y, int stepCount, GameEvent **stepEvent);
   BOOL haveRestEvent(int x, int y, GameEvent **restEvent);
   // event descriptive text for editor
   //void GetTimeEventText(int num, char *text); 
@@ -262,9 +261,8 @@ public:
   AREA_MAP_DATA area[MAX_AREA_HEIGHT][MAX_AREA_WIDTH]; // viewport map
   GameEventList eventData;
   ZONE_DATA zoneData;
-  STEP_EVENT_DATA stepEvents[MAX_STEP_EVENTS];
-  //STEP_EVENT stepEvents[MAX_STEP_EVENTS];
-  mCArray <TIME_EVENT_DATA, TIME_EVENT_DATA&> timeEvents;
+  STEP_EVENT stepEvents[MAX_STEP_EVENTS];
+  //TIME_EVENT timeEvents[MAX_TIME_EVENTS];
   BLOCKAGE_KEYS blockageKeys;
   A_ASLENTRY_L level_asl;
   int PrevZone;

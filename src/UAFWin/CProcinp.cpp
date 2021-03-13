@@ -50,21 +50,21 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "..\shared\stdafx.h"
+#include "../Shared/stdafx.h"
 //#include "..\Shared\ProjectVersion.h"
 
 #include "externs.h"
 
-#include "GetInput.h"
+#include "Getinput.h"
 #include "class.h"
-#include "CProcInp.h"
+#include "CProcinp.h"
 #include "party.h"
 #include "globaldata.h"
 #include "MouseThread.h"
 #ifdef UAFEDITOR
-#include "..\UAFWinEd\Resource.h"
+#include "../UAFWinEd/resource.h"
 #else
-#include "..\UAFWin\Resource.h"
+#include "../UAFWin/resource.h"
 #endif
 
 #include <io.h>

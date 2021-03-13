@@ -21,9 +21,9 @@
 
 #include "GameEvent.h"
 #include "SharedQueue.h"
-#include "level.h"
-#include "char.h"
-#include "TagList.h"
+#include "Level.h"
+#include "Char.h"
+#include "Taglist.h"
 
 const int DRUNK_THRESHOLD = 60;
 const int DRINK_POINT_DEC_PER_HOUR = 10;
@@ -34,7 +34,6 @@ extern const char *JKEY_ENTRIES;
 extern const char *JKEY_KEY;
 extern const char *JKEY_ORIGKEY;
 extern const char *JKEY_TEXT;
-extern const char *JKEY_MTEXT;
 extern const char *JKEY_JOURNAL;
 struct JOURNAL_ENTRY
 {
@@ -476,8 +475,8 @@ public:
 #endif
   void Clear(BOOL IsConstructor=FALSE);
 
-  BOOL IsVisited(int lvl, int x, int y) { return (visitData.IsVisited(lvl, x,y)); }
-  void SetVisited(int lvl, int x, int y) { visitData.SetVisited(lvl,x,y); }
+  BOOL IsVisited(int level, int x, int y) { return (visitData.IsVisited(level, x,y)); }
+  void SetVisited(int level, int x, int y) { visitData.SetVisited(level,x,y); }
 
   void IncZoneStepCount(int zlevel, int zone) { eventFlags.IncZoneStepCount(zlevel, zone); }
   unsigned long GetZoneStepCount(int zlevel, int zone) { return (eventFlags.GetZoneStepCount(zlevel, zone)); }
@@ -498,7 +497,6 @@ public:
   void turnPartyRight();
   void poolPartyGold();  
   void sharePartyGold();
-  void sharePartyGoldOnce();
   void AutoUpConvertPoolMoney();
   int  GetPoolGoldValue();
   BOOL PartyHasMoney();
@@ -556,12 +554,12 @@ public:
   //BOOL PartyHasSpellMemorized(GLOBAL_SPELL_ID spellDbKey);
   BOOL PartyHasSpellMemorized(const SPELL_ID& spellID);
 
-  CHARACTER& GetCharacter(int activeChar, const char *msg);
+  CHARACTER& GetCharacter(int activeChar);
   CHARACTER& GetStrongestCharacter(void);
   CHARACTER& GetBestLockpicker(int *bestSkillValue);
-  int        GetBestSkill(const SKILL_ID& skillID, int *bestSkillValue, bool minimize);
+  int        GetBestSkill(const SKILL_ID& skillID, int *bestSkillValue);
   void getCharWeaponText(int index, CString &wpn, CString &dmg);
-  CHARACTER *addTempToParty(CHARACTER &luckyDude);
+  void addTempToParty(CHARACTER &luckyDude);
   BOOL TeleportParty(TRANSFER_DATA &dest);
   int GetHealingPointsNeeded();  
 //  void FixParty(CHARACTER &caster, BOOL cast); // use specified character to heal
@@ -571,7 +569,7 @@ public:
   void BeginResting(void);
   void HealParty(HEAL_PARTY_DATA &data);
   int RelativeToActualFacing(int relativeDirection);
-  void RemoveSpellEffect(DWORD parent, const SPELL_DATA *pSpell, bool endSpell);
+  void RemoveSpellEffect(DWORD parent, SPELL_DATA *pSpell);
   DWORD CalcRestTime(void);
 
   // performs the looting for take items event
@@ -604,7 +602,7 @@ public:
 	BYTE level;
 	BYTE speed;
 	BYTE facing;
-	BYTE activeCharacter;  // index into PARTY::characters array
+	BYTE activeCharacter;
 	BYTE activeItem;
   BYTE tradeItem;
   BYTE tradeGiver;

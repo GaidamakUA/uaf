@@ -19,10 +19,10 @@
 #ifndef __COMBATANT_H__
 #define __COMBATANT_H__
 
-#include "SharedQueue.h"
+#include "sharedqueue.h"
 #include "monster.h"
 #include "spell.h"
-#include "Path.h"
+#include "path.h"
 #include "CombatSummary.h"
 
 // make sure this enum has the same order as CombatStateType (overallCombatState?)

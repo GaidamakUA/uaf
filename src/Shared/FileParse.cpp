@@ -23,7 +23,7 @@
 #endif
 #include "FileParse.h"
 #ifdef UAFEngine
-#include "specab.h"
+#include "Specab.h"
 #endif
 
 #ifdef _DEBUG

@@ -16,33 +16,32 @@
 * along with this program; if not, write to the Free Software
 * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ******************************************************************************/
-#include "..\Shared\stdafx.h"
+#include "../Shared/stdafx.h"
 //#include "..\Shared\ProjectVersion.h"
 
-#pragma warning (disable:4091)
 
 #ifdef UAFEDITOR
-#include "..\UAFWinEd\UAFWinEd.h"
-#include "..\UAFWinEd\ShellLink.h"
-#include <sys\stat.h>
-#include "specab.h"
-#include "..\UAFWinEd\itemdb.h"
+#include "../UAFWinEd/UAFWinEd.h"
+#include "../UAFWinEd/shelllink.h"
+#include <sys/stat.h>
+#include "Specab.h"
+#include "../UAFWinEd/ItemDB.h"
 #include "class.h"
-#include "..\UAFWinEd\resource.h"
-#include "..\UAFWinEd\CrossReference.h"
-#include "..\UAFWinEd\ImportWarning.h"
+#include "../UAFWinEd/resource.h"
+#include "../UAFWinEd/CrossReference.h"
+#include "../UAFWinEd/ImportWarning.h"
 #else
-#include "externs.h"
-#include "..\UAFWin\Dungeon.h"
+#include "Externs.h"
+#include "../UAFWin/Dungeon.h"
 #include "class.h"
 #endif
 
 #include "Char.h"
-#include "level.h"
+#include "Level.h"
 #include "GameEvent.h"
-#include "spell.h"
+#include "Spell.h"
 #include "Graphics.h"
-#include "party.h"
+#include "Party.h"
 #include "GlobalData.h"
 #include "FileParse.h"
 #include "Viewport.h"
@@ -63,15 +62,11 @@ void PumpWinMsgs(void);
 void die(CString msg);
 BOOL MyDeleteFile(LPCSTR name);
 BOOL MyCopyFile(LPCSTR src, LPCSTR dest, BOOL failfIfExists);
-void SetMapOverride(OVERRIDE_TYPE ovt, int *parameters);
-
 extern A_CStringInteger_L *fileExistsList;
 
 extern const double VersionSpellNames;
 extern const double VersionSpellIDs;
 extern const double PRODUCT_VER;
-extern int useWallIndex;
-extern int useDoorAndOverlayIndex;
 
 
 
@@ -83,86 +78,9 @@ extern int useDoorAndOverlayIndex;
 // When saving a design the design's version is updated
 // to be the most current version. Some decisions rely
 // on knowing what the design version was before we updated it.
-double PreSaveDesignVer;
+DWORD PreSaveDesignVer;
 
 LEVEL levelData;
-
-LPCTSTR ExtractNumber(LPCTSTR pC, int *number)
-{
-  LPCTSTR result;
-  result = NULL;
-  *number = 0;
-  while ( (*pC >= '0') && (*pC <='9'))
-  {
-    *number = 10* *number + *pC - '0';
-    pC++;
-    result = pC;
-  };
-  return result;
-}
-
-bool ExtractParameters(int level, const CString& key, const CString& value, int *parameters)
-{
-  parameters[0] = level+1; //Ordinal of level
-  LPCTSTR pC, pComma;
-  pC = key.GetString();
-  pComma = strchr(pC,',');
-  if (pComma == NULL) return false;
-  pC = pComma+1;
-  pC = ExtractNumber(pC,&parameters[1]);
-  if (pC == NULL) return false;
-  pC = pC+1;
-  pC = ExtractNumber(pC, &parameters[2]);
-  if (pC == NULL) return false;
-  pC = pC+1;
-  if (*pC == 'N') parameters[3] = 0;
-  else if (*pC == 'E') parameters[3] = 1; 
-  else if (*pC == 'S') parameters[3] = 2; 
-  else if (*pC == 'W') parameters[3] = 3;
-  else return false;
-  pC = value.GetString();
-  pC = ExtractNumber(pC, &parameters[4]);
-  if (pC == NULL) return false;
-  return true;
-}
-
-void Convert$Wall(int level, const CString& key, const CString& value)
-{
-  int parameters[5];
-  parameters[0] = level+1;  // Ordinal of level
-  if (ExtractParameters(level, key, value, parameters))
-  {
-    SetMapOverride(WALL_OVERRIDE_USER, parameters);
-  };
-}
-
-void ConvertMapOverrides(A_ASLENTRY_L *pASL, int level)
-{
-  POSITION pos;
-  const ASLENTRY *pEntry;
-  pos = pASL->GetStartPosition();
-  while (pos != NULL)
-  {
-    const CString *pKey;
-    LPCTSTR pC;
-    pASL->GetNextAssoc(pos, &pEntry);
-    pKey = pEntry->pKey();
-    pC = pKey->GetString();
-    if (pKey->GetLength() >= 6)
-    {
-      if (    (pC[0] == '$') 
-           && (pC[1] == 'W')
-           && (pC[2] == 'a')
-           && (pC[3] == 'l')
-           && (pC[4] == 'l')
-           && (pC[5] == ','))
-      {
-        /* Really */ NotImplemented(0xcea12, false);
-      };
-    };
-  };
-}
-
 
 // ASL name is "ZONE_ATTRIBUTES"
 ZONE::ZONE() :zone_asl()
@@ -222,8 +140,16 @@ void ZONE::Serialize(CArchive &ar, double version)
     if (version >= _VERSION_0720_)
       bgSounds.Serialize(ar);
   }
+#ifdef SIMPLE_STRUCTURE
   campArt.Serialize(ar, version, rte.PicArtDir());
+#else
+  campArt.Serialize(ar, version);
+#endif
+#ifdef SIMPLE_STRUCTURE
   treasurePicture.Serialize(ar, version, rte.PicArtDir());
+#else
+  treasurePicture.Serialize(ar, version);
+#endif
   restEvent.Serialize(ar);
   zone_asl.Serialize(ar, "ZONE_ATTRIBUTES");
 }
@@ -437,6 +363,7 @@ void ZONE::Clear(BOOL ctor)
 #if (defined UAFEDITOR)
  if (!ctor)
  {
+#ifdef SIMPLE_STRUCTURE
    indoorCombatArt  = ede.TemplateCombatArtDir() + DEFAULT_CWD;
    outdoorCombatArt = ede.TemplateCombatArtDir() + DEFAULT_CWW;
    campArt.filename = ede.TemplateCampArtDir()   + DEFAULT_CA;
@@ -445,6 +372,16 @@ void ZONE::Clear(BOOL ctor)
    treasurePicture.filename =  ede.TemplateSmallPicDir() + DEFAULT_TR;
    treasurePicture.picType = SmallPicDib;
    treasurePicture.SetDefaults();
+#else
+   indoorCombatArt.Format("%s%s", EditorArt, DEFAULT_CWD);
+   outdoorCombatArt.Format("%s%s", EditorArt, DEFAULT_CWW);
+   campArt.filename.Format("%s%s", EditorArt, DEFAULT_CA);
+   campArt.picType = SmallPicDib;
+   campArt.SetDefaults();
+   treasurePicture.filename.Format("%s%s", EditorArt, DEFAULT_TR);
+   treasurePicture.picType = SmallPicDib;
+   treasurePicture.SetDefaults();
+#endif
  }
 #endif
 }
@@ -490,7 +427,11 @@ void ZONE_DATA::Clear(BOOL ctor)
   }
 #if (defined UAFEDITOR)
  if (!ctor)
+#ifdef SIMPLE_STRUCTURE
     AVArt.Format("%s%s", ede.TemplateAreaViewArtDir(), DEFAULT_ZONEAVART);
+#else
+    AVArt.Format("%s%s", EditorArt, DEFAULT_ZONEAVART);
+#endif
 #else
  if (!ctor)
     AVArt = DEFAULT_ZONEAVART;
@@ -674,22 +615,14 @@ void AREA_MAP_DATA::Serialize(CAR &ar, double ver)
     ar << westBG;
     ar << zone;
     if (eventExists) ar << (BYTE)1; else ar << (BYTE)0;
-//    ar << northWall;
-    ar << wall[0];
-//    ar << southWall;
-    ar << wall[1];
-//    ar << eastWall;
-    ar << wall[2];
-//    ar << westWall;
-    ar << wall[3];
-//    ar << (BYTE)northBlockage;
-    ar << blockage[0];
-//    ar << (BYTE)southBlockage;
-    ar << blockage[1];
-//    ar << (BYTE)eastBlockage;
-    ar << blockage[2];
-//    ar << (BYTE)westBlockage;
-    ar << blockage[3];
+    ar << northWall;
+    ar << southWall;
+    ar << eastWall;
+    ar << westWall;
+    ar << (BYTE)northBlockage;
+    ar << (BYTE)southBlockage;
+    ar << (BYTE)eastBlockage;
+    ar << (BYTE)westBlockage;
   }
   else
   {
@@ -720,26 +653,18 @@ void AREA_MAP_DATA::Serialize(CAR &ar, double ver)
     ar >> zone;
     ar >> tmp;
     eventExists = tmp!=0;
-//    ar >> northWall;
-    ar >> wall[0];
-//    ar >> southWall;
-    ar >> wall[1];
-//    ar >> eastWall;
-    ar >> wall[2];
-//    ar >> westWall;
-    ar >> wall[3];
+    ar >> northWall;
+    ar >> southWall;
+    ar >> eastWall;
+    ar >> westWall;
     ar >> tmp; 
-//    northBlockage = (BlockageType)tmp;
-    blockage[0] = (BlockageType)tmp;
+    northBlockage = (BlockageType)tmp;
     ar >> tmp; 
-//    southBlockage = (BlockageType)tmp;
-    blockage[1] = (BlockageType)tmp;
+    southBlockage = (BlockageType)tmp;
     ar >> tmp; 
-//    eastBlockage = (BlockageType)tmp;
-    blockage[2] = (BlockageType)tmp;
+    eastBlockage = (BlockageType)tmp;
     ar >> tmp; 
-//    westBlockage = (BlockageType)tmp;
-    blockage[3] = (BlockageType)tmp;
+    westBlockage = (BlockageType)tmp;
   }
 }
 
@@ -759,22 +684,14 @@ void AREA_MAP_DATA::Serialize(CArchive &ar, double ver)
     ar << westBG;
     ar << zone;
     if (eventExists) ar << (BYTE)1; else ar << (BYTE)0;
-//    ar << northWall;
-    ar << wall[0];
-//    ar << southWall;
-    ar << wall[1];
-//    ar << eastWall;
-    ar << wall[2];
-//    ar << westWall;
-    ar << wall[3];
-//    ar << (BYTE)northBlockage;
-    ar << (BYTE)blockage[0];
-//    ar << (BYTE)southBlockage;
-    ar << (BYTE)blockage[1];
-//    ar << (BYTE)eastBlockage;
-    ar << (BYTE)blockage[2];
-//    ar << (BYTE)westBlockage;
-    ar << (BYTE)blockage[3];
+    ar << northWall;
+    ar << southWall;
+    ar << eastWall;
+    ar << westWall;
+    ar << (BYTE)northBlockage;
+    ar << (BYTE)southBlockage;
+    ar << (BYTE)eastBlockage;
+    ar << (BYTE)westBlockage;
   }
   else
   {
@@ -804,26 +721,18 @@ void AREA_MAP_DATA::Serialize(CArchive &ar, double ver)
     ar >> zone;
     ar >> tmp;
     eventExists = tmp != 0;
-//    ar >> northWall;
-    ar >> wall[0];
-//    ar >> southWall;
-    ar >> wall[1];
-//    ar >> eastWall;
-    ar >> wall[2];
-//    ar >> westWall;
-    ar >> wall[3];
+    ar >> northWall;
+    ar >> southWall;
+    ar >> eastWall;
+    ar >> westWall;
     ar >> tmp; 
-//    northBlockage = (BlockageType)tmp;
-    blockage[0] = (BlockageType)tmp;
+    northBlockage = (BlockageType)tmp;
     ar >> tmp; 
-//    southBlockage = (BlockageType)tmp;
-    blockage[1] = (BlockageType)tmp;
+    southBlockage = (BlockageType)tmp;
     ar >> tmp; 
-//    eastBlockage = (BlockageType)tmp;
-    blockage[2] = (BlockageType)tmp;
+    eastBlockage = (BlockageType)tmp;
     ar >> tmp; 
-//    westBlockage = (BlockageType)tmp; 
-    blockage[3] = (BlockageType)tmp;
+    westBlockage = (BlockageType)tmp; 
   }
 }
 
@@ -846,22 +755,14 @@ void AREA_MAP_DATA::operator=(const PRE_VERSION_0573_AREA_MAP_DATA &rhs)
   bkgrnd = rhs.bkgrnd;  
   zone = rhs.zone;
   eventExists = rhs.eventExists;
-//  northWall = rhs.northWall;
-  wall[0] = rhs.northWall;
-//  southWall = rhs.southWall;
-  wall[1] = rhs.southWall;
-//  eastWall = rhs.eastWall;
-  wall[2] = rhs.eastWall;
-//  westWall = rhs.westWall;
-  wall[3] = rhs.westWall;
-//  northBlockage = rhs.northBlockage;
-  blockage[0] = rhs.northBlockage;
-//  southBlockage = rhs.southBlockage;
-  blockage[1] = rhs.southBlockage;
-//  eastBlockage = rhs.eastBlockage;
-  blockage[2] = rhs.eastBlockage;
-//  westBlockage = rhs.westBlockage;
-  blockage[3] = rhs.westBlockage;
+  northWall = rhs.northWall;
+  southWall = rhs.southWall;
+  eastWall = rhs.eastWall;
+  westWall = rhs.westWall;
+  northBlockage = rhs.northBlockage;
+  southBlockage = rhs.southBlockage;
+  eastBlockage = rhs.eastBlockage;
+  westBlockage = rhs.westBlockage;
 
   // this data is not present in pre-0573 AREA_MAP_DATA
   northBG = rhs.bkgrnd;
@@ -884,22 +785,14 @@ AREA_MAP_DATA &AREA_MAP_DATA::operator=(const AREA_MAP_DATA &rhs)
   westBG=rhs.westBG;
   zone=rhs.zone;
   eventExists=rhs.eventExists;
-//  northWall=rhs.northWall;
-  wall[0] = rhs.wall[0];
-//  southWall=rhs.southWall;
-  wall[1] = rhs.wall[1];
-//  eastWall=rhs.eastWall;
-  wall[2] = rhs.wall[2];
-//  westWall=rhs.westWall;
-  wall[3] = rhs.wall[3];
-//  northBlockage=rhs.northBlockage;
-  blockage[0] = rhs.blockage[0];
-//  southBlockage=rhs.southBlockage;
-  blockage[1] = rhs.blockage[1];
-//  eastBlockage=rhs.eastBlockage;
-  blockage[2] = rhs.blockage[2];
-//  westBlockage=rhs.westBlockage;
-  blockage[3] = rhs.blockage[3];
+  northWall=rhs.northWall;
+  southWall=rhs.southWall;
+  eastWall=rhs.eastWall;
+  westWall=rhs.westWall;
+  northBlockage=rhs.northBlockage;
+  southBlockage=rhs.southBlockage;
+  eastBlockage=rhs.eastBlockage;
+  westBlockage=rhs.westBlockage;
   return *this;
 }
 
@@ -916,14 +809,14 @@ bool AREA_MAP_DATA::operator==(const AREA_MAP_DATA &rhs)
   if (westBG != rhs.westBG) return false;
   if (zone != rhs.zone) return false;
   if (eventExists != rhs.eventExists) return false;
-  if (wall[0] != rhs.wall[0]) return false;
-  if (wall[1] != rhs.wall[1]) return false;
-  if (wall[2] != rhs.wall[2]) return false;
-  if (wall[3] != rhs.wall[3]) return false;
-  if (blockage[0] != rhs.blockage[0]) return false;
-  if (blockage[1] != rhs.blockage[1]) return false;
-  if (blockage[2] != rhs.blockage[2]) return false;
-  if (blockage[3] != rhs.blockage[3]) return false;
+  if (northWall != rhs.northWall) return false;
+  if (southWall != rhs.southWall) return false;
+  if (eastWall != rhs.eastWall) return false;
+  if (westWall != rhs.westWall) return false;
+  if (northBlockage != rhs.northBlockage) return false;
+  if (southBlockage != rhs.southBlockage) return false;
+  if (eastBlockage != rhs.eastBlockage) return false;
+  if (westBlockage != rhs.westBlockage) return false;
   return true;
 }
 #endif
@@ -933,26 +826,26 @@ BYTE& AREA_MAP_DATA::walls(int dir)
 {
   static int room_rearranger[4]= 
   { 
-    (&wall[0])-(&wall[0]),
-    (&wall[2]) -(&wall[0]),
-    (&wall[1])-(&wall[0]),
-    (&wall[3]) -(&wall[0])
+    (&northWall)-(&northWall),
+    (&eastWall) -(&northWall),
+    (&southWall)-(&northWall),
+    (&westWall) -(&northWall)
   };
   // Adding 0x10000000 would make it work on 1's-complement machines
-  return *((&wall[0])+room_rearranger[dir&3]);
+  return *((&northWall)+room_rearranger[dir&3]);
 }
 
 BlockageType& AREA_MAP_DATA::blockages(int dir)
 {
   static int room_rearranger[4]= 
   { 
-    (&blockage[0])-(&blockage[0]),
-    (&blockage[2]) -(&blockage[0]),
-    (&blockage[1])-(&blockage[0]),
-    (&blockage[3]) -(&blockage[0])
+    (&northBlockage)-(&northBlockage),
+    (&eastBlockage) -(&northBlockage),
+    (&southBlockage)-(&northBlockage),
+    (&westBlockage) -(&northBlockage)
   };
   // Adding 0x10000000 would make it work on 1's-complement machines
-  return *((&blockage[0])+room_rearranger[dir&3]);
+  return *((&northBlockage)+room_rearranger[dir&3]);
 }
 
 BYTE& AREA_MAP_DATA::backgrounds(int dir)
@@ -1147,7 +1040,7 @@ bool LEVEL::operator ==(LEVEL& src)
 
 void LEVEL::operator =(LEVEL& src)
 {
-  /* Really */ NotImplemented(0xd544, false);
+  NotImplemented(0xd544, false);
 }
 
 #endif
@@ -1162,7 +1055,7 @@ void LEVEL::Serialize(CArchive &ar, double ver)
 
   if (ar.IsStoring())
   {  
-    die(0xab525); // shouldn't get here, use CAR instead
+    ASSERT(FALSE); // shouldn't get here, use CAR instead
   }
   else
   {
@@ -1180,7 +1073,7 @@ void LEVEL::Serialize(CArchive &ar, double ver)
   eventData.SetEventSource(LevelEventSrc);
   zoneData.Serialize(ar, ver);
   level_asl.Serialize(ar, "LEVEL_ATTRIBUTES");
-  ConvertMapOverrides(&level_asl, globalData.currLevel);
+
   for (x=0;x<MAX_STEP_EVENTS;x++)
      stepEvents[x].Serialize(ar, ver);
 
@@ -1256,28 +1149,16 @@ void LEVEL::Serialize(CAR &ar, double ver)
   eventData.m_level = globalData.currLevel;
   eventData.SetEventSource(LevelEventSrc);
   ASSERT( (globalData.currLevel >= 0) && (globalData.currLevel < MAX_LEVELS) );
-#ifdef UAFEDITOR
-  if (ar.IsStoring())
-  {
-    eventData.BuildMarkerIndex();
-  };
-#endif
   eventData.Serialize(ar, ver);
   eventData.SetEventSource(LevelEventSrc);
   zoneData.Serialize(ar, ver);
   if (ar.IsStoring())
       level_asl.Serialize(ar, "LEVEL_ATTRIBUTES");
   else
-  {
     level_asl.Serialize(ar, "LEVEL_ATTRIBUTES");
-    ConvertMapOverrides(&level_asl, globalData.currLevel);
-  };
-  {
-    int numStep;
-    if (ver < 1.0210) numStep = 8; else numStep = MAX_STEP_EVENTS;
-    for (x=0;x<numStep;x++)
+
+  for (x=0;x<MAX_STEP_EVENTS;x++)
      stepEvents[x].Serialize(ar, ver);
-  };
 
   int wall_count;
   if (ar.IsStoring())
@@ -1419,10 +1300,10 @@ CONFIG_ITEM_STATUS LEVEL::ExportCell(JWriter& jw, int x, int y)
   bool allDefault;
   int i[2];
   c = &area[y][x];
-  allDefault =   ExportCellDir(jw, "N",c->wall[0], c->blockage[0], c->northBG, true)
-              && ExportCellDir(jw, "E",c->wall[2],  c->blockage[2],  c->eastBG, true)
-              && ExportCellDir(jw, "S",c->wall[1], c->blockage[1], c->southBG, true)
-              && ExportCellDir(jw, "W",c->wall[3],  c->blockage[3],  c->westBG, true);
+  allDefault =   ExportCellDir(jw, "N",c->northWall, c->northBlockage, c->northBG, true)
+              && ExportCellDir(jw, "E",c->eastWall,  c->eastBlockage,  c->eastBG, true)
+              && ExportCellDir(jw, "S",c->southWall, c->southBlockage, c->southBG, true)
+              && ExportCellDir(jw, "W",c->westWall,  c->westBlockage,  c->westBG, true);
   if (c->eventExists)      allDefault = false;
   if (c->zone   != 0)      allDefault = false;
   if (c->bkgrnd != 0)      allDefault = false;
@@ -1442,10 +1323,10 @@ CONFIG_ITEM_STATUS LEVEL::ExportCell(JWriter& jw, int x, int y)
     if (c->ShowDistantBG != 0)    jw.NameAndBool(JKEY_SHOWDISTBG, c->ShowDistantBG);
     if (c->DistantBGInBands != 0) jw.NameAndBool(JKEY_DSTBGBANDS, c->DistantBGInBands);
     jw.Linefeed(true);
-    ExportCellDir(jw, "N",c->wall[0],  c->blockage[0],  c->northBG, false);
-    ExportCellDir(jw, "E",c->wall[2],  c->blockage[2],  c->eastBG, false);
-    ExportCellDir(jw, "S",c->wall[1],  c->blockage[1],  c->southBG, false);
-    ExportCellDir(jw, "W",c->wall[3],  c->blockage[3],  c->westBG, false);
+    ExportCellDir(jw, "N",c->northWall, c->northBlockage, c->northBG, false);
+    ExportCellDir(jw, "E",c->eastWall,  c->eastBlockage,  c->eastBG, false);
+    ExportCellDir(jw, "S",c->southWall, c->southBlockage, c->southBG, false);
+    ExportCellDir(jw, "W",c->westWall,  c->westBlockage,  c->westBG, false);
     jw.EndList();
   };
   return CONFIG_STAT_ok;
@@ -1470,10 +1351,10 @@ CONFIG_ITEM_STATUS LEVEL::ImportCell(JReader& jr)
   jr.Optional(); jr.NameAndBool(JKEY_SHOWDISTBG, c->ShowDistantBG);
   jr.Optional(); jr.NameAndBool(JKEY_DSTBGBANDS, c->DistantBGInBands);
   jr.Linefeed(true);
-  ImportCellDir(jr, "N",c->wall[0],  c->blockage[0],  c->northBG);
-  ImportCellDir(jr, "E",c->wall[2],  c->blockage[2],  c->eastBG);
-  ImportCellDir(jr, "S",c->wall[1],  c->blockage[1],  c->southBG);
-  ImportCellDir(jr, "W",c->wall[3],  c->blockage[3],  c->westBG);
+  ImportCellDir(jr, "N",c->northWall, c->northBlockage, c->northBG);
+  ImportCellDir(jr, "E",c->eastWall,  c->eastBlockage,  c->eastBG);
+  ImportCellDir(jr, "S",c->southWall, c->southBlockage, c->southBG);
+  ImportCellDir(jr, "W",c->westWall,  c->westBlockage,  c->westBG);
   jr.EndList();
   return CONFIG_STAT_ok;
 }
@@ -1508,7 +1389,7 @@ CONFIG_ITEM_STATUS LEVEL::ImportCells(JReader& jr)
     jr.CloseBrace();
   };
   */
-  /* Really */ NotImplemented(0xce67, false);
+  NotImplemented(0xce67, false);
   return CONFIG_STAT_ok;
 }
 
@@ -1578,12 +1459,9 @@ CONFIG_ITEM_STATUS LEVEL::Export(JWriter& jw)
 }
 
 extern const char *JKEY_LEVELINFO;
-extern const char *JKEY_OVERLAND;
 
 CONFIG_ITEM_STATUS LEVEL::Import(JReader& jr)
 {
-  LEVEL_STATS levelStats_temp;
-
   jr.StartList(JKEY_LEVELDATA);
   jr.NameAndValue(JKEY_WIDTH, area_width);
   jr.NameAndValue(JKEY_HEIGHT, area_height);
@@ -1597,7 +1475,6 @@ CONFIG_ITEM_STATUS LEVEL::Import(JReader& jr)
     };
     jr.EndArray();
   };
-  eventData.m_level = globalData.currLevel;
   eventData.Import(jr);
   zoneData.Import(jr);
   level_asl.Import(jr);
@@ -1607,15 +1484,8 @@ CONFIG_ITEM_STATUS LEVEL::Import(JReader& jr)
     jr.StartArray(JKEY_STEPEVENTS);
     for (x=0;x<MAX_STEP_EVENTS;x++)
     {
-      jr.Optional();
-      if (jr.NextEntry())
-      {
-        stepEvents[x].Import(jr);
-      }
-      else
-      {
-        stepEvents[x].Clear();
-      };
+      jr.NextEntry();
+      stepEvents[x].Import(jr);
     };
     jr.EndArray();
 
@@ -1870,16 +1740,16 @@ CString LEVEL::GetUnlockSpell(int x, int y, int facing)
   switch (facing)
   {
   case FACE_NORTH:
-    spell = WallSets[data.wall[0]].UnlockSpellID;
+    spell = WallSets[data.northWall].UnlockSpellID;
     break;
   case FACE_EAST:
-    spell = WallSets[data.wall[2]].UnlockSpellID;
+    spell = WallSets[data.eastWall].UnlockSpellID;
     break;
   case FACE_SOUTH:
-    spell = WallSets[data.wall[1]].UnlockSpellID;
+    spell = WallSets[data.southWall].UnlockSpellID;
     break;
   case FACE_WEST:
-    spell = WallSets[data.wall[3]].UnlockSpellID;
+    spell = WallSets[data.westWall].UnlockSpellID;
     break;
   }
   return spell;
@@ -1949,7 +1819,7 @@ BOOL LEVEL::haveTimeEvent(int x, int y, int day, int hour, int minute, GameEvent
   return TE_Found;
 }
 */
-/*
+
 BOOL LEVEL::haveStepEvent(int x, int y, int stepCount, GameEvent **stepEvent)
 {
   BOOL SE_Found = FALSE;
@@ -1959,8 +1829,7 @@ BOOL LEVEL::haveStepEvent(int x, int y, int stepCount, GameEvent **stepEvent)
   for (int i=0; (i<MAX_STEP_EVENTS) && (!SE_Found); i++)
   {
     // if this zone can trigger and count is multiple of step count
-    //if (   (stepEvents[i].stepTrigger[zone] > 0) // does this zone trigger?
-    if (   ((stepEvents[i].zoneMask & (1 << zone)) > 0) // does this zone trigger?
+    if (   (stepEvents[i].stepTrigger[zone] > 0) // does this zone trigger?
         && (stepEvents[i].stepCount > 0)         // must have non-zero trigger count
         && ((stepCount % stepEvents[i].stepCount) == 0) )
     {
@@ -1975,7 +1844,7 @@ BOOL LEVEL::haveStepEvent(int x, int y, int stepCount, GameEvent **stepEvent)
 
   return SE_Found;
 }
-*/
+
 BOOL LEVEL::haveRestEvent(int x, int y, GameEvent **restEvent)
 {
   BOOL RE_Found = FALSE;
@@ -2022,11 +1891,8 @@ void LEVEL::GetStepEventText(int num, char *ptext)
 { 
   if ((num >= 0) && (num < MAX_STEP_EVENTS))
   {
-    //sprintf(ptext, "Step Event %u: %s", 
-    //        num+1, 
-    //        (LPCSTR)GetEventIdDescription(stepEvents[num].stepEvent, LevelEventSrc));
-    sprintf(ptext, "(%u)%s: %s", 
-            num+1, (LPCSTR)stepEvents[num].name,
+    sprintf(ptext, "Step Event %u: %s", 
+            num+1, 
             (LPCSTR)GetEventIdDescription(stepEvents[num].stepEvent, LevelEventSrc));
   }
 }
@@ -2053,8 +1919,18 @@ BOOL saveLevel(LEVEL &data, int LevelIndex)
    CFile myFile;
    CFileException e;
 
+#ifdef SIMPLE_STRUCTURE
    CString fullPath;
    fullPath.Format("%sLevel%.3i.lvl", rte.DataDir(), LevelIndex+1);
+#else
+   char temp[4];
+   char fullPath[_MAX_PATH+1];
+   GetDesignPath(fullPath);
+   strcat(fullPath, "Level");
+   sprintf(temp, "%.3i", LevelIndex);
+   strcat(fullPath, temp);
+   strcat(fullPath, ".lvl");
+#endif
 
    SetFileAttributes(fullPath, FILE_ATTRIBUTE_NORMAL);
    success = myFile.Open(fullPath, CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive, &e);
@@ -2071,7 +1947,7 @@ BOOL saveLevel(LEVEL &data, int LevelIndex)
      myFile.Write(&ver, sizeof(double));
 
      CAR ar(&myFile, CArchive::store);
-     //ar.Compress(true); // 
+     //ar.Compress(true); // qqqqq
    
      try 
      {
@@ -2113,42 +1989,42 @@ BOOL saveLevel(int LevelIndex)
    return success;
 }
 
-BOOL LoadLevel(LEVEL& data, int LevelIndex)
+BOOL LoadLevel(LEVEL &data, int LevelIndex)
 {
-  BOOL success = FALSE;
-  CFile myFile;
-  double ver = 0.0;
-  char fullPath[_MAX_PATH + 1];
-  char temp[4];
+   BOOL success = FALSE;
+   CFile myFile;
+   double ver=0.0;
+   char fullPath[_MAX_PATH+1];
+   char temp[4];
 
-  sprintf(temp, "%.3i", LevelIndex + 1);
+   sprintf(temp, "%.3i", LevelIndex+1);
 
-  strcpy(fullPath, rte.DataDir());
-  strcat(fullPath, "Level");
-  strcat(fullPath, temp);
-  strcat(fullPath, ".lvl");
+   strcpy(fullPath, rte.DataDir());
+   strcat(fullPath, "Level");
+   strcat(fullPath, temp);
+   strcat(fullPath, ".lvl");   
 
-  success = myFile.Open(fullPath, CFile::modeRead);
+   success = myFile.Open(fullPath, CFile::modeRead);
 
-  if (!success)
-  {
-    WriteDebugString("Unable to open level file %s\n", fullPath);
-    return FALSE;
-  }
+   if (!success)
+   {
+     WriteDebugString("Unable to open level file %s\n", fullPath);
+     return FALSE;
+   }
 
-  data.Clear();
+   data.Clear();
 
-  /*
-  int x;
-  for (x=0; x<MAX_WALLSETS; x++)
-    data.m_WallSets[x].Clear();
+   /*
+   int x;
+   for (x=0; x<MAX_WALLSETS; x++)
+     data.m_WallSets[x].Clear();
 
-  for (x=0; x<MAX_BACKGROUNDS; x++)
-    data.m_BackgroundSets[x].Clear();
-   */
+   for (x=0; x<MAX_BACKGROUNDS; x++)
+     data.m_BackgroundSets[x].Clear();
+    */
 
-   // check for version
-  __int64 hdr = 0;
+  // check for version
+  __int64 hdr=0;
   myFile.Read(&hdr, sizeof(hdr));
   if (hdr == 0xFABCDEFABCDEFABF)
   {
@@ -2161,6 +2037,7 @@ BOOL LoadLevel(LEVEL& data, int LevelIndex)
     // set version to last build that didn't save version
     ver = _VERSION_0572_;
   }
+
   data.version = ver;
 
   // if loading older level data, don't use compression archive
@@ -2183,7 +2060,7 @@ BOOL LoadLevel(LEVEL& data, int LevelIndex)
   else
   {
     CAR ar(&myFile, CArchive::load);
-    //ar.Compress(true); // 
+    //ar.Compress(true); // qqqqq
     try 
     {
       data.Serialize(ar, ver);
@@ -2261,6 +2138,10 @@ BOOL saveDesign(CArchive& ar)
    int i;
    
    EditorStatusMsg("Saving design data...");
+#ifdef SIMPLE_STRUCTURE
+#else
+   SetCurrentDirectory(global_designDir);
+#endif
 
    try 
    {
@@ -2290,7 +2171,11 @@ BOOL saveDesign(CArchive& ar)
        saveArt(spellData);
        // need to guarantee default monster icon is in design folder
        CString MI_Temp;
+#ifdef SIMPLE_STRUCTURE
        MI_Temp = ede.TemplateIconArtDir() + DEFAULT_MONSTER_ICON;
+#else
+       MI_Temp.Format("%s%s", EditorArt,DEFAULT_MONSTER_ICON);
+#endif
        ::SaveArt(MI_Temp, IconDib, GLOBAL_ART, TRUE, rte.IconArtDir());
 
        levelData.GetSlots();
@@ -2375,11 +2260,80 @@ BOOL saveDesign(CArchive& ar)
      CString temp;
      if (success)
      {
+#ifdef SIMPLE_STRUCTURE
        temp = rte.ExecutableDir();
+#else
+       success = ConfigFile.FindToken("Game_Exec", temp, false);
+       
+       if (success)
+       {
+         if (!FileExists(temp))
+         {
+            success = FALSE;
+            temp += " - game exec file does not exist\n";
+            MsgBoxError(temp, "Save Design Error");
+         }
+       }
+       else
+         MsgBoxError("Game_Exec token not found in config.txt", "Save Design Error");
+#endif
      }
 
      CString saveExec;
      CString file;
+#ifdef SIMPLE_STRUCTURE
+#else
+     char path[_MAX_PATH+1];
+     if (success)
+     {
+        EditorStatusMsg("Saving game shortcut...");
+        int index = temp.ReverseFind('\\');
+
+        if (index > 2)
+          saveExec = temp.Right(temp.GetLength()-(index+1));
+        else
+          saveExec = temp;
+        
+        GetDesignPath(path);
+        file.Format("%sStart.lnk", path);
+        char *pCh;
+        if ((pCh = strrchr(path, '\\')) != NULL)
+          *pCh = '\0';
+        CShellLinkInfo sli1;
+        sli1.m_sTarget = _T(temp);
+        file = global_designDir;
+        file = "\"";
+        file += path;
+        file += "\"";
+        sli1.m_sArguments = _T(file);
+        strcpy(path,global_designDir);
+        sli1.m_sWorkingDirectory = _T(path);
+        sli1.m_sDescription = _T("Play Design");
+        sli1.m_sIconLocation = _T(temp);
+        sli1.m_nIconIndex = 0;
+        sli1.m_nShowCmd = SW_MAXIMIZE;
+
+        CShellLink sl1;
+        if (sl1.Create(sli1))
+        {
+          strcat(path, "\\");
+          file.Format("%sStart.lnk", path);          
+          SetFileAttributes(file, FILE_ATTRIBUTE_NORMAL);
+          MyDeleteFile(file);
+          if (!sl1.Save(_T(file)))
+            success = FALSE;
+        }
+        else
+          success = FALSE;
+
+        if (!success)
+        {
+           CString error;
+           error.Format("Could not create game exec shortcut for %s", temp);
+           MsgBoxError(error, "Save Design Error");
+        }
+     }
+#endif
      if (success)
      {
        saveExec = ConfigFile.GetFilename();
@@ -2391,6 +2345,33 @@ BOOL saveDesign(CArchive& ar)
        }
        else
        {
+#ifdef SIMPLE_STRUCTURE
+#else
+         GetDesignPath(path);
+         file.Format("%s%s", path, "config.txt");
+
+         // Only update config.txt if editor version is more
+         // recent than the design version. This will ensure that
+         // that the design gets the latest config.txt file after 
+         // the user upgrades DC.
+
+          BOOL copy = ((!FileExists(file)) || (PreSaveDesignVer != PRODUCT_VER));
+
+          if (copy)
+          {
+            SetFileAttributes(file, FILE_ATTRIBUTE_NORMAL);
+
+            success = MyCopyFile(saveExec, file, FALSE);
+
+            SetFileAttributes(file, FILE_ATTRIBUTE_NORMAL);
+
+            if (!success)
+            {
+               temp.Format("Could not copy config file %s to %s", saveExec, file);
+               MsgBoxError(temp, "Save Design Error");
+            }
+          }
+#endif
        }
      }
 
@@ -2438,6 +2419,10 @@ BOOL saveDesign(CAR& car)
    int i;
    
    EditorStatusMsg("Saving design data...");
+#ifdef SIMPLE_STRUCTURE
+#else
+   SetCurrentDirectory(global_designDir);
+#endif
 
    try 
    {
@@ -2467,7 +2452,11 @@ BOOL saveDesign(CAR& car)
        saveArt(spellData);
        // need to guarantee default monster icon is in design folder
        CString MI_Temp;
+#ifdef SIMPLE_STRUCTURE
        MI_Temp = ede.TemplateIconArtDir() + DEFAULT_MONSTER_ICON;
+#else
+       MI_Temp.Format("%s%s", EditorArt,DEFAULT_MONSTER_ICON);
+#endif
        ::SaveArt(MI_Temp, IconDib, GLOBAL_ART, TRUE, rte.IconArtDir());
 
        levelData.GetSlots();
@@ -2478,9 +2467,7 @@ BOOL saveDesign(CAR& car)
          levelData.SaveArt(globalData.currLevel);
        }
 
-#ifdef REQART
        WriteRequiredArtList();
-#endif
 
        EditorStatusMsg("Writing sound files...");
        
@@ -2488,9 +2475,8 @@ BOOL saveDesign(CAR& car)
        saveSounds(itemData);
        saveSounds(monsterData);
        saveSounds(spellData);
-#ifdef REQSNDS
+
        WriteRequiredSoundList();
-#endif
      }
      WriteDebugString(" Start Serialize globalData\n");
      if (success)
@@ -2555,11 +2541,80 @@ BOOL saveDesign(CAR& car)
      CString temp;
      if (success)
      {
+#ifdef SIMPLE_STRUCTURE
        temp = rte.ExecutableDir();
+#else
+       success = ConfigFile.FindToken("Game_Exec", temp, false);
+       
+       if (success)
+       {
+         if (!FileExists(temp))
+         {
+            success = FALSE;
+            temp += " - game exec file does not exist\n";
+            MsgBoxError(temp, "Save Design Error");
+         }
+       }
+       else
+         MsgBoxError("Game_Exec token not found in config.txt", "Save Design Error");
+#endif
      }
 
      CString saveExec;
      CString file;
+#ifdef SIMPLE_STRUCTURE
+#else
+     char path[_MAX_PATH+1];
+     if (success)
+     {
+        EditorStatusMsg("Saving game shortcut...");
+        int index = temp.ReverseFind('\\');
+
+        if (index > 2)
+          saveExec = temp.Right(temp.GetLength()-(index+1));
+        else
+          saveExec = temp;
+        
+        GetDesignPath(path);
+        file.Format("%sStart.lnk", path);
+        char *pCh;
+        if ((pCh = strrchr(path, '\\')) != NULL)
+          *pCh = '\0';
+        CShellLinkInfo sli1;
+        sli1.m_sTarget = _T(temp);
+        file = global_designDir;
+        file = "\"";
+        file += path;
+        file += "\"";
+        sli1.m_sArguments = _T(file);
+        strcpy(path,global_designDir);
+        sli1.m_sWorkingDirectory = _T(path);
+        sli1.m_sDescription = _T("Play Design");
+        sli1.m_sIconLocation = _T(temp);
+        sli1.m_nIconIndex = 0;
+        sli1.m_nShowCmd = SW_MAXIMIZE;
+
+        CShellLink sl1;
+        if (sl1.Create(sli1))
+        {
+          strcat(path, "\\");
+          file.Format("%sStart.lnk", path);          
+          SetFileAttributes(file, FILE_ATTRIBUTE_NORMAL);
+          MyDeleteFile(file);
+          if (!sl1.Save(_T(file)))
+            success = FALSE;
+        }
+        else
+          success = FALSE;
+
+        if (!success)
+        {
+           CString error;
+           error.Format("Could not create game exec shortcut for %s", temp);
+           MsgBoxError(error, "Save Design Error");
+        }
+     }
+#endif
      if (success)
      {
        saveExec = ConfigFile.GetFilename();
@@ -2571,6 +2626,33 @@ BOOL saveDesign(CAR& car)
        }
        else
        {
+#ifdef SIMPLE_STRUCTURE
+#else
+         GetDesignPath(path);
+         file.Format("%s%s", path, "config.txt");
+
+         // Only update config.txt if editor version is more
+         // recent than the design version. This will ensure that
+         // that the design gets the latest config.txt file after 
+         // the user upgrades DC.
+
+          BOOL copy = ((!FileExists(file)) || (PreSaveDesignVer != PRODUCT_VER));
+
+          if (copy)
+          {
+            SetFileAttributes(file, FILE_ATTRIBUTE_NORMAL);
+
+            success = MyCopyFile(saveExec, file, FALSE);
+
+            SetFileAttributes(file, FILE_ATTRIBUTE_NORMAL);
+
+            if (!success)
+            {
+               temp.Format("Could not copy config file %s to %s", saveExec, file);
+               MsgBoxError(temp, "Save Design Error");
+            }
+          }
+#endif
        }
      }
 
@@ -2610,63 +2692,7 @@ BOOL saveDesign(CAR& car)
 
 
 
-void UpdateConfigTxt(void)
-{
-  FILE *f, *g;
-  char line[1000];
-  f = fopen(rte.ConfigDir() + "config.txt", "r");
-  if (f == NULL)
-  {
-    MsgBoxInfo("I am supplying a default 'config'txt' file", "Information");
-    MyCopyFile(ede.TemplateConfigDir() + "config.txt", rte.ConfigDir()+"config.txt", false);
-    return;
-  };
-  MsgBoxInfo("We are going to write some lines into the front\n"
-             "of your 'config.txt' file.  Some of these are\n"
-             "values for new variables that were not used by\n"
-             "the older runtime engines.  Some are updated\n"
-             "values for variables that were used in the older\n"
-             "engine but now need to be changed.  Nothing will\n"
-             "be deleted from your 'config.txt'.  The lines we\n"
-             "are adding will simply override any existing lines.\n"
-             "If you know that any of the lines we add are wrong,\n"
-             "they are clearly marked and you can modify or\n"
-             "delete them as you see fit.", "Warning");
-  fclose(f);
-  MyCopyFile(rte.ConfigDir() + "config.txt", rte.ConfigDir() + "config_Old.txt", false);
-  f = fopen(rte.ConfigDir() + "config_Old.txt", "r");
-  if (f == NULL)
-  {
-    MsgBoxInfo("Error updating your 'config.txt' file.", "Warning");
-    return;
-  };
-  g = fopen(rte.ConfigDir() + "config.txt", "w");
-  if (g == NULL)
-  {
-    fclose(f);
-    MsgBoxInfo("Error updating your 'config.txt' file.", "Warning");
-    return;
-  };
-  fprintf(g, "*************************************************************\n");
-  fprintf(g, "// Beginning of lines inserted in an attempt to *************\n");
-  fprintf(g, "// update an old design to the new runtime engine. **********\n");
-  fprintf(g, "*************************************************************\n");
 
-  fprintf(g, "*************************************************************\n");
-  fprintf(g, "// These lines will override any later lines with ***********\n");
-  fprintf(g, "// identical variable names. ********************************\n");
-  fprintf(g, "*************************************************************\n");
-
-  fprintf(g,"// End of lines inserted in an attempt to *******************\n");
-  fprintf(g,"// update an old design to the new runtime engine. **********\n");
-  // Now copy the rest of the file.
-  while (fgets(line,999, f) != NULL)
-  {
-    fprintf(g, "%s", line);
-  };
-  fclose(f);
-  fclose(g);
-}
 
 
 
@@ -2788,11 +2814,11 @@ BOOL saveDesign()
 #endif
       WriteDebugString("Copy Readme.txt\n");
       {
-        CString dst;
-        dst = rte.DesignDir() + "ReadMe.txt";
-        MyDeleteFile(dst);
+        CString dest;
+        dest = rte.DesignDir() + "ReadMe.txt";
+        MyDeleteFile(dest);
         src = ede.TemplateDir() + "ReadMe.txt";
-        MyCopyFile(src, dst, FALSE);
+        MyCopyFile(src, dest, FALSE);
       };
 
      fullPath = rte.DataDir() + "game.dat";
@@ -2824,21 +2850,6 @@ BOOL saveDesign()
      success = saveDesign(car);
      //ar.Close();
      car.Close();
-
-     if (!FileExists(rte.CombatArtDir() + "DefCPI.png"))
-     {
-       MsgBoxInfo("I am supplying a default 'DefCPI.png'", "info");
-       MyCopyFile(ede.TemplateCombatArtDir() + "DefCPI.png", rte.CombatArtDir()+"DefCPI.png", false);
-     };
-     if (!FileExists(rte.DataDir() + "AI_Script.BLK"))
-     {
-       MsgBoxInfo("I am supplying a default 'AI_Script.BLK'", "info");
-       MyCopyFile(ede.TemplateDataDir() + "AI_Script.BLK", rte.DataDir()+"AI_Script.BLK", false);
-     };
-     if (PreSaveDesignVer < VersionSpellNames)
-     {
-       UpdateConfigTxt();
-     };
    }
    catch(...)
    {
@@ -2871,7 +2882,7 @@ BOOL CheckSaveChangedDesign(char *msgIfFailure)
         CWaitCursor cursor;
         if (!saveDesign())
         {
-          msg="Failed to save design.  ";
+          CString msg("Failed to save design.  ");
           msg += msgIfFailure;
           return MsgBoxYesNo(msg, "Save Error") == IDYES;
         }
@@ -2931,7 +2942,11 @@ BOOL loadDesign(CArchive *ar, CAR *car)
 
 
 
+#ifdef SIMPLE_STRUCTURE
         strcpy(fullPath, dataPath);
+#else
+        GetDesignPath(fullPath);
+#endif
         strcat(fullPath, ITEM_DB_NAME);
 
         if (loadData(itemData, fullPath) <= 0)
@@ -2941,7 +2956,11 @@ BOOL loadDesign(CArchive *ar, CAR *car)
 
       if (success)
       {
+#ifdef SIMPLE_STRUCTURE
         strcpy(fullPath, dataPath);
+#else
+        GetDesignPath(fullPath);
+#endif
         strcat(fullPath, MONSTER_DB_NAME);
 
         if (loadData(monsterData, fullPath) <= 0)
@@ -2951,7 +2970,11 @@ BOOL loadDesign(CArchive *ar, CAR *car)
 
      if (success)
      {
+#ifdef SIMPLE_STRUCTURE
         strcpy(fullPath, dataPath);
+#else
+        GetDesignPath(fullPath);
+#endif
         strcat(fullPath, SPELL_DB_NAME);
 
         if (loadData(spellData, fullPath) <= 0)
@@ -2961,7 +2984,11 @@ BOOL loadDesign(CArchive *ar, CAR *car)
 
      if (success)
      {
+#ifdef SIMPLE_STRUCTURE
         strcpy(fullPath, dataPath);
+#else
+        GetDesignPath(fullPath);
+#endif
         strcat(fullPath, RACE_DB_NAME);
 
         dataCount=loadData(raceData, fullPath);
@@ -3022,7 +3049,11 @@ BOOL loadDesign(CArchive *ar, CAR *car)
 
      if (success)
      {
+#ifdef SIMPLE_STRUCTURE
         strcpy(fullPath, dataPath);
+#else
+        GetDesignPath(fullPath);
+#endif
         strcat(fullPath, ABILITY_DB_NAME);
 
         dataCount=loadData(abilityData, fullPath);
@@ -3039,7 +3070,11 @@ BOOL loadDesign(CArchive *ar, CAR *car)
 /*  No spellgroup database, please.  PRS 20130305
      if (success)
      {
+#ifdef SIMPLE_STRUCTURE
         strcpy(fullPath, dataPath);
+#else
+        GetDesignPath(fullPath);
+#endif
         strcat(fullPath, SPELLGROUP_DB_NAME);
 
         dataCount=loadData(spellgroupData, fullPath);
@@ -3057,7 +3092,11 @@ BOOL loadDesign(CArchive *ar, CAR *car)
 #ifdef USE_TRAITS
      if (success)
      {
+#ifdef SIMPLE_STRUCTURE
         strcpy(fullPath, dataPath);
+#else
+        GetDesignPath(fullPath);
+#endif
         strcat(fullPath, TRAIT_DB_NAME);
 
         dataCount=loadData(traitData, fullPath);
@@ -3095,8 +3134,6 @@ BOOL loadDesign(CArchive *ar, CAR *car)
        globalData.Serialize(*ar);
      };
      WriteDebugString("Finished loading globalData\n");
-     useWallIndex = (globalData.global_asl.Find("UseWallIndex") == NULL)?0:1;
-     useDoorAndOverlayIndex = (globalData.global_asl.Find("UseDoorAndOverlayIndex") == NULL)?0:1;
 
      if (success)
      {      
@@ -3109,13 +3146,7 @@ BOOL loadDesign(CArchive *ar, CAR *car)
         party.Posx = 0;
         party.Posy = 0;
         party.facing = FACE_EAST;
-     };
-#ifdef UAFEDITOR
-     if (globalData.version < VersionSpellNames)
-     {
-       itemData.FixPreSpellNamesUsability();
-     };
-#endif
+     }
    }
    catch (...)
    {
@@ -3279,7 +3310,6 @@ BOOL CheckLevelVersions(const char *name)
             };
           };
           {
-            globalData.currLevel = i;
             if (!LoadLevel(level, i))
             {
               MsgBoxInfo("Error loading the level");
@@ -3470,7 +3500,6 @@ void clearDesign(BOOL FillDefaults)
    CombatDeathIconArt.name    = /*ede.DesignCombatArtDir() + */DEFAULT_CDI;
    CombatPetrifiedIconArt.name= /*ede.DesignCombatArtDir() + */DEFAULT_CPI;
    CombatDeathArt.name        = /*ede.DesignCombatArtDir() + */DEFAULT_CD;
-   CharViewFrameVPArt.name    = /*ede.EditorWindowArtDir() + */DEFAULT_FR;
    CursorArt.filename         = /*ede.DesignCursorArtDir() + */DEFAULT_CURSOR;
    CursorArt.FrameHeight = 32;
    CursorArt.FrameWidth = 32;
@@ -3491,6 +3520,7 @@ void clearDesign(BOOL FillDefaults)
    PIC_DATA pic;
    pic.picType = SmallPicDib;
    pic.SetDefaults();
+#ifdef SIMPLE_STRUCTURE
    {
      long result, handle;
      _finddata_t fd;
@@ -3509,6 +3539,35 @@ void clearDesign(BOOL FillDefaults)
       };
       if (handle!=-1) _findclose(handle);
    };
+#else
+   while (i <= 50)
+   {
+     temp.Format("prt_SPic%u.png", i);
+     // uses root name to search for any matches
+     // using valid image extensions (bmp, pcx, etc)
+     if (FindImageWithValidExt(temp, ede.DesignSmallPicDir()))
+     {
+       pic.filename = temp;
+       global_SmallPicImport.AddTail(pic);
+     }
+     i++;
+   }
+
+   i=1;
+   pic.Clear();
+   pic.picType = IconDib;
+   pic.SetDefaults();
+   while (i <= 50)
+   {
+     temp.Format("cn_Icon%u.png", i);
+     if (FindImageWithValidExt(temp, ede.DesignIconArtDir()))
+     {
+       pic.filename = temp;
+       global_IconPicImport.AddTail(pic);
+     }
+     i++;
+   }
+#endif
    currX = globalData.startX;
    currY = globalData.startY;
    if ((currX < 0) || (currX >= globalData.levelInfo.stats[globalData.startLevel].area_width))
@@ -3570,6 +3629,10 @@ void clearDesign(BOOL FillDefaults)
       deleteLevel(i);
   }
   */
+#ifdef SIMPLE_STRUCTURE
+#else
+  m_designFolder[0]='\0';
+#endif
 #ifdef UAFEDITOR
   CLEAR_MODIFIED;
 #endif
@@ -3585,10 +3648,10 @@ BOOL CheckLevelForWallSlot(int slot)
   {
     for (int j=0;j < globalData.levelInfo.stats[slot].area_width;j++)
     {
-       if (   (levelData.area[i][j].wall[0] == slot)
-           || (levelData.area[i][j].wall[1] == slot)
-           || (levelData.area[i][j].wall[2] == slot)
-           || (levelData.area[i][j].wall[3] == slot))
+       if (   (levelData.area[i][j].northWall == slot)
+           || (levelData.area[i][j].southWall == slot)
+           || (levelData.area[i][j].eastWall == slot)
+           || (levelData.area[i][j].westWall == slot))
        {
           return TRUE;
        }
@@ -3639,8 +3702,16 @@ BOOL deleteLevel(int LevelIndex)
    char temp[4];
    sprintf(temp, "%.3i", LevelIndex+1);
 
+#ifdef SIMPLE_STRUCTURE
    CString fullPath;
    fullPath = rte.DataDir() + "Level" + temp + ".lvl";
+#else
+   char fullPath[_MAX_PATH+1];
+   GetDesignPath(fullPath);
+   strcat(fullPath, "Level");
+   strcat(fullPath, temp);
+   strcat(fullPath, ".lvl");
+#endif
    
    globalData.levelInfo.Clear(LevelIndex);
    if (LevelIndex == globalData.currLevel)
@@ -3664,7 +3735,11 @@ BOOL levelExists(int i)
   char fullPath[_MAX_PATH+1];
   char temp[9];
   sprintf(temp, "%.3i", i+1);
+#ifdef SIMPLE_STRUCTURE
   strcpy(fullPath, rte.DataDir());
+#else
+  GetDesignPath(fullPath);
+#endif
   strcat(fullPath, "Level");
   strcat(fullPath, temp);
   strcat(fullPath, ".lvl");
@@ -3679,132 +3754,37 @@ BOOL levelExists(int i)
 #ifdef UAFEDITOR
 void LEVEL_STATS::CrossReference(CR_LIST *pCRList, int level)
 {
-  LEVEL lvlData;
+  LEVEL levelData;
   CR_REFERENCE crRef;
   crRef.m_referenceName.Format("Level%02d", level);
   crRef.m_referenceType = CR_TYPE_level;
   pCRList->CR_AddSoundReference(StepSound, &crRef);
   pCRList->CR_AddSoundReference(BumpSound, &crRef);
   bgSounds.CrossReference(pCRList, &crRef);
-  LoadLevel(lvlData, level);
+  LoadLevel(levelData, level);
   {
     CR_EVENT_INFO crEI;
     crEI.m_pCRList = pCRList;
     crEI.m_level = level;
     crEI.m_CRReference = crRef;
-    crEI.m_pEventList = &lvlData.eventData;
-    lvlData.eventData.CrossReference(&crEI);
-    lvlData.zoneData.CrossReference(pCRList, &crEI.m_CRReference);
+    crEI.m_pEventList = &levelData.eventData;
+    levelData.eventData.CrossReference(&crEI);
+    levelData.zoneData.CrossReference(pCRList, &crEI.m_CRReference);
 	int i;
     for (i=0; i<MAX_STEP_EVENTS;i++)
     {
-      lvlData.stepEvents[i].CrossReference(&crEI);
+      levelData.stepEvents[i].CrossReference(&crEI);
     };
-    lvlData.blockageKeys.CrossReference(pCRList, &crEI.m_CRReference);
+    levelData.blockageKeys.CrossReference(pCRList, &crEI.m_CRReference);
     for (i=0; i<MAX_BACKGROUNDS; i++)
     {
-      lvlData.m_BackgroundSets[i].CrossReference(pCRList, &crEI.m_CRReference);
+      levelData.m_BackgroundSets[i].CrossReference(pCRList, &crEI.m_CRReference);
     };
     for (i=0; i<MAX_WALLSETS; i++)
     {
-      lvlData.m_WallSets[i].CrossReference(pCRList, &crEI.m_CRReference);
-    };
-    if (m_wallOverrides.m_numRow != 0)
-    {
-      NotImplemented(0x8da8c, false);  // Need to cross m_wallOverrides
-    };
-    if (!m_cellContents.IsEmpty())
-    {
-      NotImplemented(0x8da8d, false);  // Need to cross m_cellContents
+      levelData.m_WallSets[i].CrossReference(pCRList, &crEI.m_CRReference);
     };
   };
 }
 #endif
-#ifdef UAFEDITOR
-BOOL ImportLevel(int levelIndex, bool fruaImport)
-{
-  CString filename;
-  int finalStatus;
-  filename.Format("%sLevel%03d.txt", rte.DataDir(), levelIndex + 1);
-  if (GetFilename(filename, "txt", TRUE))
-  {
-    CFile cf;
-    cf.Open(filename, CFile::modeRead);
-    JReader jr(&cf);
-    AfxGetApp()->DoWaitCursor(1);
-    try
-    {
-      finalStatus = jr.Initialize();
-      if (finalStatus != 0)
-      {
-        throw 1;
-      };
-    }
-    catch (int)
-    {
-      CString msg;
-      msg.Format("Unable to Import Level\n%s", jr.GetErrorMessage());
-      MsgBoxInfo(msg);
-      AfxGetApp()->DoWaitCursor(-1);
-      return false;
-    };
-    {
-      LEVEL tempLevel;
-      LEVEL_STATS tempLevelStats;
-      try
-      {
-        jr.StartList();
-        finalStatus = tempLevelStats.Import(jr);
-        finalStatus = tempLevel.Import(jr);
-        jr.EndList();
-      }
-      catch (int e)
-      {
-        e = 1;
-        MsgBoxInfo(jr.GetErrorMessage());
-        finalStatus = CONFIG_STAT_semantic;
-      };
-      if (finalStatus != CONFIG_STAT_ok)
-      {
-        MsgBoxInfo("We failed to import the Level data");
-        AfxGetApp()->DoWaitCursor(-1);
-        return false;
-      };
-      tempLevelStats.used = globalData.levelInfo.stats[levelIndex].used;
-      if (!(globalData.levelInfo.stats[levelIndex] == tempLevelStats))
-      {
-        int result;
-        result = MessageBox(NULL,"Changing global level stats", "Warning", MB_OKCANCEL);
-        if (result != IDOK) finalStatus = CONFIG_STAT_syntax;
-      };
-      if (!(levelData == tempLevel))
-      {
-        int result;
-        result = MessageBox(NULL, "Changing level data", "Warning", MB_OKCANCEL);
-        if (result != IDOK) finalStatus = CONFIG_STAT_syntax;
-      };
-      if (finalStatus == CONFIG_STAT_ok)
-      {
-        CString origLevelName;
-        origLevelName = globalData.levelInfo.stats[levelIndex].level_name;
-        globalData.levelInfo.stats[levelIndex] = tempLevelStats;
-        globalData.levelInfo.stats[levelIndex].level_name = origLevelName;
-        saveLevel(tempLevel, levelIndex);
-        LoadLevel(levelIndex);
-      };
-    };
-    AfxGetApp()->DoWaitCursor(-1);
-    SET_MODIFIED;
-    CString temp;
-    if (finalStatus == CONFIG_STAT_ok)
-    {
-      MsgBoxInfo("Operation Successful", "Data File Message");
-    }
-    else
-    {
-      MsgBoxInfo("Level Data Not Loaded", "Data File Message");
-    };
-  };
-  return TRUE;
-}
-#endif
+

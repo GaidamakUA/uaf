@@ -21,7 +21,7 @@
 //#include "..\Shared\Version.h"
 
 #ifdef UAFEDITOR
-#include "..\UAFWinEd\UAFWinEd.h"
+#include "../UAFWinEd/UAFWinEd.h"
 #else
 //#include "externs.h"
 #include "../UAFWin/Dungeon.h"
@@ -627,7 +627,7 @@ int GetUndeadTurnValue(int level, int undeadLevel, eventTurnUndeadModType modifi
   }
 
   //return GetUndeadTurnValueByHD( level, hd, modifier);
-  /* Really */ NotImplemented(0x145ab, false);
+  NotImplemented(0x145ab, false);
   return 0;
 }
 
@@ -1082,12 +1082,12 @@ int GetMinClericExpForLevel(int level)
 
 int GetMaxExpForBaseclassLevel(const BASE_CLASS_DATA *pBaseClass, int lvl)
 {
-  /* Really */ NotImplemented(0x1b4329, false);
+  NotImplemented(0x1b4329, false);
   return 0;
 }
 int GetMinExpForBaseclassLevel(const BASE_CLASS_DATA *pBaseClass, int lvl)
 {
-  /* Really */ NotImplemented(0x1b432a, false);
+  NotImplemented(0x1b432a, false);
   return 0;
 }
 
@@ -1164,6 +1164,28 @@ void getDruidHitDice(int level, int& dice, int& nbr, int& constant)
 }
 */
 
+/*
+void getCharClassHitDice(WORD ClassFlag, int level, int& dice, int& nbr, int& constant)
+{
+  //ASSERT( NumClassBits(ClassFlag) == 1 );
+
+  switch (ClassFlag)
+  {
+    case MagicUserFlag: getMagicUserHitDice(level,dice,nbr,constant); break;
+    case ClericFlag:    getClericHitDice(level,dice,nbr,constant); break;
+    case ThiefFlag:     getThiefHitDice(level,dice,nbr,constant); break;
+    case FighterFlag:   getFighterHitDice(level,dice,nbr,constant); break;
+    case PaladinFlag:   getPaladinHitDice(level,dice,nbr,constant); break;
+    case RangerFlag:    getRangerHitDice(level,dice,nbr,constant); break;
+    case DruidFlag:     getDruidHitDice(level,dice,nbr,constant); break;
+    default: ASSERT(FALSE); return;
+  }
+ NotImplemented(0xed56a0, false);
+
+
+
+}
+*/
 void GetBaseclassHitDice(const BASECLASS_ID& baseclassID,
                          int level,
                          int& sides,
@@ -1313,7 +1335,7 @@ WORD CharClassToClassFlag(classType ctype)
   case Thief: return ThiefFlag;
   case Druid: return DruidFlag;
   default:
-      ASS ERT(FALSE);
+      ASSERT(FALSE);
       return 0;
   }
   return 0;
@@ -1332,7 +1354,7 @@ classType ClassFlagToCharClass(WORD cflag)
   case MagicUserFlag: return MagicUser;
   case ThiefFlag: return Thief;
   case DruidFlag: return Druid;
-  default:ASS ERT(FALSE);return BogusClass;
+  default:ASSERT(FALSE);return BogusClass;
   }
   return BogusClass;
 }
@@ -1366,7 +1388,7 @@ BOOL doClassesOverlap(const CLASS_ID& classID1, const CLASS_ID& classID2)
   //DWORD bits1 = SetClassBitsFromCharClass(type1);
   //DWORD bits2 = SetClassBitsFromCharClass(type2);
   //return ((bits1 & bits2) ? TRUE : FALSE);
-  /* Really */ NotImplemented(0x2b654c, false);
+  NotImplemented(0x2b654c, false);
   return FALSE;
 }
 //BOOL doClassesOverlap(classType type1, classType type2)
@@ -1375,7 +1397,7 @@ BOOL doClassesOverlap(const BASECLASS_ID& classID1, const CLASS_ID& classID2)
   //DWORD bits1 = SetClassBitsFromCharClass(type1);
   //DWORD bits2 = SetClassBitsFromCharClass(type2);
   //return ((bits1 & bits2) ? TRUE : FALSE);
-  /* Really */ NotImplemented(0x2b654d, false);
+  NotImplemented(0x2b654d, false);
   return FALSE;
 }
 
@@ -2243,7 +2265,7 @@ inline BYTE IndexToFlag(BYTE index)
   case 6: return DruidFlag;
   case 7: return AllClasses;
   }
-  ASS ERT(FALSE);
+  ASSERT(FALSE);
   return 0;
 }
 
@@ -2260,7 +2282,7 @@ inline BYTE FlagToIndex(BYTE flag)
   case DruidFlag:     return 6;
   case AllClasses:    return 7;
   }
-  ASS ERT(FALSE);
+  ASSERT(FALSE);
   return 0;
 }
 extern char *ClassFlagText[8];
@@ -2762,7 +2784,7 @@ BYTE MaxMuSpellsForEachSpellLvlByPrime[19] =
 #endif
 
 #ifdef UAFEDITOR
-const BYTE defaultMaxSpells[MAX_BASE_CLASSES][MAX_SPELL_SCHOOL][19] =
+BYTE maxSpells[MAX_BASE_CLASSES][MAX_SPELL_SCHOOL][19] =
 {
   // Fighter
   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -3076,7 +3098,7 @@ BYTE GetMaxSpellsForSpellLvlPrime(WORD CharClassFlag, BYTE prime)
   case PaladinFlag:   return MaxPaladinSpellsForEachSpellLvlByPrime[prime];
   case RangerFlag:    return MaxRangerSpellsForEachSpellLvlByPrime[prime];
   case DruidFlag:     return MaxDruidSpellsForEachSpellLvlByPrime[prime];
-  default: ASS ERT(FALSE);
+  default: ASSERT(FALSE);
   }
   return 0;
 }
@@ -3104,7 +3126,7 @@ BYTE MaxSpellCount_BaseclassSchoolPrime(const BASE_CLASS_DATA *pBaseclass,
   pCastingInfo = pBaseclass->PeekCastingInfo(schoolID);
   if (pCastingInfo == NULL) return 0;
   return pCastingInfo->m_maxSpells[prime-1];
-  Not Implemented(0xd321a8, false); // Need bonus spells.
+  NotImplemented(0xd321a8, false); // Need bonus spells.
 
 };
  */ 
@@ -3125,7 +3147,7 @@ BYTE GetMaxSpellLvlByPrime(WORD CharClassFlag, BYTE prime)
   case PaladinFlag:   return MaxPaladinSpellLvlByPrime[prime];
   case RangerFlag:    return MaxRangerSpellLvlByPrime[prime];
   case DruidFlag:     return MaxDruidSpellLvlByPrime[prime];
-  default: ASS ERT(FALSE);
+  default: ASSERT(FALSE);
   }
   return 0;
 }
@@ -3165,7 +3187,7 @@ BYTE GetBaseSpellLvlBySpellClass( SPLVLENTRY data, WORD SpellClassFlag )
   {
   case ClericFlag: return data.ClLvl;
   case MagicUserFlag: return data.MuLvl;
-  default: ASS ERT(FALSE);
+  default: ASSERT(FALSE);
   }
   return 0;
 }
@@ -3179,7 +3201,7 @@ int BaseSpellLvlBySpellClass( SPLVLENTRY data, int spellSchool )
   {
   case ClericSchool: return data.ClLvl;
   case MagicUserSchool: return data.MuLvl;
-  default: ASS ERT(FALSE);
+  default: ASSERT(FALSE);
   }
   return 0;
 }
@@ -3208,7 +3230,7 @@ BYTE GetBonusSpellQtyBySpellLevel( int prime, int SpellLevel, WORD CharClassFlag
   case PaladinFlag:   { if (BonusPaladinSpellsByPrime[prime].Lvl==SpellLevel) return BonusClericSpellsByPrime[prime].Qty; } break;
   case RangerFlag:    { if (BonusRangerSpellsByPrime[prime].Lvl==SpellLevel) return BonusClericSpellsByPrime[prime].Qty; } break;
   case DruidFlag:     { if (BonusDruidSpellsByPrime[prime].Lvl==SpellLevel) return BonusClericSpellsByPrime[prime].Qty; } break;
-  default: ASS ERT(FALSE);
+  default: ASSERT(FALSE);
   }
   return 0;
 }
@@ -3265,7 +3287,7 @@ BYTE BaseSpellCount(const BASE_CLASS_DATA *pBaseclass,
   case PaladinFlag:   return GetBaseSpellLvlBySpellClass( BasePaladinSpellLvls[CharLevel][SpellLevel], CastingClassFlag);
   case RangerFlag:    return GetBaseSpellLvlBySpellClass( BaseRangerSpellLvls[CharLevel][SpellLevel],  CastingClassFlag);
   case DruidFlag:     return GetBaseSpellLvlBySpellClass( BaseDruidSpellLvls[CharLevel][SpellLevel],   CastingClassFlag);
-  default: ASS ERT(FALSE);
+  default: ASSERT(FALSE);
   }
 */
   // Find the BASE_CLASS_DATA for this charBaseclass;
@@ -3302,7 +3324,7 @@ BYTE BaseSpellLvl(int charBaseClass, int spellSchool, int charLevel, int spellLe
   case Paladin:   return BaseSpellLvlBySpellClass( BasePaladinSpellLvls[charLevel][spellLevel], spellSchool);
   case Ranger:    return BaseSpellLvlBySpellClass( BaseRangerSpellLvls[charLevel][spellLevel],  spellSchool);
   case Druid:     return BaseSpellLvlBySpellClass( BaseDruidSpellLvls[charLevel][spellLevel],   spellSchool);
-  default: ASS ERT(FALSE);
+  default: ASSERT(FALSE);
   }
   return 0;
 }
@@ -3417,10 +3439,10 @@ WORD GetSpellCastingSchoolForCharBaseclass(WORD CharBaseClassFlag)
   case PaladinFlag:   return ClericFlag;
   case RangerFlag:    return ClericFlag;//they should be able to use MU spells as well
   case DruidFlag:     return ClericFlag;//return DruidFlag;
-  default: ASS ERT(FALSE);
+  default: ASSERT(FALSE);
   }
   return ClericFlag;
-*/ /* Really */ NotImplemented(0xfd5ab7, false); return 0;
+*/ NotImplemented(0xfd5ab7, false); return 0;
 
 
 }
@@ -3444,7 +3466,7 @@ void GetSpellClasses(classType CharClass, WORD &c1, WORD &c2, WORD &c3)
         c2=flag;
       else if (c3==0)
         c3=flag;
-      else ASS ERT(FALSE); // shouldn't be more than 3 classes in CharClass!
+      else ASSERT(FALSE); // shouldn't be more than 3 classes in CharClass!
     }
   }
   // at least one must be valid
@@ -3525,36 +3547,19 @@ void spellLimitsType::Serialize(CArchive &ar, double version)
 #endif
     if (version < _VERSION_0780_)
     {
-#ifdef UAFEDITOR
-      /* *********** PRS 20191207  The following 'if' is
-                     an attempt to read an old version 0.5751 game
-                     named "The Last Days of Autumn".
-                     I am totally guessing at the version number for the
-                     'if' statement.  I know that the game "Fury" was version 0.831
-                     and it worked OK with the later code.  So something changed
-                     between these two versions.  ***** */
-      // An old version of the editor does 
-      // this for all versions < 0.780
-      // if (version < 0.576)
-      if (1)
+/*
+  	  BYTE  maxSpellLevel[NumBaseClass];
+      BYTE  maxSpells[NumBaseClass];
+	    BYTE  maxSpellsPerLevel[NumBaseClass][MAX_SPELL_LEVEL];
+      for (i=0;i<NumBaseClass;i++)
       {
-        BYTE  maxSpellLevel[NumBaseClass];
-        BYTE  maxSpells[NumBaseClass];
-        BYTE  maxSpellsPerLevel[NumBaseClass][MAX_SPELL_LEVEL];
-        int i;
-        for (i = 0; i < NumBaseClass; i++)
-        {
-          ar >> maxSpellLevel[i];
-          ar >> maxSpells[i];
-          for (int j = 0; j < MAX_SPELL_LEVEL; j++)
-            ar >> maxSpellsPerLevel[i][j];
-        };
+        ar >> maxSpellLevel[i];
+        ar >> maxSpells[i];
+        for (int j=0;j<MAX_SPELL_LEVEL;j++)
+          ar >> maxSpellsPerLevel[i][j];
       }
-      else
-#endif
-      {
-        /* Really */  NotImplemented(0xac4cdb, false);
-      };
+*/
+      NotImplemented(0xac4cdb, false);
     }
     else
     {
@@ -3639,7 +3644,7 @@ void spellLimitsType::Serialize(CAR &car, double version)
           ar >> maxSpellsPerLevel[i][j];
       }
 */
-      /* Really */ NotImplemented(0xbcbffa, false);
+      NotImplemented(0xbcbffa, false);
     }
     else
     {
@@ -3932,7 +3937,7 @@ BYTE spellLimitsType::MaxSpellsForLevel(const BASE_CLASS_DATA *pBaseclass,
                           CharClass, 
                           GetSpellCastingSchoolForCharBaseclass(CharClass), 
                           SpellLevel);
- Not Implemented(0x5dfdae, false); max=0;
+ NotImplemented(0x5dfdae, false); max=0;
 
 
 
@@ -3951,7 +3956,7 @@ BYTE spellLimitsType::MaxSpellsForLevel(const BASE_CLASS_DATA *pBaseclass,
     int MaxPerSpellLvl = GetMaxSpellsForSpellLvlPrime(CharClass, prime);
     if (max > MaxPerSpellLvl)
       max = MaxPerSpellLvl;
- Not Implemented(0x6d73e9, false);
+ NotImplemented(0x6d73e9, false);
 
 
 
